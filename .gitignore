@@ -1,41 +1,66 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+Pour IntelliJ IDEA, voici un .gitignore adapté et propre pour un projet Next.js + TypeScript + Docker :
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+################################
+# Dependencies
+################################
+node_modules
+.pnpm-store
+.yarn
+.yarn-cache
 
-# testing
-/coverage
+################################
+# Next.js build
+################################
+.next
+out
+dist
+build
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+################################
+# Logs
+################################
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
+*.log
 
-# env files (can opt-in for committing if needed)
-.env*
+################################
+# Environment variables
+################################
+.env.local
+!.env.example
 
-# vercel
-.vercel
-
-# typescript
+################################
+# TypeScript
+################################
 *.tsbuildinfo
-next-env.d.ts
+
+################################
+# Coverage / Tests
+################################
+coverage
+__tests__/
+tests/
+cypress/
+playwright/
+
+################################
+# IntelliJ / JetBrains
+################################
+.idea/
+*.iml
+
+################################
+# OS
+################################
+.DS_Store
+Thumbs.db
+
+################################
+# Docker
+################################
+.dockerignore
+/generated/prisma
+
+yann.md
