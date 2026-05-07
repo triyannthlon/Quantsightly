@@ -1,7 +1,7 @@
 import React from "react";
 
 import AuthMotionLayout from "@/lib/layouts/auth/motion";
-import {ThemeToggle} from "@/components/yann/header/theme-toggle";
+import {ThemeToggle} from "@/components/custom/header/theme-toggle";
 
 /********************** AuthLayout *****/
 export default function AuthLayout({children,}: { children: React.ReactNode; })

@@ -1,4 +1,4 @@
-import SignInForm from "@/components/yann/forms/auth/sign-in-form";
+import SignInForm from "@/components/custom/forms/auth/sign-in-form";
 
 /********************** SignInPage *****/
 export default function SignInPage()

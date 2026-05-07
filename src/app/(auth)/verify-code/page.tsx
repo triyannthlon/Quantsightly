@@ -1,4 +1,4 @@
-import VerifyCodeForm from "@/components/yann/forms/auth/verify-code-form";
+import VerifyCodeForm from "@/components/custom/forms/auth/verify-code-form";
 
 /********************** VerifyCodePage *****/
 export default function VerifyCodePage()

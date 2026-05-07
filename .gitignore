@@ -28,7 +28,7 @@ pnpm-debug.log*
 ################################
 # Environment variables
 ################################
-.env.local
+.env
 !.env.example
 
 ################################

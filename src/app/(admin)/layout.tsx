@@ -3,9 +3,9 @@ import { cookies } from "next/headers";
 import {AccessTokenPayload, verifyAccessToken} from "@/lib/auth/tokens";
 import DashboardMotionLayout from "@/lib/layouts/dashboard/motion";
 import {redirect} from "next/navigation";
-import AppHeader from "@/components/yann/app-shell/app-header";
+import AppHeader from "@/components/custom/app-shell/app-header";
 import {SidebarProvider} from "@/hooks/sidebar";
-import AppSidebar from "@/components/yann/app-shell/app-sidebar";
+import AppSidebar from "@/components/custom/app-shell/app-sidebar";
 import {ReactNode} from "react";
 
 

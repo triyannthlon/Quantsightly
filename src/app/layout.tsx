@@ -3,8 +3,8 @@ import React from "react";
 import {Metadata} from "next";
 import { Noto_Sans_KR } from 'next/font/google';
 import NextTopLoader from "nextjs-toploader";
-import { ThemeProvider } from "@/components/yann/ui/theme-provider"
-import {ThemeToggle} from "@/components/yann/header/theme-toggle";
+import { ThemeProvider } from "@/components/custom/ui/theme-provider"
+import {ThemeToggle} from "@/components/custom/header/theme-toggle";
 import { Toaster } from "@/components/ui/sonner";
 
 import "@/app/globals.css";
