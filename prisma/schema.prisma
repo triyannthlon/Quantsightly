@@ -7,11 +7,12 @@ datasource db {
 }
 
 model Users {
-  id        String      @id @default(cuid())
-  email     String      @unique
-  createdAt DateTime    @default(now())
-  codes     LoginCode[]
-  sessions  Session[]
+  id         String      @id @default(cuid())
+  email      String      @unique
+  createdAt  DateTime    @default(now())
+  codes      LoginCode[]
+  sessions   Session[]
+  watchlists Watchlist[]
 
   @@map("users")
 }
@@ -47,4 +48,36 @@ model LoginCode {
   @@index([userId])
   @@index([code])
   @@map("logincode")
+}
+
+model Watchlist {
+  id        BigInt @id @default(autoincrement())
+  userId    String
+  assetType String @db.VarChar(20) // "stock" | "etf" | "crypto" | "currency"
+
+  user  Users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items WatchlistItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, assetType])
+  @@index([userId])
+  @@map("watchlists")
+}
+
+model WatchlistItem {
+  id           BigInt @id @default(autoincrement())
+  watchlistId  BigInt
+  symbol       String @db.VarChar(50)
+  positionRank Int    @default(0)
+
+  watchlist Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+
+  addedAt DateTime @default(now())
+
+  @@unique([watchlistId, symbol])
+  @@index([watchlistId, positionRank])
+  @@index([symbol])
+  @@map("watchlist_items")
 }

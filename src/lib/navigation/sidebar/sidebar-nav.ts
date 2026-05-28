@@ -1,8 +1,7 @@
 // sidebar-nav.ts
-import { House, ChartNoAxesColumnIcon,Users, Settings,Omega } from "lucide-react";
+import { House, CandlestickChart, ChartNoAxesColumnIcon, Users, Settings } from "lucide-react";
 import React from "react";
-import {routes} from "@/lib/navigation/sidebar/route";
-
+import { routes } from "@/lib/navigation/sidebar/route";
 
 
 export type   NavChild = {
@@ -12,7 +11,7 @@ export type   NavChild = {
                          };
 
 export type    NavItem = {
-                               key: string; // stable key
+                               key: string;
                              label: string;
                              href?: string;
                               icon: React.ComponentType<{ className?: string }>;
@@ -28,16 +27,27 @@ export type NavSection = {
 
 export const NAV = [
                    {
-                   title: "Main",
+                   title: "Principal",
                    items: [
                           {
                             key: "home"          ,
-                          label: "Home"          ,
+                          label: "Accueil"       ,
                            href: routes.dashboard,
                            icon: House           ,
                           },
                           {
-                               key: "Item 1",
+                               key: "screener"        ,
+                             label: "Screener"        ,
+                              icon: CandlestickChart   ,
+                          children: [
+                                    { label: "Actions"       , href: routes.screener.stock    },
+                                    { label: "ETF"           , href: routes.screener.etf      },
+                                    { label: "Cryptomonnaies", href: routes.screener.crypto   },
+                                    { label: "Devises"       , href: routes.screener.currency },
+                                    ],
+                          },
+                          {
+                               key: "item_1",
                              label: "Item 1",
                               icon: ChartNoAxesColumnIcon,
                           children: [
@@ -48,35 +58,24 @@ export const NAV = [
                                     { label: "Page 5", href: routes.items.item_1.page_5 },
                                     ],
                           },
-                          {
-                               key: "Item 2",
-                             label: "Item 2",
-                              icon: Omega       ,
-                          children: [
-                                    { label: "Page 1", href: routes.items.item_2.page_1   },
-                                    { label: "Page 2", href: routes.items.item_2.page_2   },
-                                    { label: "Page 3", href: routes.items.item_2.page_3   },
-                                    ],
-                          },
                           ],
                    },
 
                    {
-                   title: "Management",
+                   title: "Gestion",
                    items: [
                           {
                             key: "users"                ,
-                          label: "Users"                ,
+                          label: "Utilisateurs"         ,
                            href: routes.management.users,
                            icon: Users                  ,
                           },
                           {
-                            key: "settings",
-                          label: "Settings",
+                            key: "settings"                ,
+                          label: "Paramètres"              ,
                            href: routes.management.settings,
-                           icon: Settings,
+                           icon: Settings                  ,
                           },
                           ],
                   },
                   ];
-

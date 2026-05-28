@@ -2,6 +2,15 @@
 export const routes = {
                       dashboard: "/home",
 
+                       screener: {
+                                    root: `/screener`         ,
+                                   stock: `/screener/stock`   ,
+                                     etf: `/screener/etf`     ,
+                                  crypto: `/screener/crypto`  ,
+                                currency: `/screener/currency`,
+                                },
+
+
                       items: {
                                 root: `/items`,
 
@@ -14,13 +23,7 @@ export const routes = {
                                         page_5: `/items/item_1/page_5`,
                                         },
 
-                                item_2: {
-                                          root: `/items/item_2`       ,
-                                        page_1: `/items/item_2/page_1`,
-                                        page_2: `/items/item_2/page_2`,
-                                        page_3: `/items/item_2/page_3`,
-                                        },
-                                },
+                            },
 
                      management: {
                                      root: `/management`,

@@ -38,6 +38,14 @@ function extractSessionID(token: string): string | null
          }//extractSessionID
 
 
+function denyAccess(nextRequest: NextRequest, isApiRoute: boolean) {
+    if (isApiRoute) {
+        return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    return redirectToSignIn(nextRequest);
+}
+
+
 const PUBLIC_ROUTES = ["/","/sign-in", "/verify-code"];
 
 /******************** proxy *****/
@@ -46,6 +54,8 @@ export async function proxy(nextRequest: NextRequest)
 
                      const pathname = nextRequest.nextUrl.pathname;
 
+                     const isApiRoute = pathname.startsWith("/api/");
+                     
                      const isPublic = PUBLIC_ROUTES.includes(pathname);
 
                      const  accessToken = nextRequest.cookies.get( "access_token")?.value;
@@ -53,7 +63,7 @@ export async function proxy(nextRequest: NextRequest)
 
                         if(!accessToken)
                           {
-                          if (!isPublic) return redirectToSignIn(nextRequest); /* Pas de token → accès interdit aux routes privées */
+                          if (!isPublic) return denyAccess(nextRequest,isApiRoute); /* Pas de token → accès interdit aux routes privées */
                                          return NextResponse.next();
                           }
 
@@ -70,7 +80,11 @@ export async function proxy(nextRequest: NextRequest)
 
                         } catch { /* access token expiré → on tente le refresh */}
 
-                    if (!refreshToken) return logOut(nextRequest);
+                         // au lieu de : if (!refreshToken) return logOut(nextRequest);
+                         if (!refreshToken) {
+                             if (isApiRoute) return NextResponse.json({ error: "session_expired" }, { status: 401 });
+                             return logOut(nextRequest);
+                         }
 
                     const sessionID = extractSessionID(accessToken);
                       if(!sessionID)
@@ -93,9 +107,26 @@ export async function proxy(nextRequest: NextRequest)
                                                                     email: session.user.email,
                                                                       sid: session.id,}); /* Raffraîchissement OK → nouvel access_token */
 
+                    /* ─── Propagation du token rafraîchi à la requête courante ───
+                       Sans ça, la route API en aval (getCurrentUser) lirait
+                       encore l'ancien access_token expiré dans le header Cookie
+                       et renverrait 401. On réécrit le header Cookie de la
+                       requête avec les nouveaux jetons.                          */
+
+                    const requestHeaders = new Headers(nextRequest.headers);
+
+                    const rewrittenCookies = nextRequest.cookies.getAll().map((c) =>
+                          {
+                          if(c.name === "access_token" ) return `access_token=${newAccessToken}`;
+                          if(c.name === "refresh_token") return `refresh_token=${newRefreshToken}`;
+                          return `${c.name}=${c.value}`;
+                          });
+
+                    requestHeaders.set("cookie", rewrittenCookies.join("; "));
+
                     /*  Mise à jour des cookies */
 
-                     const nextResponse = NextResponse.next();
+                     const nextResponse = NextResponse.next({ request: { headers: requestHeaders } });
                            nextResponse.cookies.set("access_token",  newAccessToken, { httpOnly: true                                ,
                                                                                         secure: process.env.NODE_ENV === "production",
                                                                                       sameSite: "lax"                                ,
@@ -110,7 +141,7 @@ export async function proxy(nextRequest: NextRequest)
                     }//proxy
 
 
-export const config = {matcher: ["/","/sign-in", "/verify-code","/dashboard/:path*"],};
+export const config = {matcher: ["/","/sign-in", "/verify-code","/dashboard/:path*","/api/me/:path*"],};
 
 
 

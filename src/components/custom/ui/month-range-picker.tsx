@@ -125,7 +125,7 @@ export function MonthRangePicker({ value, onChange }: MonthRangePickerProps) {
   return (
     <div className="flex items-end gap-4">
 
-      {/* Zone Date début */}
+      {/* Zone Date de début */}
       <div className="space-y-1.5">
         <p className="text-xs text-muted-foreground">Date début</p>
         <Popover open={openFrom} onOpenChange={setOpenFrom}>
@@ -145,7 +145,7 @@ export function MonthRangePicker({ value, onChange }: MonthRangePickerProps) {
         </Popover>
       </div>
 
-      {/* Zone Date fin */}
+      {/* Zone Date de fin */}
       <div className="space-y-1.5">
         <p className="text-xs text-muted-foreground">Date fin</p>
         <Popover open={openTo} onOpenChange={setOpenTo}>
