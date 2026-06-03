@@ -3,11 +3,12 @@ export const routes = {
                       dashboard: "/home",
 
                        screener: {
-                                    root: `/screener`         ,
-                                   stock: `/screener/stock`   ,
-                                     etf: `/screener/etf`     ,
-                                  crypto: `/screener/crypto`  ,
-                                currency: `/screener/currency`,
+                                    root: `/screener`                  ,
+                                   stock: `/screener/asset-stock`      ,
+                                     etf: `/screener/asset-etf`        ,
+                                  crypto: `/screener/asset-crypto`     ,
+                                currency: `/screener/asset-currency`   ,
+                                   index: `/screener/asset-index`      ,
                                 },
 
 

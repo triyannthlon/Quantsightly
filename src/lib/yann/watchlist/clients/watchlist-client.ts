@@ -1,11 +1,17 @@
 const QS_API = process.env.NEXT_PUBLIC_QS_API_URL ?? "/qs-api";
 
-export type AssetType = "stock" | "etf" | "crypto" | "currency";
+/** Session terminée (401) → retour direct à la page de connexion. */
+function redirectToSignIn(): void {
+    if (typeof window !== "undefined") window.location.href = "/";
+}
+
+export type AssetType = "stock" | "etf" | "crypto" | "currency" | "index";
 
 export type WatchlistItem = {
     id           : string;
     symbol       : string;
     positionRank : number;
+    isFavorite   : boolean;
     addedAt      : string;
 };
 
@@ -16,7 +22,7 @@ export type WatchlistResponse = {
     count       : number;
 };
 
-export type ResolvedAsset = {
+type ResolvedAsset = {
     symbol         : string;
     name           : string;
     code          ?: string;
@@ -73,6 +79,7 @@ export async function searchCatalog(
 
 export async function getWatchlist(type: AssetType): Promise<WatchlistResponse> {
     const res = await fetch(`/api/me/watchlist/${type}`, { cache: "no-store" });
+    if (res.status === 401) { redirectToSignIn(); throw new Error("unauthorized"); }
     if (!res.ok) throw new Error(`getWatchlist ${res.status}`);
     return res.json();
 }
@@ -83,13 +90,25 @@ export async function addToWatchlist(type: AssetType, symbols: string[]): Promis
         headers : { "Content-Type": "application/json" },
         body    : JSON.stringify({ symbols }),
     });
+    if (res.status === 401) { redirectToSignIn(); throw new Error("unauthorized"); }
     if (!res.ok) throw new Error(`addToWatchlist ${res.status}`);
     return res.json();
 }
 
 export async function removeFromWatchlist(type: AssetType, itemId: string): Promise<void> {
     const res = await fetch(`/api/me/watchlist/${type}/items/${itemId}`, { method: "DELETE" });
+    if (res.status === 401) { redirectToSignIn(); throw new Error("unauthorized"); }
     if (!res.ok && res.status !== 204) throw new Error(`removeFromWatchlist ${res.status}`);
+}
+
+export async function setFavorite(type: AssetType, itemId: string, value: boolean): Promise<void> {
+    const res = await fetch(`/api/me/watchlist/${type}/items/${itemId}`, {
+        method : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body   : JSON.stringify({ isFavorite: value }),
+    });
+    if (res.status === 401) { redirectToSignIn(); throw new Error("unauthorized"); }
+    if (!res.ok && res.status !== 204) throw new Error(`setFavorite ${res.status}`);
 }
 
 // ── Resolve (API C++ via proxy /qs-api) ───────────────────────

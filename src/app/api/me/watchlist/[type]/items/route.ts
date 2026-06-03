@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { prisma } from "@/lib/prisma";
 
-const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
+const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency", "index"] as const;
 
 const PostBodySchema = z.object({
   symbols: z

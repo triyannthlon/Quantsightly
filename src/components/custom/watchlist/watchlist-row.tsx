@@ -1,85 +1,91 @@
 "use client";
 
-import Image from "next/image";
-import { MoreVertical, BarChart3, Trash2, LayoutDashboard } from "lucide-react";
+import { MoreVertical, BarChart3, Trash2, Star } from "lucide-react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import type { EnrichedWatchlistItem } from "@/lib/quantsightly/watchlist-client";
+import { cn } from "@/lib/utils";
+import type { WatchlistCellCtx, WatchlistColumnDef } from "./watchlist-table";
 
-type Props = {
-  item     : EnrichedWatchlistItem;
-  onRemoveAction : (itemId: string) => void;
+
+type Props<TRow> = {
+    ctx             : WatchlistCellCtx<TRow>;
+    columns         : WatchlistColumnDef<TRow>[];
+    onRemoveAction  : (itemId: string) => void;
+    isExpanded     ?: boolean;
+    onToggleExpand ?: () => void;
 };
 
-export function WatchlistRow({ item, onRemoveAction }: Props) {
-  return (
-    <TableRow className="group">
-      {/* Drapeau pays */}
-      <TableCell>
-        {item.countryIso2 ? (
-          <Image
-            src={`/flags/${item.countryIso2.toLowerCase()}.svg`}
-            alt={item.country ?? ""}
-            width={20}
-            height={15}
-            className="rounded-[2px] object-cover"
-          />
-        ) : (
-          <div className="w-5 h-3.75 rounded-[2px] bg-muted" />
-        )}
-      </TableCell>
 
-      {/* Nom */}
-      <TableCell className="font-medium">{item.name ?? item.symbol}</TableCell>
+export function WatchlistRow<TRow>({ ctx, columns, onRemoveAction, isExpanded, onToggleExpand }: Props<TRow>) {
 
-      {/* Symbol */}
-      <TableCell className="font-mono text-sm text-muted-foreground">{item.symbol}</TableCell>
+    const { item, onToggleFavorite } = ctx;
 
-      {/* Type */}
-      <TableCell className="text-sm text-muted-foreground">{item.assetTypeRaw ?? "—"}</TableCell>
+    return (
+        <TableRow
+            onClick={onToggleExpand}
+            className={cn(
+                "group",
+                onToggleExpand  && "cursor-pointer",
+                item.isFavorite && "bg-amber-50/60 dark:bg-amber-500/5",
+                isExpanded      && "bg-muted/40 border-b-0",
+            )}
+        >
+            {columns.map((col) => (
+                <TableCell
+                    key={col.key}
+                    className={cn(
+                        col.align === "right" && "text-right tabular-nums",
+                        col.hideSm           && "hidden md:table-cell",
+                    )}
+                >
+                    {col.cell(ctx)}
+                </TableCell>
+            ))}
 
-      {/* Devise */}
-      <TableCell className="text-sm text-muted-foreground">{item.currency ?? "—"}</TableCell>
-
-      {/* Sous-menu */}
-      <TableCell>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled className="cursor-pointer">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Visualiser
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled className="cursor-pointer">
-              <LayoutDashboard className="h-4 w-4 mr-2" />
-              Ajouter au dashboard
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive cursor-pointer"
-              onClick={() => onRemoveAction(item.id)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Retirer
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
-    </TableRow>
-  );
+            <TableCell onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem disabled className="cursor-pointer">
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Visualiser
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={onToggleFavorite}
+                        >
+                            <Star className={cn(
+                                "h-4 w-4 mr-2 transition-colors",
+                                item.isFavorite ? "fill-amber-400 text-amber-400" : "",
+                            )} />
+                            {item.isFavorite ? "Retirer du dashboard" : "Ajouter au dashboard"}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive cursor-pointer"
+                            onClick={() => onRemoveAction(item.id)}
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Retirer
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </TableCell>
+        </TableRow>
+    );
 }

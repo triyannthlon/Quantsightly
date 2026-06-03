@@ -4,19 +4,35 @@ import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWatchlist } from "@/hooks/watchlist/use-watchlist";
-import { WatchlistTable } from "@/components/custom/watchlist/watchlist-table";
+import {
+    StockWatchlistTable,
+    CryptoWatchlistTable,
+    EtfWatchlistTable,
+    IndexWatchlistTable,
+    ForexWatchlistTable,
+} from "@/components/custom/watchlist/watchlists-by-type";
 import { AssetSearchModal } from "./asset-search-modal";
-import type { AssetType } from "@/lib/quantsightly/watchlist-client";
+import { AssetTypeIcon, type AssetKind } from "./asset-type-icon";
+import type { AssetType } from "@/lib/yann/watchlist/clients/watchlist-client";
 
 const TITLES: Record<AssetType, string> = {
     stock    : "Actions",
     etf      : "ETF",
     crypto   : "Cryptomonnaies",
     currency : "Devises",
+    index    : "Indices",
+};
+
+const KIND: Record<AssetType, AssetKind> = {
+    stock    : "stock",
+    etf      : "etf",
+    crypto   : "crypto",
+    currency : "forex",
+    index    : "index",
 };
 
 export function ScreenerPage({ assetType }: { assetType: AssetType }) {
-    const { items, loading, error, remove, refresh } = useWatchlist(assetType);
+    const { items, loading, error, remove, toggleFavorite, refresh, refreshing } = useWatchlist(assetType);
     const [searchOpen, setSearchOpen] = useState(false);
 
     // Raccourci ⌘K / Ctrl+K pour ouvrir la modale
@@ -32,16 +48,18 @@ export function ScreenerPage({ assetType }: { assetType: AssetType }) {
     }, []);
 
     return (
-        <div className="p-6 max-w-5xl mx-auto">
+        <div className="px-8 py-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground">{TITLES[assetType]}</h1>
-                    {!loading && !error && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                            {items.length} actif{items.length > 1 ? "s" : ""}
+                <div className="flex items-center gap-3">
+                    <AssetTypeIcon kind={KIND[assetType]} size={40} />
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground">{TITLES[assetType]}</h1>
+                        {/* Hauteur réservée en permanence → pas de saut au (re)chargement */}
+                        <p className="text-sm text-muted-foreground mt-1 h-5">
+                            {!loading && !error ? `${items.length} actif${items.length > 1 ? "s" : ""}` : ""}
                         </p>
-                    )}
+                    </div>
                 </div>
 
                 <Button onClick={() => setSearchOpen(true)} className="gap-2 cursor-pointer">
@@ -58,9 +76,22 @@ export function ScreenerPage({ assetType }: { assetType: AssetType }) {
                 <div className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive">
                     Erreur : {error}
                 </div>
-            ) : (
-                <WatchlistTable items={items} loading={loading} onRemoveAction={remove} />
-            )}
+            ) : assetType === "stock" ? (
+                /* Pipeline yann (étape 1c) — actions */
+                <StockWatchlistTable items={items} loading={loading} listRefreshing={refreshing} onRemoveAction={remove} onToggleFavoriteAction={toggleFavorite} />
+            ) : assetType === "crypto" ? (
+                /* Pipeline yann (étape 2c) — crypto */
+                <CryptoWatchlistTable items={items} loading={loading} listRefreshing={refreshing} onRemoveAction={remove} onToggleFavoriteAction={toggleFavorite} />
+            ) : assetType === "etf" ? (
+                /* Pipeline yann (étape 3c) — ETF */
+                <EtfWatchlistTable items={items} loading={loading} listRefreshing={refreshing} onRemoveAction={remove} onToggleFavoriteAction={toggleFavorite} />
+            ) : assetType === "index" ? (
+                /* Pipeline yann (étape 4c) — indices */
+                <IndexWatchlistTable items={items} loading={loading} listRefreshing={refreshing} onRemoveAction={remove} onToggleFavoriteAction={toggleFavorite} />
+            ) : assetType === "currency" ? (
+                /* Pipeline yann (étape 5c) — forex */
+                <ForexWatchlistTable items={items} loading={loading} listRefreshing={refreshing} onRemoveAction={remove} onToggleFavoriteAction={toggleFavorite} />
+            ) : null}
 
             {/* Modale de recherche */}
             <AssetSearchModal

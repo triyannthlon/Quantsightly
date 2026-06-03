@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import Image from "next/image";
 import { Loader2, Check, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { addToWatchlist } from "@/lib/quantsightly/watchlist-client";
+import { addToWatchlist, removeFromWatchlist } from "@/lib/yann/watchlist/clients/watchlist-client";
 import {
     Command,
     CommandInput,
@@ -15,9 +16,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AssetFlag } from "./asset-flag";
+import { AssetTypeIcon, assetKind } from "./asset-type-icon";
+import { SuccessParticles } from "./success-particles";
+import { warmSymbols } from "@/lib/yann/clients/history";
 import { useCatalogSearch } from "@/hooks/watchlist/use-catalog-search";
-import type { AssetType, SearchResult } from "@/lib/quantsightly/watchlist-client";
+import type { AssetType, SearchResult } from "@/lib/yann/watchlist/clients/watchlist-client";
 
 type Props = {
     assetType          : AssetType;
@@ -32,6 +35,7 @@ const TYPE_LABELS: Record<AssetType, string> = {
     etf      : "un ETF",
     crypto   : "une cryptomonnaie",
     currency : "une devise",
+    index    : "un indice",
 };
 
 const TYPE_TITLES: Record<AssetType, string> = {
@@ -39,6 +43,15 @@ const TYPE_TITLES: Record<AssetType, string> = {
     etf      : "Rechercher un ETF",
     crypto   : "Rechercher une cryptomonnaie",
     currency : "Rechercher une devise",
+    index    : "Rechercher un indice",
+};
+
+const WATCHLIST_LABELS: Record<AssetType, string> = {
+    stock    : "Actions",
+    etf      : "ETF",
+    crypto   : "Cryptomonnaies",
+    currency : "Devises",
+    index    : "Indices",
 };
 
 function matchedViaLabel(via?: string): string | null {
@@ -53,6 +66,25 @@ function matchedViaLabel(via?: string): string | null {
     }
 }
 
+/** Icône d'un résultat : drapeau pays pour stock/ETF, pastille typée sinon. */
+function ResultIcon({ result, size = 28 }: { result: SearchResult; size?: number }) {
+    const kind = assetKind(result.exchange_code, result.type);
+
+    if ((kind === "stock" || kind === "etf") && result.country_iso2) {
+        return (
+            <Image
+                src={`/flags/${result.country_iso2.toLowerCase()}.svg`}
+                alt={result.country ?? ""}
+                width={20}
+                height={15}
+                className="rounded-[2px] object-cover"
+            />
+        );
+    }
+
+    return <AssetTypeIcon exchangeCode={result.exchange_code} typeRaw={result.type} size={size} />;
+}
+
 export function AssetSearchModal({
                                      assetType,
                                      open,
@@ -62,6 +94,8 @@ export function AssetSearchModal({
                                  }: Props) {
     const [query, setQuery] = useState("");
     const [selected, setSelected] = useState<Map<string, SearchResult>>(new Map());
+    const [particle, setParticle] = useState<{ x: number; y: number; count: number } | null>(null);
+    const addBtnRef = useRef<HTMLButtonElement>(null);
 
     const search = useCatalogSearch(query, assetType);
     const results = search.status === "success" ? search.results : [];
@@ -102,23 +136,61 @@ export function AssetSearchModal({
     const handleAdd = async () => {
         if (selectedList.length === 0) return;
 
+        // Moment 5 : particules depuis le bouton + haptic mobile (déclenchés au clic)
+        const rect = addBtnRef.current?.getBoundingClientRect();
+        if (rect) {
+            setParticle({
+                x    : rect.left + rect.width / 2,
+                y    : rect.top + rect.height / 2,
+                count: selectedList.length,
+            });
+        }
+        if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+            navigator.vibrate(10);
+        }
+
         setSubmitting(true);
         try {
             const symbols = selectedList.map((r) => r.primary_symbol);
-            await addToWatchlist(assetType, symbols);
+            const res = await addToWatchlist(assetType, symbols);
 
-            toast.success(`${symbols.length} actif${symbols.length > 1 ? "s" : ""} ajouté${symbols.length > 1 ? "s" : ""}`);
+            warmSymbols(symbols);   // pattern A : pré-chauffe le on-demand (fire-and-forget)
+
+            // IDs des lignes qu'on vient d'ajouter (pour le bouton "Annuler")
+            const addedSet   = new Set(symbols);
+            const addedItems = res.items.filter((i) => addedSet.has(i.symbol));
 
             onAddedAction?.();        // refresh la watchlist du screener
             handleOpenChange(false);  // ferme + reset
+
+            const n = symbols.length;
+            toast.success(`${n} actif${n > 1 ? "s" : ""} ajouté${n > 1 ? "s" : ""}`, {
+                description: `Ajouté${n > 1 ? "s" : ""} à « ${WATCHLIST_LABELS[assetType]} »`,
+                duration   : 7000,
+                action     : {
+                    label  : "Annuler",
+                    onClick: () => {
+                        void (async () => {
+                            try {
+                                await Promise.all(addedItems.map((i) => removeFromWatchlist(assetType, i.id)));
+                                onAddedAction?.();
+                                toast.success("Annulé");
+                            } catch {
+                                toast.error("Impossible d'annuler");
+                            }
+                        })();
+                    },
+                },
+            });
         } catch {
-            toast.error("Impossible d'ajouter ces actifs :")
+            toast.error("Impossible d'ajouter ces actifs");
         } finally {
             setSubmitting(false);
         }
     };
 
     return (
+        <>
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent
                 className="p-0 gap-0 overflow-hidden max-w-2xl top-[15%] translate-y-0 shadow-2xl"
@@ -178,11 +250,7 @@ export function AssetSearchModal({
                                             )}
                                         >
                                             <div className="shrink-0 w-7 flex justify-center">
-                                                <AssetFlag
-                                                    countryIso2={r.country_iso2}
-                                                    exchangeCode={r.exchange_code}
-                                                    code={r.code}
-                                                />
+                                                <ResultIcon result={r} />
                                             </div>
 
                                             <div className="flex-1 min-w-0">
@@ -240,11 +308,7 @@ export function AssetSearchModal({
                                         className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-background border"
                                     >
                                         <div className="shrink-0 w-6 flex justify-center">
-                                            <AssetFlag
-                                                countryIso2={r.country_iso2}
-                                                exchangeCode={r.exchange_code}
-                                                code={r.code}
-                                            />
+                                            <ResultIcon result={r} size={22} />
                                         </div>
                                         <span className="font-mono text-xs shrink-0">{r.primary_symbol}</span>
                                         <span className="text-xs text-muted-foreground truncate flex-1">{r.name}</span>
@@ -272,6 +336,7 @@ export function AssetSearchModal({
                                 Annuler
                             </Button>
                             <Button
+                                ref={addBtnRef}
                                 onClick={handleAdd}
                                 disabled={selectedList.length === 0 || submitting}
                                 className="gap-2 cursor-pointer"
@@ -288,5 +353,14 @@ export function AssetSearchModal({
                 </Command>
             </DialogContent>
         </Dialog>
+
+        {particle && (
+            <SuccessParticles
+                origin={{ x: particle.x, y: particle.y }}
+                count={particle.count}
+                onDoneAction={() => setParticle(null)}
+            />
+        )}
+        </>
     );
 }

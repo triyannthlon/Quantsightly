@@ -1,5 +1,5 @@
 // sidebar-nav.ts
-import { House, CandlestickChart, ChartNoAxesColumnIcon, Users, Settings } from "lucide-react";
+import { House, ScanSearch, ChartNoAxesColumnIcon, Users, Settings } from "lucide-react";
 import React from "react";
 import { routes } from "@/lib/navigation/sidebar/route";
 
@@ -27,7 +27,7 @@ export type NavSection = {
 
 export const NAV = [
                    {
-                   title: "Principal",
+                   title: "",
                    items: [
                           {
                             key: "home"          ,
@@ -38,10 +38,11 @@ export const NAV = [
                           {
                                key: "screener"        ,
                              label: "Screener"        ,
-                              icon: CandlestickChart   ,
+                              icon: ScanSearch   ,
                           children: [
                                     { label: "Actions"       , href: routes.screener.stock    },
                                     { label: "ETF"           , href: routes.screener.etf      },
+                                    { label: "Indices"       , href: routes.screener.index    },
                                     { label: "Cryptomonnaies", href: routes.screener.crypto   },
                                     { label: "Devises"       , href: routes.screener.currency },
                                     ],

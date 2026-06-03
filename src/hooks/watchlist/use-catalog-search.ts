@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { searchCatalog, type SearchResult } from "@/lib/quantsightly/watchlist-client";
-import type { AssetType } from "@/lib/quantsightly/watchlist-client";
+import { searchCatalog, type SearchResult } from "@/lib/yann/watchlist/clients/watchlist-client";
+import type { AssetType } from "@/lib/yann/watchlist/clients/watchlist-client";
 
 type SearchState =
     | { status: "idle" }

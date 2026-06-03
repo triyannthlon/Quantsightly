@@ -29,7 +29,7 @@ body { padding-right: 0 }
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    --background: oklch(0.9818 0.0054 95.0986);
+    --background: oklch(0.9550 0.0054 95.0986);
     --foreground: oklch(0.3438 0.0269 95.7226);
     --card: oklch(0.9818 0.0054 95.0986);
     --card-foreground: oklch(0.1908 0.0020 106.5859);
@@ -84,7 +84,7 @@ body { padding-right: 0 }
 }
 
 .dark {
-    --background: oklch(0.2679 0.0036 106.6427);
+    --background: oklch(0.2300 0.0036 106.6427);
     --foreground: oklch(0.8074 0.0142 93.0137);
     --card: oklch(0.2679 0.0036 106.6427);
     --card-foreground: oklch(0.9818 0.0054 95.0986);

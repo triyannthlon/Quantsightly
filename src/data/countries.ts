@@ -226,4 +226,60 @@ export const COUNTRIES: Country[] = [
 ];
 
 export const COUNTRIES_BY_CODE  = new Map(COUNTRIES.map(c => [c.code,  c]));
+
+
+// ─── Nom de pays EODHD (anglais) → code ISO2 ───
+// Utilisé pour les indices (INDX), dont le pays vient du nom (ex. "France")
+// et non d'un country_iso2 d'exchange.
+const EN_COUNTRY_ISO2: Record<string, string> = {
+  "USA": "US", "United States": "US",
+  "United Kingdom": "GB", "UK": "GB",
+  "France": "FR",
+  "Germany": "DE",
+  "Netherlands": "NL",
+  "Spain": "ES",
+  "Italy": "IT",
+  "Switzerland": "CH",
+  "Belgium": "BE",
+  "Sweden": "SE",
+  "Denmark": "DK",
+  "Norway": "NO",
+  "Finland": "FI",
+  "Portugal": "PT",
+  "Ireland": "IE",
+  "Austria": "AT",
+  "Luxembourg": "LU",
+  "Japan": "JP",
+  "Hong Kong": "HK",
+  "China": "CN",
+  "South Korea": "KR", "Korea": "KR",
+  "India": "IN",
+  "Taiwan": "TW",
+  "Singapore": "SG",
+  "Australia": "AU",
+  "New Zealand": "NZ",
+  "Canada": "CA",
+  "Brazil": "BR",
+  "Mexico": "MX",
+  "Argentina": "AR",
+  "South Africa": "ZA",
+  "Russia": "RU",
+  "Turkey": "TR",
+  "Poland": "PL",
+  "Greece": "GR",
+  "Israel": "IL",
+  "Saudi Arabia": "SA",
+  "United Arab Emirates": "AE",
+  "Indonesia": "ID",
+  "Thailand": "TH",
+  "Malaysia": "MY",
+  "Philippines": "PH",
+  "Vietnam": "VN",
+};
+
+/** Convertit un nom de pays EODHD (anglais) en code ISO2, ou undefined. */
+export function enCountryToIso2(name?: string | null): string | undefined {
+  if (!name) return undefined;
+  return EN_COUNTRY_ISO2[name.trim()];
+}
 export const COUNTRIES_BY_LABEL = new Map(COUNTRIES.map(c => [c.label.toLowerCase(), c]));

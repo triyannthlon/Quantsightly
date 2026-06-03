@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { prisma } from "@/lib/prisma";
 
-const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
+const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency", "index"] as const;
 
 /**
  * GET /api/me/watchlist/[type]
@@ -22,7 +22,7 @@ export async function GET(
 
   if (!ALLOWED_TYPES.includes(type as (typeof ALLOWED_TYPES)[number])) {
     return NextResponse.json(
-      { error: "invalid_type", message: "type must be stock, etf, crypto or currency" },
+      { error: "invalid_type", message: "type must be stock, etf, crypto, currency or index" },
       { status: 400 },
     );
   }
@@ -44,6 +44,7 @@ export async function GET(
       id           : i.id.toString(),
       symbol       : i.symbol,
       positionRank : i.positionRank,
+      isFavorite   : i.isFavorite,
       addedAt      : i.addedAt.toISOString(),
     })),
     count: watchlist.items.length,

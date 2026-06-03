@@ -1,86 +1,203 @@
 "use client";
 
-import { useSessions } from "@/hooks/auth/sessions/useSessions";
-import { Card, CardHeader,CardFooter, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Laptop, Smartphone, Monitor,} from "lucide-react";
-import {useRouter} from "next/navigation";
-import {ConfirmLogOutForm} from "@/components/custom/forms/auth/confirm-log-out-form";
+import Link from "next/link";
+import { Star, BarChart3 } from "lucide-react";
+import {
+    DndContext,
+    PointerSensor,
+    KeyboardSensor,
+    useSensor,
+    useSensors,
+    closestCenter,
+    type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    arrayMove,
+    rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { AssetPanel } from "@/components/custom/asset-panel/asset-panel";
+import { useDashboardFavorites, type DashboardFavorite } from "@/hooks/watchlist/use-dashboard-favorites";
 
-/********************** DashboardPage *****/
-export default function DashboardPage()
-                        {//DashboardPage
 
-                        const {session,loading,} = useSessions();
+// ── Carte sortable ─────────────────────────────────────────────
 
-                        const router = useRouter();
+function SortableCard({
+    favorite,
+    onRemove,
+}: {
+    favorite: DashboardFavorite;
+    onRemove: () => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: favorite.id });
 
-                        function getDeviceIcon(ua?: string | null)
-                                 {
-                                 if (!ua) return <Monitor className="w-5 h-5 text-muted-foreground" />;
+    const style = {
+        transform : CSS.Transform.toString(transform),
+        transition,
+        opacity   : isDragging ? 0.4 : 1,
+        zIndex    : isDragging ? 10  : undefined,
+    };
 
-                                 const lower = ua.toLowerCase();
-                                    if(lower.includes("iphone") || lower.includes("android"))                           return <Smartphone className="w-5 h-5 text-muted-foreground" />;
-                                    if(lower.includes("mac"   ) || lower.includes("windows") || lower.includes("linux"))return <Laptop     className="w-5 h-5 text-muted-foreground" />;
+    return (
+        <div ref={setNodeRef} style={style}>
+            <AssetPanel
+                item={favorite}
+                mode="card"
+                assetType={favorite.assetType}
+                onRemoveFavoriteAction={onRemove}
+                dragHandleProps={{ ...attributes, ...listeners }}
+            />
+        </div>
+    );
+}
 
-                                                                                                                        return <Monitor    className="w-5 h-5 text-muted-foreground" />;
-                                 }
 
-                       /************* logOut *****/
-                       async function logOut()
-                                      {//logOut
+// ── États de chargement / vide ─────────────────────────────────
 
-                                      await       fetch("/api/auth/log-out", { method: "POST" });
-                                            router.push("/");
+function LoadingGrid() {
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-xl border bg-card overflow-hidden">
+                    <div className="px-4 py-4 border-b flex items-center gap-3">
+                        <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-20" />
+                        </div>
+                        <Skeleton className="h-8 w-16" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 px-4 py-3">
+                        {Array.from({ length: 4 }).map((_, j) => (
+                            <div key={j} className="rounded-lg border bg-card p-3 space-y-2">
+                                <Skeleton className="h-5 w-16" />
+                                <Skeleton className="h-3 w-20" />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="px-4 pb-4 space-y-3">
+                        <Skeleton className="h-6 w-36" />
+                        <Skeleton className="h-40 w-full rounded-lg" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
 
-                                      }//logOut
+function EmptyState() {
+    return (
+        <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
+            <div className="rounded-full bg-amber-100 dark:bg-amber-500/10 p-4">
+                <Star className="h-8 w-8 text-amber-400 fill-amber-400" />
+            </div>
+            <div className="space-y-1.5 max-w-sm">
+                <p className="text-base font-semibold">Aucun favori pour l&apos;instant</p>
+                <p className="text-sm text-muted-foreground">
+                    Épinglez des actifs depuis le screener en cliquant sur l&apos;étoile
+                    <Star className="inline h-3.5 w-3.5 mx-1 fill-amber-400 text-amber-400" />
+                    pour les voir apparaître ici.
+                </p>
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center">
+                <Button variant="outline" size="sm" asChild>
+                    <Link href="/screener/asset-stock"><BarChart3 className="h-3.5 w-3.5" />Actions</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                    <Link href="/screener/asset-etf"><BarChart3 className="h-3.5 w-3.5" />ETF</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                    <Link href="/screener/asset-crypto"><BarChart3 className="h-3.5 w-3.5" />Crypto</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                    <Link href="/screener/asset-index"><BarChart3 className="h-3.5 w-3.5" />Indices</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                    <Link href="/screener/asset-currency"><BarChart3 className="h-3.5 w-3.5" />Devises</Link>
+                </Button>
+            </div>
+        </div>
+    );
+}
 
-                       if(loading )return <div className="p-6">Chargement…</div>;
 
-                       if(!session)return null;
+// ── Dashboard ──────────────────────────────────────────────────
 
-                       return (
-                              <div className="p-6 max-w-3xl mx-auto space-y-6">
-                                  {/* En-tête */}
-                                  <header className="space-y-1">
-                                      <h1 className="text-3xl font-semibold tracking-tight">
-                                          Sécurité du compte
-                                      </h1>
-                                      <p className="text-muted-foreground">
-                                          Informations sur votre session active.
-                                      </p>
-                                  </header>
+export default function DashboardForm() {
+    const { favorites, loading, error, reorder, removeFavorite } = useDashboardFavorites();
 
-                               <Separator />
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
 
-                               <Card key={session.id} className="border-primary/50 bg-primary/5">
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                 <div className="flex items-center gap-3">
-                                  {getDeviceIcon(session.userAgent)}
-                                  <CardTitle className="text-lg">Session active</CardTitle>
-                                 </div>
-                                 <Badge>Connecté</Badge>
-                                </CardHeader>
+    function handleDragEnd(event: DragEndEvent) {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
 
-                                <CardContent className="space-y-4 text-sm">
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                  <div>
-                                   <p className="text-muted-foreground">Adresse IP</p>
-                                   <p className="font-medium text-foreground">{session.ip ?? "Inconnue"}</p>
-                                  </div>
+        const oldIndex = favorites.findIndex(f => f.id === active.id);
+        const newIndex = favorites.findIndex(f => f.id === over.id);
+        if (oldIndex !== -1 && newIndex !== -1) {
+            reorder(arrayMove(favorites, oldIndex, newIndex));
+        }
+    }
 
-                                  <div>
-                                   <p className="text-muted-foreground">Connexion établie le</p>
-                                   <p className="font-medium text-foreground">{new Date(session.createdAt).toLocaleString()}</p>
-                                  </div>
-                                 </div>
-                                </CardContent>
+    return (
+        <div className="px-8 py-6 space-y-6">
 
-                                <CardFooter className="flex flex-col items-start gap-2">
-                                 <ConfirmLogOutForm onConfirmAction={logOut} />
-                                </CardFooter>
-                               </Card>
-                              </div>);
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+                {!loading && !error && (
+                    <p className="text-sm text-muted-foreground mt-1 h-5">
+                        {favorites.length === 0
+                            ? "Aucun favori"
+                            : `${favorites.length} actif${favorites.length > 1 ? "s" : ""} en suivi`}
+                    </p>
+                )}
+            </div>
 
-                        }//DashboardPage
+            {/* Contenu */}
+            {error ? (
+                <div className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive">
+                    Erreur : {error}
+                </div>
+            ) : loading ? (
+                <LoadingGrid />
+            ) : favorites.length === 0 ? (
+                <EmptyState />
+            ) : (
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext items={favorites.map(f => f.id)} strategy={rectSortingStrategy}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {favorites.map(fav => (
+                                <SortableCard
+                                    key={fav.id}
+                                    favorite={fav}
+                                    onRemove={() => void removeFavorite(fav)}
+                                />
+                            ))}
+                        </div>
+                    </SortableContext>
+                </DndContext>
+            )}
+
+        </div>
+    );
+}

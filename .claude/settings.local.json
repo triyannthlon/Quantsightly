@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(cd *)",
+      "Bash(curl *)",
+      "Bash(npx playwright *)",
+      "Bash(npx tsc *)",
+      "Bash(npm root *)",
+      "Bash(npm install *)",
+      "Bash(node *)",
+      "Bash(pnpm prisma *)",
+      "Bash(pnpm add *)"
     ]
   }
 }

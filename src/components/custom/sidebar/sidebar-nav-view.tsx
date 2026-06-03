@@ -4,7 +4,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 
 import SidebarSection from "./sidebar-section";
-import { HoverMenuProvider } from "../../../hooks/sidebar/sidebar-hover-menu";
+import { HoverMenuProvider } from "@/hooks/sidebar/sidebar-hover-menu";
 import {NAV} from "@/lib/navigation/sidebar/sidebar-nav";
 
 /********************** SidebarNav *****/

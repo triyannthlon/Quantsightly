@@ -12,7 +12,7 @@ export const sidebarItemVariants = cva( "menu-item relative select-none outline-
                                          },
                                 density: {
                                          compact: "min-h-8 px-2 py-1.5 text-[13px]",
-                                          normal: "min-h-10 px-3 py-2 text-sm",
+                                          normal: "min-h-12 px-3 py-3 text-sm",
                                          },
                               collapsed: {
                                           true: "justify-center"     ,
@@ -64,7 +64,7 @@ export const sidebarSubItemVariants = cva("menu-dropdown-item select-none outlin
                                        },
                               density: {
                                        compact: "min-h-8 pr-2 py-1.5 text-[13px]",
-                                        normal: "min-h-9 pr-3 py-2 text-sm",
+                                        normal: "min-h-11 pr-3 py-3 text-sm",
                                        },
                               },
              defaultVariants: {

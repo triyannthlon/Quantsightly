@@ -13,10 +13,14 @@ function redirectToSignIn(nextRequest: NextRequest)
 
 
 /******* logOut *****/
-function logOut(nextRequest: NextRequest)
+function logOut(nextRequest: NextRequest, isApiRoute: boolean)
          {//logOut
 
-          const nextResponse = redirectToSignIn(nextRequest);
+          /* Route API → 401 JSON (un fetch ne doit pas suivre une redirection HTML).
+             Route page → redirection vers la page de connexion.                      */
+          const nextResponse = isApiRoute
+                             ? NextResponse.json({ error: "session_expired" }, { status: 401 })
+                             : redirectToSignIn(nextRequest);
 
                 nextResponse.cookies.delete( "access_token");
                 nextResponse.cookies.delete("refresh_token");
@@ -71,7 +75,7 @@ export async function proxy(nextRequest: NextRequest)
                                                                                 const payload = await verifyAccessToken(accessToken);
                          const session = await prisma.session.findUnique({where: {id: payload.sid},select: { revokedAt: true }});
                            if(!session ||
-                               session.revokedAt) {return logOut(nextRequest);}
+                               session.revokedAt) {return logOut(nextRequest, isApiRoute);}
 
                          if(isPublic)
                            return NextResponse.redirect(new URL("/home", nextRequest.url)); /* Si connecté → empêcher l’accès aux routes publiques */
@@ -80,22 +84,22 @@ export async function proxy(nextRequest: NextRequest)
 
                         } catch { /* access token expiré → on tente le refresh */}
 
-                         // au lieu de : if (!refreshToken) return logOut(nextRequest);
+                         // au lieu de : if (!refreshToken) return logOut(nextRequest, isApiRoute);
                          if (!refreshToken) {
                              if (isApiRoute) return NextResponse.json({ error: "session_expired" }, { status: 401 });
-                             return logOut(nextRequest);
+                             return logOut(nextRequest, isApiRoute);
                          }
 
                     const sessionID = extractSessionID(accessToken);
                       if(!sessionID)
-                        return logOut(nextRequest);
+                        return logOut(nextRequest, isApiRoute);
 
                     const session = await prisma.session.findUnique({where: {id: sessionID}, include: {user: true},});
                       if(!session ||
-                          session.revokedAt) return logOut(nextRequest);
+                          session.revokedAt) return logOut(nextRequest, isApiRoute);
 
                                             const hashed = hashRefreshToken(refreshToken);
-                       if(session.refreshHash !== hashed) return logOut(nextRequest);
+                       if(session.refreshHash !== hashed) return logOut(nextRequest, isApiRoute);
 
                                                       const newRefreshToken = generateRefreshToken();
                     const newRefreshHash = hashRefreshToken(newRefreshToken);
@@ -117,7 +121,7 @@ export async function proxy(nextRequest: NextRequest)
 
                     const rewrittenCookies = nextRequest.cookies.getAll().map((c) =>
                           {
-                          if(c.name === "access_token" ) return `access_token=${newAccessToken}`;
+                          if(c.name ===  "access_token") return  `access_token=${ newAccessToken}`;
                           if(c.name === "refresh_token") return `refresh_token=${newRefreshToken}`;
                           return `${c.name}=${c.value}`;
                           });

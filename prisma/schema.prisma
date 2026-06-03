@@ -7,12 +7,13 @@ datasource db {
 }
 
 model Users {
-  id         String      @id @default(cuid())
-  email      String      @unique
-  createdAt  DateTime    @default(now())
-  codes      LoginCode[]
-  sessions   Session[]
-  watchlists Watchlist[]
+  id              String      @id @default(cuid())
+  email           String      @unique
+  createdAt       DateTime    @default(now())
+  dashboardLayout String?     // JSON : ordered array of WatchlistItem IDs
+  codes           LoginCode[]
+  sessions        Session[]
+  watchlists      Watchlist[]
 
   @@map("users")
 }
@@ -69,8 +70,9 @@ model Watchlist {
 model WatchlistItem {
   id           BigInt @id @default(autoincrement())
   watchlistId  BigInt
-  symbol       String @db.VarChar(50)
-  positionRank Int    @default(0)
+  symbol       String  @db.VarChar(50)
+  positionRank Int     @default(0)
+  isFavorite   Boolean @default(false)
 
   watchlist Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
 
