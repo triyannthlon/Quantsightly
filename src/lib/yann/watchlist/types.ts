@@ -127,7 +127,8 @@ export type EtfWatchlistRow = & { kind: "etf" } & WatchlistIdentity & CountryLoc
 export type CryptoWatchlistRow = & { kind: "crypto" } & WatchlistIdentity
                                                        & LastPrice
                                                        & ReturnsCryptoMultiHorizon
-                                                       & Distance52WHigh;
+                                                       & Distance52WHigh
+                                                       & { distanceToATH?: number };
 
 
 /**

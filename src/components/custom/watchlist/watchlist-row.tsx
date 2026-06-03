@@ -15,24 +15,24 @@ import type { WatchlistCellCtx, WatchlistColumnDef } from "./watchlist-table";
 
 
 type Props<TRow> = {
-    ctx             : WatchlistCellCtx<TRow>;
-    columns         : WatchlistColumnDef<TRow>[];
-    onRemoveAction  : (itemId: string) => void;
-    isExpanded     ?: boolean;
-    onToggleExpand ?: () => void;
+    ctx                   : WatchlistCellCtx<TRow>;
+    columns               : WatchlistColumnDef<TRow>[];
+    onRemoveAction        : (itemId: string) => void;
+    isExpanded           ?: boolean;
+    onToggleExpandAction ?: () => void;
 };
 
 
-export function WatchlistRow<TRow>({ ctx, columns, onRemoveAction, isExpanded, onToggleExpand }: Props<TRow>) {
+export function WatchlistRow<TRow>({ ctx, columns, onRemoveAction, isExpanded, onToggleExpandAction }: Props<TRow>) {
 
     const { item, onToggleFavorite } = ctx;
 
     return (
         <TableRow
-            onClick={onToggleExpand}
+            onClick={onToggleExpandAction}
             className={cn(
                 "group",
-                onToggleExpand  && "cursor-pointer",
+                onToggleExpandAction  && "cursor-pointer",
                 item.isFavorite && "bg-amber-50/60 dark:bg-amber-500/5",
                 isExpanded      && "bg-muted/40 border-b-0",
             )}

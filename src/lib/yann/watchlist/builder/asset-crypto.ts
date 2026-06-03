@@ -9,7 +9,7 @@
 import type { EodBar }                  from "@/lib/yann/analytics/metrics";
 import type { CryptoWatchlistRow }      from "../types";
 import { buildNormalizedSeries }        from "@/lib/yann";
-import { cryptoReturns, distanceTo52WHigh } from "@/lib/yann";
+import { cryptoReturns, distanceTo52WHigh, distanceToATH } from "@/lib/yann";
 
 
 
@@ -38,8 +38,9 @@ export function buildCryptoRow(inputs: CryptoBuilderInputs): CryptoWatchlistRow 
                   : undefined;
 
     // ── 3. Métriques propriétaires ───────────────────────────
-    const returns =     cryptoReturns(series);
-    const dist52w = distanceTo52WHigh(series);   // fenêtre 365 j auto en mode "calendar"
+    const returns  =    cryptoReturns(series);
+    const dist52w  = distanceTo52WHigh(series);   // fenêtre 365 j auto en mode "calendar"
+    const distATH  =    distanceToATH(series);    // sur toute la série disponible
 
     // ── 5. Assemblage ────────────────────────────────────────
     return {
@@ -57,7 +58,8 @@ export function buildCryptoRow(inputs: CryptoBuilderInputs): CryptoWatchlistRow 
         // Rendements multi-horizons (sur adjusted_close, calendrier 7j/7)
         ...returns,
 
-        // Distance (%) au plus haut 52 semaines (sur close nominal, 365 jours)
+        // Distance (%) au plus haut 52 semaines et à l'ATH (close nominal)
         distanceTo52WHigh: dist52w,
+        distanceToATH   : distATH,
     };
 }

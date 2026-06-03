@@ -271,7 +271,7 @@ export function WatchlistTable<TRow>({
                                     columns={columns}
                                     onRemoveAction={handleRemove}
                                     isExpanded={expandedId === item.id}
-                                    onToggleExpand={() => setExpandedId(id => id === item.id ? null : item.id)}
+                                    onToggleExpandAction={() => setExpandedId(id => id === item.id ? null : item.id)}
                                 />
                                 {expandedId === item.id && (
                                     <TableRow className="hover:bg-transparent border-b-0">
@@ -292,7 +292,7 @@ export function WatchlistTable<TRow>({
                                     columns={columns}
                                     onRemoveAction={handleRemove}
                                     isExpanded={expandedId === item.id}
-                                    onToggleExpand={() => setExpandedId(id => id === item.id ? null : item.id)}
+                                    onToggleExpandAction={() => setExpandedId(id => id === item.id ? null : item.id)}
                                 />
                                 {expandedId === item.id && (
                                     <TableRow className="hover:bg-transparent border-b-0">

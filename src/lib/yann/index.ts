@@ -17,7 +17,7 @@ export      { buildNormalizedSeries }                               from "./seri
 export type { FxRate, FxRateSource }                                from "./analytics/currency";
 export      { convertValue, convertSeries }                         from "./analytics/currency";
 export      { totalReturn, weekdayReturns, cryptoReturns,
-               distanceTo52WHigh, range52w,
+               distanceTo52WHigh, distanceToATH, range52w,
                computePanelMetrics }                                from "./analytics/metrics";
 export type { PanelMetrics }                                        from "./analytics/metrics";
 

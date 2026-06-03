@@ -281,6 +281,36 @@ export function distanceTo52WHigh(series: NormalizedSeries): number | undefined
        }//distanceTo52WHigh
 
 
+/************** distanceToATH *****/
+export function distanceToATH(series: NormalizedSeries): number | undefined
+       {//distanceToATH
+
+       /**
+        * Distance (en %) entre le close du jour ancre et le PLUS HAUT close
+        * observé sur TOUTE la série disponible (ATH = All-Time High).
+        *
+        * Même convention que distanceTo52WHigh (close nominal, valeur ≤ 0).
+        * Pertinent surtout pour la crypto, dont les historiques sont courts
+        * et dont l'ATH est un indicateur de marché très suivi.
+        *
+        * @returns `undefined` si la série est vide ou si l'ATH vaut 0.
+        */
+
+       const { bars } = series;
+           if (bars.length === 0) return undefined;
+
+       const lastClose = bars[bars.length - 1].close;
+
+       let athClose = -Infinity;
+           for (const b of bars) { if (b.close > athClose) athClose = b.close; }
+
+       if (athClose === -Infinity || athClose === 0) return undefined;
+
+       return (lastClose / athClose - 1) * 100;
+
+       }//distanceToATH
+
+
 /************** cryptoReturns *****/
 export function cryptoReturns(series: NormalizedSeries): { ret1d  ?: number;
                                                            ret7d  ?: number;
@@ -379,11 +409,15 @@ export function range52w(series: NormalizedSeries): { high52w?: number; low52w?:
 //   Toutes calculées sur adjusted_close.
 
 export type PanelMetrics = {
+    cumulativeReturn    ?: number;  // % — rendement total (last/first − 1)
     annualizedReturn    ?: number;  // % — CAGR sur toute la série
     annualizedVolatility?: number;  // % — écart-type annualisé des log-rendements
     maxDrawdown         ?: number;  // % ≤ 0 — pire creux pic-à-creux
     currentDrawdown     ?: number;  // % ≤ 0 — recul depuis le dernier pic
     sharpe              ?: number;  // ratio — perf ann. / vol ann. (rf = 0)
+    positiveDaysPct     ?: number;  // % — nb jours (rendement > 0) / nb jours total
+    periodHigh          ?: number;  // close le plus haut sur la période
+    periodLow           ?: number;  // close le plus bas sur la période
 };
 
 /************** computePanelMetrics *****/
@@ -401,6 +435,11 @@ export function computePanelMetrics(series: NormalizedSeries): PanelMetrics
 
        const first = real[0              ].adjusted_close;
        const last  = real[real.length - 1].adjusted_close;
+
+       // 0. Rendement cumulé (total return brut sur la période)
+       let cumulativeReturn: number | undefined;
+           if (first > 0 && last > 0)
+               cumulativeReturn = (last / first - 1) * 100;
 
        // 1. Rendement annualisé (CAGR)
        let annualizedReturn: number | undefined;
@@ -444,6 +483,25 @@ export function computePanelMetrics(series: NormalizedSeries): PanelMetrics
            if (annualizedReturn !== undefined && annualizedVolatility !== undefined && annualizedVolatility > 0)
                sharpe = annualizedReturn / annualizedVolatility;
 
-       return { annualizedReturn, annualizedVolatility, maxDrawdown, currentDrawdown, sharpe };
+       // 6. % jours haussiers (rendement journalier > 0 sur barres réelles)
+       let positiveDaysPct: number | undefined;
+           if (real.length > 1) {
+               let pos = 0;
+               for (let i = 1; i < real.length; i++)
+                   if (real[i].adjusted_close > real[i - 1].adjusted_close) pos++;
+               positiveDaysPct = (pos / (real.length - 1)) * 100;
+           }
+
+       // 7. Range période (haut/bas sur close nominal de toutes les barres)
+       let periodHigh: number | undefined;
+       let periodLow : number | undefined;
+           if (bars.length > 0) {
+               let hi = -Infinity, lo = Infinity;
+               for (const b of bars) { if (b.close > hi) hi = b.close; if (b.close < lo) lo = b.close; }
+               periodHigh = hi;
+               periodLow  = lo;
+           }
+
+       return { cumulativeReturn, annualizedReturn, annualizedVolatility, maxDrawdown, currentDrawdown, sharpe, positiveDaysPct, periodHigh, periodLow };
 
        }//computePanelMetrics

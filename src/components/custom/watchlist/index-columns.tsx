@@ -127,12 +127,12 @@ function CountryCell({ item }: IndexCellCtx) {
 
 const COL_TICKER   : IndexColumnDef = { key: "ticker",  label: "Nom"             , align: "left",  width: TICKER_COL_WIDTH, sortValue: (item)    => item.name ?? item.symbol,  cell: (ctx) => <TickerCell   {...ctx} /> };
 const COL_COUNTRY  : IndexColumnDef = { key: "country", label: "Pays"            , align: "left",  width: "w-16",                                      cell: (ctx) => <CountryCell {...ctx} /> };
-const COL_LAST     : IndexColumnDef = { key: "last",    label: "Dernier Prix"    , align: "right", sortValue: (_, row) => row?.last,   cell: (ctx) => <Value state={priceState(ctx)} align="right">{formatPrice(ctx.row?.last, ctx.row?.currency)}</Value> };
+const COL_LAST     : IndexColumnDef = { key: "last",    label: "Derniere Valeur" , align: "right", sortValue: (_, row) => row?.last,   cell: (ctx) => <Value state={priceState(ctx)} align="right">{formatPrice(ctx.row?.last, ctx.row?.currency)}</Value> };
 const COL_1D       : IndexColumnDef = { key: "r1d",     label: "1J"              , align: "right", sortValue: (_, row) => row?.ret1d,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1d}  /> };
 const COL_1W       : IndexColumnDef = { key: "r1w",     label: "1S"              , align: "right", sortValue: (_, row) => row?.ret1w,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1w}  /> };
 const COL_1M       : IndexColumnDef = { key: "r1m",     label: "1M"              , align: "right", sortValue: (_, row) => row?.ret1m,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1m}  /> };
 const COL_YTD      : IndexColumnDef = { key: "rytd",    label: "YTD"             , align: "right", sortValue: (_, row) => row?.retYtd, cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.retYtd} /> };
-const COL_DIST_52W : IndexColumnDef = { key: "d52w",    label: "Écart sommet 52S", align: "right", sortValue: (_, row) => row?.distanceTo52WHigh, hideSm: true,
+const COL_DIST_52W : IndexColumnDef = { key: "d52w",    label: "Δ sommet 52S", align: "right", sortValue: (_, row) => row?.distanceTo52WHigh, hideSm: true,
     cell: (ctx) => <Distance52W state={priceState(ctx)} pct={ctx.row?.distanceTo52WHigh} /> };
 
 

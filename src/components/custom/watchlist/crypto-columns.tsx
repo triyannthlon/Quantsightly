@@ -79,13 +79,19 @@ function Variation({ state, pct }: { state: CellState; pct?: number }) {
     );
 }
 
-/** 52W High % — sobre, sans coloration (cf. stock-columns). */
-function Distance52W({ state, pct }: { state: CellState; pct?: number }) {
-    if (state === "skeleton")                  return <Skeleton className="h-4 w-14 ml-auto" />;
-    if (state === "dash" || pct === undefined) return <span className="text-xs text-muted-foreground">—</span>;
+/** Écart sommet 52S / ATH — deux distances dans la même cellule. */
+function HighDistances({ state, dist52w, distATH }: { state: CellState; dist52w?: number; distATH?: number }) {
+    if (state === "skeleton") return <Skeleton className="h-4 w-24 ml-auto" />;
+    if (state === "dash" || dist52w === undefined) return <span className="text-xs text-muted-foreground">—</span>;
     return (
-        <span className="inline-block text-sm tabular-nums text-muted-foreground animate-in fade-in duration-300">
-            {formatPct(pct)}
+        <span className="inline-flex items-center gap-1 text-sm tabular-nums text-muted-foreground animate-in fade-in duration-300">
+            {formatPct(dist52w)}
+            {distATH !== undefined && (
+                <>
+                    <span className="text-muted-foreground/40">/</span>
+                    <span className="text-muted-foreground/70">{formatPct(distATH)}</span>
+                </>
+            )}
         </span>
     );
 }
@@ -123,8 +129,8 @@ const COL_1D       : CryptoColumnDef = { key: "r1d",     label: "1J"            
 const COL_7D       : CryptoColumnDef = { key: "r7d",     label: "1S"              , align: "right", sortValue: (_, row) => row?.ret7d,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret7d}  /> };
 const COL_30D      : CryptoColumnDef = { key: "r30d",    label: "1M"              , align: "right", sortValue: (_, row) => row?.ret30d, cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret30d} /> };
 const COL_YTD      : CryptoColumnDef = { key: "rytd",    label: "YTD"             , align: "right", sortValue: (_, row) => row?.retYtd, cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.retYtd} /> };
-const COL_DIST_52W : CryptoColumnDef = { key: "d52w",    label: "Écart sommet 52S", align: "right", sortValue: (_, row) => row?.distanceTo52WHigh, hideSm: true,
-    cell: (ctx) => <Distance52W state={priceState(ctx)} pct={ctx.row?.distanceTo52WHigh} /> };
+const COL_DIST_52W : CryptoColumnDef = { key: "d52w", label: "Δ Sommet 52S / Δ ATH", align: "right", sortValue: (_, row) => row?.distanceTo52WHigh, hideSm: true,
+    cell: (ctx) => <HighDistances state={priceState(ctx)} dist52w={ctx.row?.distanceTo52WHigh} distATH={ctx.row?.distanceToATH} /> };
 
 export const CRYPTO_COLUMNS: CryptoColumnDef[] = [
     COL_TICKER, COL_FLAG, COL_LAST,

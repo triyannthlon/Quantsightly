@@ -126,7 +126,7 @@ function FlagPairCell({ item }: ForexCellCtx) {
 
 const COL_PAIR    : ForexColumnDef = { key: "pair",    label: "Paire"       , align: "left",  width: TICKER_COL_WIDTH, sortValue: (item)    => item.name ?? item.symbol,  cell: (ctx) => <PairCell      {...ctx} /> };
 const COL_COUNTRY : ForexColumnDef = { key: "country", label: "Devises"     , align: "left",  width: "w-16",                                      cell: (ctx) => <FlagPairCell  {...ctx} /> };
-const COL_LAST    : ForexColumnDef = { key: "last",    label: "Dernier Prix", align: "right", sortValue: (_, row) => row?.last,   cell: (ctx) => <Value state={priceState(ctx)} align="right">{formatForexRate(ctx.row?.last)}</Value> };
+const COL_LAST    : ForexColumnDef = { key: "last",    label: "Dernier Taux", align: "right", sortValue: (_, row) => row?.last,   cell: (ctx) => <Value state={priceState(ctx)} align="right">{formatForexRate(ctx.row?.last)}</Value> };
 const COL_1D      : ForexColumnDef = { key: "r1d",     label: "1J"          , align: "right", sortValue: (_, row) => row?.ret1d,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1d}  /> };
 const COL_1W      : ForexColumnDef = { key: "r1w",     label: "1S"          , align: "right", sortValue: (_, row) => row?.ret1w,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1w}  /> };
 const COL_1M      : ForexColumnDef = { key: "r1m",     label: "1M"          , align: "right", sortValue: (_, row) => row?.ret1m,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1m}  /> };

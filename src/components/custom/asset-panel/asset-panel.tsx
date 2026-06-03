@@ -35,26 +35,46 @@ const PERIODS_COMPACT : Period[] = ["1M", "3M", "6M", "1A", "MAX"];
 // ── KPI ───────────────────────────────────────────────────────
 
 type KpiItem = {
-    label : string;
-    value : string;
-    sign ?: "positive" | "negative" | "neutral";
+    label     : string;
+    value     : string;
+    subValue ?: string;
+    sign     ?: "positive" | "negative" | "neutral";
 };
 
-const KPI_LABELS = ["Performance annualisée", "Volatilité annualisée", "Max DD", "DD courant", "Sharpe Ratio"];
+const KPI_LABELS = ["Perf. cumulée", "Perf. annualisée", "Volatilité ann.", "Max DD", "DD courant", "Sharpe"];
 const KPIS_DASH: KpiItem[] = KPI_LABELS.map(label => ({ label, value: "—" }));
 
-function metricsToKpis(m: PanelMetrics): KpiItem[] {
+function metricsToKpis(m: PanelMetrics, isForex = false): KpiItem[] {
     const sign = (v?: number): KpiItem["sign"] =>
         v === undefined ? undefined : v > 0 ? "positive" : v < 0 ? "negative" : "neutral";
 
-    return [
+    const lastKpi: KpiItem = isForex
+        ? {
+            label: "Jours haussiers",
+            value: m.positiveDaysPct !== undefined ? `${m.positiveDaysPct.toFixed(1)} %` : "—",
+            sign : m.positiveDaysPct !== undefined
+                       ? m.positiveDaysPct > 50 ? "positive" : m.positiveDaysPct < 50 ? "negative" : "neutral"
+                       : undefined,
+          }
+        : {
+            label: "Sharpe",
+            value: m.sharpe !== undefined ? m.sharpe.toFixed(2) : "—",
+            sign : sign(m.sharpe),
+          };
+
+    const baseKpis: KpiItem[] = [
         {
-            label: "Performance annualisée",
+            label: "Perf. cumulée",
+            value: m.cumulativeReturn    !== undefined ? formatPct(m.cumulativeReturn)                  : "—",
+            sign : sign(m.cumulativeReturn),
+        },
+        {
+            label: "Perf. annualisée",
             value: m.annualizedReturn    !== undefined ? formatPct(m.annualizedReturn)                  : "—",
             sign : sign(m.annualizedReturn),
         },
         {
-            label: "Volatilité annualisée",
+            label: "Volatilité ann.",
             value: m.annualizedVolatility !== undefined ? `${m.annualizedVolatility.toFixed(1)} %`      : "—",
         },
         {
@@ -67,12 +87,20 @@ function metricsToKpis(m: PanelMetrics): KpiItem[] {
             value: m.currentDrawdown     !== undefined ? formatPct(m.currentDrawdown)                   : "—",
             sign : m.currentDrawdown !== undefined && m.currentDrawdown < -0.5 ? "negative" : "neutral",
         },
-        {
-            label: "Sharpe Ratio",
-            value: m.sharpe              !== undefined ? m.sharpe.toFixed(2)                            : "—",
-            sign : sign(m.sharpe),
-        },
+        lastKpi,
     ];
+
+    if (isForex) {
+        const rangePct = m.periodHigh !== undefined && m.periodLow !== undefined && m.periodLow > 0
+            ? ((m.periodHigh - m.periodLow) / m.periodLow) * 100
+            : undefined;
+        baseKpis.push({
+            label: "Range période",
+            value: rangePct !== undefined ? `+${rangePct.toFixed(2)} %` : "—",
+        });
+    }
+
+    return baseKpis;
 }
 
 
@@ -82,25 +110,33 @@ function KpiGrid({ kpis, cols, loading = false }: { kpis: KpiItem[]; cols: numbe
     return (
         <div className={cn(
             "grid gap-2 px-4 py-3",
-            cols === 5 && "grid-cols-5",
+            cols === 7 && "grid-cols-7",
+            cols === 6 && "grid-cols-6",
             cols === 4 && "grid-cols-2",
         )}>
             {kpis.map((kpi) => (
                 <div
                     key={kpi.label}
-                    className="rounded-lg bg-card border border-border/60 shadow-xs px-3 pt-3 pb-2.5 flex flex-col justify-between gap-2"
+                    className="rounded-lg bg-card border border-border/60 shadow-xs px-3 pt-3 pb-2.5 flex flex-col justify-between gap-1.5"
                 >
                     {loading
                         ? <Skeleton className="h-6 w-16" />
                         : (
-                            <span className={cn(
-                                "text-[18px] font-bold tabular-nums leading-none",
-                                kpi.sign === "positive" && "text-success-700 dark:text-success-400",
-                                kpi.sign === "negative" && "text-error-700   dark:text-error-400",
-                                !kpi.sign              && "text-foreground",
-                            )}>
-                                {kpi.value}
-                            </span>
+                            <div className="flex flex-col gap-0.5">
+                                <span className={cn(
+                                    "text-[18px] font-bold tabular-nums leading-none",
+                                    kpi.sign === "positive" && "text-success-700 dark:text-success-400",
+                                    kpi.sign === "negative" && "text-error-700   dark:text-error-400",
+                                    !kpi.sign              && "text-foreground",
+                                )}>
+                                    {kpi.value}
+                                </span>
+                                {kpi.subValue && (
+                                    <span className="text-xs tabular-nums text-muted-foreground leading-none">
+                                        {kpi.subValue}
+                                    </span>
+                                )}
+                            </div>
                         )
                     }
                     <span className="text-[11px] font-medium text-muted-foreground select-none leading-none">
@@ -276,19 +312,21 @@ function AssetPanelInline({ item, onCloseAction }: Omit<Props, "mode" | "assetTy
     const loading               = status === "loading";
     const gradId                = `grad-${item.symbol.replace(/[^a-zA-Z0-9]/g, "-")}`;
 
+    const isForex = item.exchangeCode === "FOREX";
+
     const metrics = useMemo<PanelMetrics | null>(() => {
         if (!series) return null;
         const filtered = filterByPeriod(series, period);
         return computePanelMetrics({ kind: series.kind, bars: filtered, source: series.source });
     }, [series, period]);
 
-    const kpis = metrics ? metricsToKpis(metrics) : KPIS_DASH;
+    const kpis = metrics ? metricsToKpis(metrics, isForex) : KPIS_DASH;
 
     return (
         <div className="bg-muted/20">
 
             {/* KPI row — pleine largeur */}
-            <KpiGrid kpis={kpis} cols={5} loading={loading} />
+            <KpiGrid kpis={kpis} cols={isForex ? 7 : 6} loading={loading} />
 
             <Separator />
 
@@ -320,6 +358,7 @@ function AssetPanelCard({ item, onRemoveFavoriteAction, dragHandleProps }: Omit<
     const { series, status }   = useAssetPanelMetrics(item);
     const loading              = status === "loading";
     const kind                 = assetKind(item.exchangeCode, item.assetTypeRaw);
+    const isForex              = item.exchangeCode === "FOREX";
 
     const metrics = useMemo<PanelMetrics | null>(() => {
         if (!series) return null;
@@ -327,7 +366,7 @@ function AssetPanelCard({ item, onRemoveFavoriteAction, dragHandleProps }: Omit<
         return computePanelMetrics({ kind: series.kind, bars: filtered, source: series.source });
     }, [series, period]);
 
-    const kpis = metrics ? metricsToKpis(metrics).slice(0, 4) : KPIS_DASH.slice(0, 4);
+    const kpis = metrics ? metricsToKpis(metrics, isForex).slice(0, 4) : KPIS_DASH.slice(0, 4);
 
     // Prix actuel + perf 1J — calculés sur la série complète (indépendants de la période)
     const { lastPrice, ret1d } = useMemo(() => {
