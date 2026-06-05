@@ -10,6 +10,7 @@ import type { EodBar }                  from "@/lib/yann/analytics/metrics";
 import type { EtfWatchlistRow }         from "../types";
 import { buildNormalizedSeries }        from "@/lib/yann";
 import { weekdayReturns, distanceTo52WHigh } from "@/lib/yann";
+import { extractSparkline6m }           from "./shared";
 
 
 export type EtfBuilderInputs = {
@@ -62,5 +63,6 @@ export function buildEtfRow(inputs: EtfBuilderInputs): EtfWatchlistRow {
 
         // Distance (%) au plus haut 52 semaines
         distanceTo52WHigh: dist52w,
+        sparkline6m      : extractSparkline6m(series.bars),
     };
 }

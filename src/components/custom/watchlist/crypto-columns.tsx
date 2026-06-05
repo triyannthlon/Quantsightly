@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { AssetLogo }     from "@/components/custom/screener/asset-logo";
 import { AssetTypeIcon } from "@/components/custom/screener/asset-type-icon";
 import { FavoriteStar }  from "./favorite-star";
+import { RowSparkline }  from "./row-sparkline";
 import {
     formatPrice, formatPct,
 } from "@/lib/yann/analytics/metrics";
@@ -53,7 +54,7 @@ function priceState(ctx: CryptoCellCtx): CellState {
 function Value({ state, align, children }: { state: CellState; align?: "left" | "right"; children: ReactNode }) {
     if (state === "skeleton") return <Skeleton className={cn("h-4 w-14", align === "right" && "ml-auto")} />;
     if (state === "dash")     return <span className="text-xs text-muted-foreground">—</span>;
-    return <span className="animate-in fade-in duration-300 block truncate">{children}</span>;
+    return <span className="animate-in fade-in duration-300 block truncate tabular-nums">{children}</span>;
 }
 
 function Variation({ state, pct }: { state: CellState; pct?: number }) {
@@ -122,18 +123,25 @@ function TickerCell({ item, row, onToggleFavorite }: CryptoCellCtx) {
 
 // ── Définition des colonnes ──────────────────────────────────
 
-const COL_TICKER   : CryptoColumnDef = { key: "ticker",  label: "Nom"             , align: "left",  width: TICKER_COL_WIDTH, sortValue: (item)    => item.name ?? item.symbol,  cell: (ctx) => <TickerCell {...ctx} /> };
-const COL_FLAG     : CryptoColumnDef = { key: "flag",    label: ""                , align: "left",  width: "w-16",                                                             cell: () => null };
-const COL_LAST     : CryptoColumnDef = { key: "last",    label: "Dernier Prix"    , align: "right", sortValue: (_, row) => row?.last, cell: (ctx) => <Value state={priceState(ctx)} align="right">{formatPrice(ctx.row?.last, ctx.row?.currency)}</Value> };
-const COL_1D       : CryptoColumnDef = { key: "r1d",     label: "1J"              , align: "right", sortValue: (_, row) => row?.ret1d,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1d}  /> };
-const COL_7D       : CryptoColumnDef = { key: "r7d",     label: "1S"              , align: "right", sortValue: (_, row) => row?.ret7d,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret7d}  /> };
-const COL_30D      : CryptoColumnDef = { key: "r30d",    label: "1M"              , align: "right", sortValue: (_, row) => row?.ret30d, cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret30d} /> };
-const COL_YTD      : CryptoColumnDef = { key: "rytd",    label: "YTD"             , align: "right", sortValue: (_, row) => row?.retYtd, cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.retYtd} /> };
-const COL_DIST_52W : CryptoColumnDef = { key: "d52w", label: "Δ Sommet 52S / Δ ATH", align: "right", sortValue: (_, row) => row?.distanceTo52WHigh, hideSm: true,
+const COL_TICKER   : CryptoColumnDef = { key: "ticker",   label: "Nom"          , align: "left",  width: TICKER_COL_WIDTH, sortValue: (item)    => item.name ?? item.symbol,  cell: (ctx) => <TickerCell {...ctx} /> };
+const COL_CURRENCY : CryptoColumnDef = { key: "currency", label: "Devise"        , align: "left",  width: "w-14", sortValue: (_, row) => row?.currency,
+    cell: (ctx) => <Value state={priceState(ctx)}>{ctx.row?.currency ?? "—"}</Value> };
+const COL_LAST     : CryptoColumnDef = { key: "last",     label: "Dernier Prix"  , align: "right", sortValue: (_, row) => row?.last, cell: (ctx) => <Value state={priceState(ctx)} align="right">{formatPrice(ctx.row?.last, ctx.row?.currency)}</Value> };
+const COL_SPARKLINE : CryptoColumnDef = { key: "spk6m",  label: "6 Mois"             , align: "center", width: "w-28",
+    cell: (ctx) => (
+        <div className="w-full flex items-center justify-center">
+            {ctx.row?.sparkline6m && ctx.row.sparkline6m.length >= 2
+                ? <RowSparkline data={ctx.row.sparkline6m} symbol={ctx.item.symbol} />
+                : null}
+        </div>
+    ) };
+const COL_1D        : CryptoColumnDef = { key: "r1d",    label: "1J"                 , align: "right", sortValue: (_, row) => row?.ret1d,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1d}  /> };
+const COL_YTD       : CryptoColumnDef = { key: "rytd",   label: "YTD"                , align: "right", sortValue: (_, row) => row?.retYtd, cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.retYtd} /> };
+const COL_DIST_52W  : CryptoColumnDef = { key: "d52w",   label: "Δ Sommet 52S / Δ ATH", align: "right", sortValue: (_, row) => row?.distanceTo52WHigh, hideSm: true,
     cell: (ctx) => <HighDistances state={priceState(ctx)} dist52w={ctx.row?.distanceTo52WHigh} distATH={ctx.row?.distanceToATH} /> };
 
 export const CRYPTO_COLUMNS: CryptoColumnDef[] = [
-    COL_TICKER, COL_FLAG, COL_LAST,
-    COL_1D, COL_7D, COL_30D, COL_YTD,
+    COL_TICKER, COL_CURRENCY, COL_LAST,
+    COL_SPARKLINE, COL_1D, COL_YTD,
     COL_DIST_52W,
 ];

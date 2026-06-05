@@ -9,6 +9,7 @@ import type { EodBar }                from "@/lib/yann/analytics/metrics";
 import type { ForexWatchlistRow }     from "../types";
 import { buildNormalizedSeries }      from "@/lib/yann";
 import { weekdayReturns, range52w }   from "@/lib/yann";
+import { extractSparkline6m }         from "./shared";
 
 
 export type ForexBuilderInputs = {
@@ -83,7 +84,8 @@ export function buildForexRow(inputs: ForexBuilderInputs): ForexWatchlistRow {
         ...returns,
 
         // 52 semaines glissantes : low + high (pas de distance %)
-        high52w  : range.high52w,
-        low52w   : range.low52w,
+        high52w     : range.high52w,
+        low52w      : range.low52w,
+        sparkline6m : extractSparkline6m(series.bars),
     };
 }

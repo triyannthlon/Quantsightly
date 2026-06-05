@@ -44,7 +44,7 @@ export async function POST(req: Request)
                           const cookieStore = await cookies();
 
                                 cookieStore.set("access_token",  accessToken,{httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/",});
-                                cookieStore.set("refresh_token",refreshToken,{httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/",});
+                                cookieStore.set("refresh_token",refreshToken,{httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: SESSION_DURATION / 1000,});
 
                                      return jsonSuccess();
                           }

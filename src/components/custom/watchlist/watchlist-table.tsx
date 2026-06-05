@@ -34,13 +34,14 @@ export type WatchlistCellCtx<TRow> = {
 };
 
 export type WatchlistColumnDef<TRow> = {
-    key        : string;
-    label      : string;
-    align     ?: "left" | "right";
-    width     ?: string;
-    hideSm    ?: boolean;
-    cell       : (ctx: WatchlistCellCtx<TRow>) => ReactNode;
-    sortValue ?: (item: EnrichedWatchlistItem, row: TRow | undefined) => string | number | undefined;
+    key            : string;
+    label          : string;
+    align         ?: "left" | "center" | "right";
+    width         ?: string;
+    hideSm        ?: boolean;
+    headerClassName?: string;
+    cell           : (ctx: WatchlistCellCtx<TRow>) => ReactNode;
+    sortValue     ?: (item: EnrichedWatchlistItem, row: TRow | undefined) => string | number | undefined;
 };
 
 
@@ -58,11 +59,11 @@ function SortIcon({ active, dir }: { active: boolean; dir?: "asc" | "desc" }) {
 
 function FavoriteDivider({ colSpan }: { colSpan: number }) {
     return (
-        <TableRow className="hover:bg-transparent border-none h-0">
-            <TableCell colSpan={colSpan} className="py-0 px-4">
-                <div className="flex items-center gap-3 py-1.5">
+        <TableRow className="hover:bg-transparent border-none">
+            <TableCell colSpan={colSpan} className="py-2 px-4">
+                <div className="flex items-center gap-3">
                     <div className="flex-1 h-px bg-border/60" />
-                    <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60 select-none">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider select-none">
                         Autres
                     </span>
                     <div className="flex-1 h-px bg-border/60" />
@@ -232,7 +233,7 @@ export function WatchlistTable<TRow>({
             <div className="rounded-lg border overflow-hidden bg-card">
                 <Table className="table-fixed w-full">
                     <TableHeader>
-                        <TableRow>
+                        <TableRow className="border-b border-border">
                             {columns.map((c) => {
                                 const sortable = !!c.sortValue;
                                 const isActive = sort?.key === c.key;
@@ -241,26 +242,33 @@ export function WatchlistTable<TRow>({
                                         key={c.key}
                                         onClick={sortable ? () => handleSort(c) : undefined}
                                         className={cn(
-                                            "group select-none",
+                                            "group select-none py-3",
+                                            c.align === "right"  ? "text-right"  :
+                                            c.align === "left"   ? "text-left"   : "text-center",
                                             c.width,
-                                            c.hideSm && "hidden md:table-cell",
-                                            sortable  && "cursor-pointer hover:bg-muted/50 transition-colors",
-                                            isActive  && "text-foreground",
+                                            c.hideSm         && "hidden md:table-cell",
+                                            sortable         && "cursor-pointer hover:bg-muted/50 transition-colors",
+                                            isActive         && "text-foreground",
+                                            c.headerClassName,
                                         )}
                                     >
                                         {sortable ? (
                                             <span className={cn(
-                                                "inline-flex items-center gap-1",
-                                                c.align === "right" ? "flex-row-reverse w-full justify-start" : "",
+                                                "inline-flex items-center gap-1 w-full",
+                                                c.align === "right"  ? "justify-end"    :
+                                                c.align === "left"   ? "justify-start"  : "justify-center",
+                                                c.label.includes("\n") && "whitespace-pre-line leading-tight",
                                             )}>
                                                 {c.label}
                                                 <SortIcon active={isActive} dir={isActive ? sort!.dir : undefined} />
                                             </span>
-                                        ) : c.label}
+                                        ) : (
+                                            <span className={cn(c.label.includes("\n") && "whitespace-pre-line leading-tight")}>{c.label}</span>
+                                        )}
                                     </TableHead>
                                 );
                             })}
-                            <TableHead className="w-12" />
+                            <TableHead className="w-16" />
                         </TableRow>
                     </TableHeader>
                     <TableBody className={cn("transition-opacity duration-200", refreshing && "opacity-60")}>
@@ -274,8 +282,8 @@ export function WatchlistTable<TRow>({
                                     onToggleExpandAction={() => setExpandedId(id => id === item.id ? null : item.id)}
                                 />
                                 {expandedId === item.id && (
-                                    <TableRow className="hover:bg-transparent border-b-0">
-                                        <TableCell colSpan={columns.length + 1} className="p-0">
+                                    <TableRow className="bg-primary/[0.05] hover:bg-primary/[0.05] border-l-2 border-primary border-t-0 border-b border-primary/20">
+                                        <TableCell colSpan={columns.length + 1} className="p-0 animate-in slide-in-from-top-1 duration-200 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.2)]">
                                             <AssetPanel item={item} mode="inline" onCloseAction={() => setExpandedId(null)} />
                                         </TableCell>
                                     </TableRow>
@@ -295,8 +303,8 @@ export function WatchlistTable<TRow>({
                                     onToggleExpandAction={() => setExpandedId(id => id === item.id ? null : item.id)}
                                 />
                                 {expandedId === item.id && (
-                                    <TableRow className="hover:bg-transparent border-b-0">
-                                        <TableCell colSpan={columns.length + 1} className="p-0">
+                                    <TableRow className="bg-primary/[0.05] hover:bg-primary/[0.05] border-l-2 border-primary border-t-0 border-b border-primary/20">
+                                        <TableCell colSpan={columns.length + 1} className="p-0 animate-in slide-in-from-top-1 duration-200 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.2)]">
                                             <AssetPanel item={item} mode="inline" onCloseAction={() => setExpandedId(null)} />
                                         </TableCell>
                                     </TableRow>

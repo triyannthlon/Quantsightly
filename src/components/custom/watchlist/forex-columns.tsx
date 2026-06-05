@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { AssetLogo }     from "@/components/custom/screener/asset-logo";
 import { AssetTypeIcon } from "@/components/custom/screener/asset-type-icon";
 import { FavoriteStar }  from "./favorite-star";
+import { RowSparkline }  from "./row-sparkline";
 import { ForexPairFlags } from "@/components/custom/screener/asset-flag";
 import { formatPct, formatForexRate } from "@/lib/yann/analytics/metrics";
 import type { ForexWatchlistRow } from "@/lib/yann";
@@ -49,7 +50,7 @@ function priceState(ctx: ForexCellCtx): CellState {
 function Value({ state, align, children }: { state: CellState; align?: "left" | "right"; children: ReactNode }) {
     if (state === "skeleton") return <Skeleton className={cn("h-4 w-14", align === "right" && "ml-auto")} />;
     if (state === "dash")     return <span className="text-xs text-muted-foreground">—</span>;
-    return <span className="animate-in fade-in duration-300 block truncate">{children}</span>;
+    return <span className="animate-in fade-in duration-300 block truncate tabular-nums">{children}</span>;
 }
 
 function Variation({ state, pct }: { state: CellState; pct?: number }) {
@@ -127,15 +128,21 @@ function FlagPairCell({ item }: ForexCellCtx) {
 const COL_PAIR    : ForexColumnDef = { key: "pair",    label: "Paire"       , align: "left",  width: TICKER_COL_WIDTH, sortValue: (item)    => item.name ?? item.symbol,  cell: (ctx) => <PairCell      {...ctx} /> };
 const COL_COUNTRY : ForexColumnDef = { key: "country", label: "Devises"     , align: "left",  width: "w-16",                                      cell: (ctx) => <FlagPairCell  {...ctx} /> };
 const COL_LAST    : ForexColumnDef = { key: "last",    label: "Dernier Taux", align: "right", sortValue: (_, row) => row?.last,   cell: (ctx) => <Value state={priceState(ctx)} align="right">{formatForexRate(ctx.row?.last)}</Value> };
-const COL_1D      : ForexColumnDef = { key: "r1d",     label: "1J"          , align: "right", sortValue: (_, row) => row?.ret1d,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1d}  /> };
-const COL_1W      : ForexColumnDef = { key: "r1w",     label: "1S"          , align: "right", sortValue: (_, row) => row?.ret1w,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1w}  /> };
-const COL_1M      : ForexColumnDef = { key: "r1m",     label: "1M"          , align: "right", sortValue: (_, row) => row?.ret1m,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1m}  /> };
-const COL_YTD     : ForexColumnDef = { key: "rytd",    label: "YTD"         , align: "right", sortValue: (_, row) => row?.retYtd, cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.retYtd} /> };
-const COL_RANGE   : ForexColumnDef = { key: "range",   label: "Bas/Haut 52S", align: "right", sortValue: (_, row) => row?.high52w, hideSm: true, cell: (ctx) => <Range52W state={priceState(ctx)} low={ctx.row?.low52w} high={ctx.row?.high52w} /> };
+const COL_SPARKLINE : ForexColumnDef = { key: "spk6m",  label: "6 Mois"      , align: "center", width: "w-28",
+    cell: (ctx) => (
+        <div className="w-full flex items-center justify-center">
+            {ctx.row?.sparkline6m && ctx.row.sparkline6m.length >= 2
+                ? <RowSparkline data={ctx.row.sparkline6m} symbol={ctx.item.symbol} />
+                : null}
+        </div>
+    ) };
+const COL_1D        : ForexColumnDef = { key: "r1d",    label: "1J"          , align: "right", sortValue: (_, row) => row?.ret1d,  cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.ret1d}  /> };
+const COL_YTD       : ForexColumnDef = { key: "rytd",   label: "YTD"         , align: "right", sortValue: (_, row) => row?.retYtd, cell: (ctx) => <Variation state={priceState(ctx)} pct={ctx.row?.retYtd} /> };
+const COL_RANGE     : ForexColumnDef = { key: "range",  label: "Bas/Haut 52S", align: "right", sortValue: (_, row) => row?.high52w, hideSm: true, cell: (ctx) => <Range52W state={priceState(ctx)} low={ctx.row?.low52w} high={ctx.row?.high52w} /> };
 
 
 export const FOREX_COLUMNS: ForexColumnDef[] = [
     COL_PAIR, COL_COUNTRY, COL_LAST,
-    COL_1D, COL_1W, COL_1M, COL_YTD,
+    COL_SPARKLINE, COL_1D, COL_YTD,
     COL_RANGE,
 ];

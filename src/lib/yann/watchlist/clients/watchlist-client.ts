@@ -61,15 +61,26 @@ export type SearchResult = {
     score         ?: number;
 };
 
-// ── Recherche catalogue (API C++ via /api/search) ─────────────
+// ── Recherche catalogue ────────────────────────────────────────
+
+export type SearchFilters = {
+    country?  : string;   // ISO 3166-1 alpha-2, e.g. "FR"
+    currency? : string;   // ISO 4217, e.g. "EUR"
+    exchange? : string;   // exchange_code, e.g. "PA"
+};
 
 export async function searchCatalog(
-    query: string,
-    limit = 50,
-    type?: string,): Promise<SearchResult[]> {
+    query   : string,
+    limit   = 50,
+    type   ?: string,
+    filters?: SearchFilters,
+): Promise<SearchResult[]> {
     const qs = new URLSearchParams({ q: query.trim(), limit: String(limit) });
-    if (type) qs.set("type", type);
-    const res = await fetch(`${QS_API}/api/search?${qs.toString()}`, { cache: "no-store" });
+    if (type)              qs.set("type",     type);
+    if (filters?.country)  qs.set("country",  filters.country);
+    if (filters?.currency) qs.set("currency", filters.currency);
+    if (filters?.exchange) qs.set("exchange", filters.exchange);
+    const res = await fetch(`/api/search?${qs}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`searchCatalog ${res.status}`);
     return res.json();
 }

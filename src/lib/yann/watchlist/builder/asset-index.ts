@@ -12,6 +12,7 @@ import { buildNormalizedSeries }        from "@/lib/yann";
 import { weekdayReturns, distanceTo52WHigh } from "@/lib/yann";
 import { enCountryToIso2 }              from "@/data/countries";
 import { iso2ToRegion }                 from "@/data/regions";
+import { extractSparkline6m }           from "./shared";
 
 
 export type IndexBuilderInputs = {
@@ -74,5 +75,6 @@ export function buildIndexRow(inputs: IndexBuilderInputs): IndexWatchlistRow {
 
         // Distance (%) au plus haut 52 semaines
         distanceTo52WHigh: dist52w,
+        sparkline6m      : extractSparkline6m(series.bars),
     };
 }

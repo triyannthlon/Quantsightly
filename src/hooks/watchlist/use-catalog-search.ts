@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { searchCatalog, type SearchResult } from "@/lib/yann/watchlist/clients/watchlist-client";
+import { searchCatalog, type SearchResult, type SearchFilters } from "@/lib/yann/watchlist/clients/watchlist-client";
 import type { AssetType } from "@/lib/yann/watchlist/clients/watchlist-client";
 
 type SearchState =
@@ -13,8 +13,15 @@ type SearchState =
 const DEBOUNCE_MS = 250;
 const MIN_LENGTH  = 2;
 
-export function useCatalogSearch(query: string, type: AssetType): SearchState {
+export function useCatalogSearch(
+    query   : string,
+    type    : AssetType,
+    filters?: SearchFilters,
+): SearchState {
     const [state, setState] = useState<SearchState>({ status: "idle" });
+
+    // Stable key for filters to avoid unnecessary re-runs
+    const filtersKey = `${filters?.country ?? ""}|${filters?.currency ?? ""}|${filters?.exchange ?? ""}`;
 
     useEffect(() => {
         const trimmed = query.trim();
@@ -28,7 +35,7 @@ export function useCatalogSearch(query: string, type: AssetType): SearchState {
 
             setState({ status: "loading" });
 
-            searchCatalog(trimmed, 50, type)
+            searchCatalog(trimmed, 50, type, filters)
                 .then((results) => {
                     if (!ignore) setState({ status: "success", results });
                 })
@@ -46,7 +53,8 @@ export function useCatalogSearch(query: string, type: AssetType): SearchState {
             ignore = true;
             clearTimeout(timer);
         };
-    }, [query, type]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [query, type, filtersKey]);
 
     return state;
 }

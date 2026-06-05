@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { ChevronDownIcon, CheckIcon } from "lucide-react";
 import {DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,13 +11,6 @@ import { type Country, type CountryCode } from "@/data/countries";
 
 export type { Country, CountryCode };
 
-/******* FlagIcon *****/
-function FlagIcon({ code, label }: { code: CountryCode; label: string })
-         {//FlagIcon
-
-         return (<Image src={`/flags/${code.toLowerCase()}.svg`} alt={label} width={20} height={15} className="shrink-0 rounded-[2px] object-cover"/>);
-
-         }//FlagIcon
 
 interface CountryDropdownProps {countries   : Country[];
                                 value      ?: CountryCode;
@@ -37,7 +30,7 @@ export function CountryDropdown({ countries, value, onChange, className, placeho
         <Button variant="outline" role="combobox" className={cn("w-52 justify-between font-normal cursor-pointer", className)}>
           {selected ? (
             <span className="flex items-center gap-2">
-              <FlagIcon code={selected.code} label={selected.label} />
+              <CountryFlag code={selected.code} countryName={selected.label} size={20} />
               <span>{selected.label}</span>
             </span>
           ) : (
@@ -56,7 +49,7 @@ export function CountryDropdown({ countries, value, onChange, className, placeho
                 onSelect={() => onChange?.(country)}
                 className="flex items-center gap-2 cursor-pointer"
               >
-                <FlagIcon code={country.code} label={country.label} />
+                <CountryFlag code={country.code} countryName={country.label} size={20} />
                 <span className="flex-1">{country.label}</span>
                 {selected?.code === country.code && <CheckIcon className="size-4 text-primary" />}
               </DropdownMenuItem>

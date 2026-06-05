@@ -187,7 +187,7 @@ export const CURRENCY_FLAG: Record<string, string> = {
   BDT: "bd", BGN: "bg", BHD: "bh", BND: "bn", BOB: "bo", BRL: "br", BWP: "bw", BYN: "by",
   CAD: "ca", CHF: "ch", CLP: "cl", CNY: "cn", COP: "co", CRC: "cr", CZK: "cz",
   DKK: "dk", DZD: "dz",
-  EGP: "eg", EUR: "de",
+  EGP: "eg", EUR: "eu",
   GBP: "gb", GEL: "ge", GHS: "gh", GTQ: "gt",
   HKD: "hk", HNL: "hn", HUF: "hu",
   IDR: "id", ILS: "il", INR: "in", IQD: "iq", IRR: "ir", ISK: "is",

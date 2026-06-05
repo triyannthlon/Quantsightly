@@ -1,12 +1,19 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { ChevronUp, Star, GripVertical } from "lucide-react";
+import React, { useState, useMemo, useCallback, useId } from "react";
+import { Star, GripVertical } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { MetricCard } from "./metric-card";
+import { ChartHeader } from "./chart-header";
+import { ChartTooltip } from "./chart-tooltip";
 import {
-    AreaChart, Area, XAxis, YAxis, Tooltip as ReTooltip,
-    ResponsiveContainer,
+    AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip,
+    ResponsiveContainer, ReferenceDot,
 } from "recharts";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -17,8 +24,9 @@ import {
 } from "@/components/ui/card";
 import { AssetTypeIcon, assetKind } from "@/components/custom/screener/asset-type-icon";
 import { Skeleton } from "@/components/ui/skeleton";
+import { enCountryToIso2 } from "@/data/countries";
 import { useAssetPanelMetrics } from "@/hooks/watchlist/use-asset-panel-metrics";
-import { formatPct, formatPrice, computePanelMetrics, weekdayReturns, cryptoReturns } from "@/lib/yann/analytics/metrics";
+import { formatPct, formatPrice, computePanelMetrics, weekdayReturns, cryptoReturns, drawdownSeries } from "@/lib/yann/analytics/metrics";
 import type { PanelMetrics } from "@/lib/yann/analytics/metrics";
 import type { NormalizedSeries } from "@/lib/yann/series/types";
 import type { AssetType, EnrichedWatchlistItem } from "@/lib/yann/watchlist/clients/watchlist-client";
@@ -26,23 +34,103 @@ import type { AssetType, EnrichedWatchlistItem } from "@/lib/yann/watchlist/clie
 
 // ── Periods ───────────────────────────────────────────────────
 
-type Period = "1M" | "3M" | "6M" | "1A" | "3A" | "5A" | "MAX";
+type Period = "1M" | "3M" | "6M" | "YTD" | "1A" | "3A" | "5A" | "MAX";
 
-const PERIODS_FULL    : Period[] = ["1M", "3M", "6M", "1A", "3A", "5A", "MAX"];
-const PERIODS_COMPACT : Period[] = ["1M", "3M", "6M", "1A", "MAX"];
+const PERIODS_FULL    : Period[] = ["1M", "3M", "6M", "YTD", "1A", "3A", "5A", "MAX"];
+const PERIODS_COMPACT : Period[] = ["1M", "3M", "6M", "YTD", "1A", "MAX"];
 
 
 // ── KPI ───────────────────────────────────────────────────────
 
 type KpiItem = {
-    label     : string;
-    value     : string;
-    subValue ?: string;
-    sign     ?: "positive" | "negative" | "neutral";
+    label           : string;
+    value           : string;
+    subValue       ?: string;
+    sign           ?: "positive" | "negative" | "neutral";
+    qualLabel      ?: string;
+    qualLabelClass ?: string;
+    gaugeValue     ?: number;
+    volatilityValue?: number;
 };
 
 const KPI_LABELS = ["Perf. cumulée", "Perf. annualisée", "Volatilité ann.", "Max DD", "DD courant", "Sharpe"];
 const KPIS_DASH: KpiItem[] = KPI_LABELS.map(label => ({ label, value: "—" }));
+
+const PERIOD_LABEL: Record<Period, string> = {
+    "1M" : "sur 1 mois",
+    "3M" : "sur 3 mois",
+    "6M" : "sur 6 mois",
+    "YTD": "depuis le 1er janvier",
+    "1A" : "sur 1 an",
+    "3A" : "sur 3 ans",
+    "5A" : "sur 5 ans",
+    "MAX": "sur toute la période",
+};
+
+const PERIOD_HINT: Record<Period, string> = {
+    "1M" : "Le dernier mois",
+    "3M" : "Les 3 derniers mois",
+    "6M" : "Les 6 derniers mois",
+    "YTD": "Depuis le 1er janvier",
+    "1A" : "La dernière année",
+    "3A" : "Les 3 dernières années",
+    "5A" : "Les 5 dernières années",
+    "MAX": "Tout l'historique disponible",
+};
+
+type SparkKind = "return" | "drawdown";
+
+const SPARK_KIND: Record<string, SparkKind> = {
+    "Perf. cumulée"   : "return",
+    "Perf. annualisée": "return",
+    "Max DD"          : "drawdown",
+    "DD courant"      : "drawdown",
+};
+
+const CONTEXT_LABELS = new Set(Object.keys(SPARK_KIND));
+
+function volatilityRisk(v?: number): Pick<KpiItem, "qualLabel" | "qualLabelClass"> {
+    if (v === undefined) return {};
+    if (v < 15) return { qualLabel: "Risque faible",    qualLabelClass: "text-success-700 dark:text-success-400" };
+    if (v < 25) return { qualLabel: "Risque modéré",    qualLabelClass: "text-yellow-500" };
+    if (v < 40) return { qualLabel: "Risque élevé",     qualLabelClass: "text-orange-500" };
+    return            { qualLabel: "Risque très élevé", qualLabelClass: "text-destructive" };
+}
+
+function sharpeQual(v?: number): Pick<KpiItem, "qualLabel" | "qualLabelClass"> {
+    if (v === undefined) return {};
+    if (v < 0)  return { qualLabel: "Mauvais",   qualLabelClass: "text-destructive" };
+    if (v < 1)  return { qualLabel: "Médiocre",  qualLabelClass: "text-orange-500" };
+    if (v < 2)  return { qualLabel: "Bon",       qualLabelClass: "text-success-700 dark:text-success-400" };
+    return            { qualLabel: "Excellent",  qualLabelClass: "text-success-700 dark:text-success-400 font-bold" };
+}
+
+function enrichKpis(
+    kpis  : KpiItem[],
+    period: Period,
+    series: NormalizedSeries | null | undefined,
+    symbol: string,
+) {
+    const periodLabel  = PERIOD_LABEL[period];
+    const filteredBars = series ? filterByPeriod(series, period) : [];
+    const first        = filteredBars[0]?.adjusted_close;
+    const returnData   = first && first > 0
+        ? filteredBars.map(b => ({ date: b.date, value: (b.adjusted_close / first - 1) * 100 }))
+        : [];
+    const ddData       = drawdownSeries(filteredBars);
+    const safeSymbol   = symbol.replace(/[^a-zA-Z0-9]/g, "-");
+
+    return kpis.map((kpi, idx) => {
+        const kind      = SPARK_KIND[kpi.label];
+        const rawSpark  = kind === "return" ? returnData : kind === "drawdown" ? ddData : undefined;
+        return {
+            ...kpi,
+            context   : CONTEXT_LABELS.has(kpi.label) ? periodLabel : undefined,
+            sparkData : rawSpark && rawSpark.length >= 2 ? rawSpark : undefined,
+            gradientId: `spark-${safeSymbol}-${idx}`,
+        };
+    });
+}
 
 function metricsToKpis(m: PanelMetrics, isForex = false): KpiItem[] {
     const sign = (v?: number): KpiItem["sign"] =>
@@ -57,9 +145,11 @@ function metricsToKpis(m: PanelMetrics, isForex = false): KpiItem[] {
                        : undefined,
           }
         : {
-            label: "Sharpe",
-            value: m.sharpe !== undefined ? m.sharpe.toFixed(2) : "—",
-            sign : sign(m.sharpe),
+            label     : "Sharpe",
+            value     : m.sharpe !== undefined ? m.sharpe.toFixed(2) : "—",
+            sign      : sign(m.sharpe),
+            gaugeValue: m.sharpe,
+            ...sharpeQual(m.sharpe),
           };
 
     const baseKpis: KpiItem[] = [
@@ -74,8 +164,10 @@ function metricsToKpis(m: PanelMetrics, isForex = false): KpiItem[] {
             sign : sign(m.annualizedReturn),
         },
         {
-            label: "Volatilité ann.",
-            value: m.annualizedVolatility !== undefined ? `${m.annualizedVolatility.toFixed(1)} %`      : "—",
+            label          : "Volatilité ann.",
+            value          : m.annualizedVolatility !== undefined ? `${m.annualizedVolatility.toFixed(1)} %` : "—",
+            volatilityValue: m.annualizedVolatility,
+            ...volatilityRisk(m.annualizedVolatility),
         },
         {
             label: "Max DD",
@@ -106,47 +198,6 @@ function metricsToKpis(m: PanelMetrics, isForex = false): KpiItem[] {
 
 // ── Sub-components ────────────────────────────────────────────
 
-function KpiGrid({ kpis, cols, loading = false }: { kpis: KpiItem[]; cols: number; loading?: boolean }) {
-    return (
-        <div className={cn(
-            "grid gap-2 px-4 py-3",
-            cols === 7 && "grid-cols-7",
-            cols === 6 && "grid-cols-6",
-            cols === 4 && "grid-cols-2",
-        )}>
-            {kpis.map((kpi) => (
-                <div
-                    key={kpi.label}
-                    className="rounded-lg bg-card border border-border/60 shadow-xs px-3 pt-3 pb-2.5 flex flex-col justify-between gap-1.5"
-                >
-                    {loading
-                        ? <Skeleton className="h-6 w-16" />
-                        : (
-                            <div className="flex flex-col gap-0.5">
-                                <span className={cn(
-                                    "text-[18px] font-bold tabular-nums leading-none",
-                                    kpi.sign === "positive" && "text-success-700 dark:text-success-400",
-                                    kpi.sign === "negative" && "text-error-700   dark:text-error-400",
-                                    !kpi.sign              && "text-foreground",
-                                )}>
-                                    {kpi.value}
-                                </span>
-                                {kpi.subValue && (
-                                    <span className="text-xs tabular-nums text-muted-foreground leading-none">
-                                        {kpi.subValue}
-                                    </span>
-                                )}
-                            </div>
-                        )
-                    }
-                    <span className="text-[11px] font-medium text-muted-foreground select-none leading-none">
-                        {kpi.label}
-                    </span>
-                </div>
-            ))}
-        </div>
-    );
-}
 
 function PeriodSelector({
     value,
@@ -157,23 +208,47 @@ function PeriodSelector({
     onChange: (p: Period) => void;
     periods : Period[];
 }) {
+    const uid = useId();
     return (
-        <div className="flex gap-0.5">
-            {periods.map((p) => (
-                <Button
-                    key={p}
-                    variant={value === p ? "secondary" : "ghost"}
-                    size="xs"
-                    onClick={() => onChange(p)}
-                    className={cn(
-                        "font-mono",
-                        value !== p && "text-muted-foreground",
-                    )}
-                >
-                    {p}
-                </Button>
-            ))}
-        </div>
+        <TooltipProvider delayDuration={500}>
+            <div className="inline-flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+                {periods.map((p) => {
+                    const active = value === p;
+                    const btn = (
+                        <button
+                            onClick={() => onChange(p)}
+                            className={cn(
+                                "relative h-8 min-w-[3rem] px-3 text-sm font-medium rounded-md",
+                                "select-none cursor-pointer transition-colors duration-150",
+                                active
+                                    ? "text-foreground font-semibold"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            )}
+                        >
+                            {active && (
+                                <motion.span
+                                    layoutId={`${uid}-pill`}
+                                    className="absolute inset-0 bg-background rounded-md shadow-sm"
+                                    transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
+                                />
+                            )}
+                            <span className="relative z-10">{p}</span>
+                        </button>
+                    );
+
+                    if (active) return <React.Fragment key={p}>{btn}</React.Fragment>;
+
+                    return (
+                        <Tooltip key={p}>
+                            <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                            <TooltipContent side="top" sideOffset={6}>
+                                {PERIOD_HINT[p]}
+                            </TooltipContent>
+                        </Tooltip>
+                    );
+                })}
+            </div>
+        </TooltipProvider>
     );
 }
 
@@ -188,12 +263,13 @@ function filterByPeriod(series: NormalizedSeries, period: Period) {
     if (bars.length === 0 || period === "MAX") return bars;
     const last = bars[bars.length - 1].date;
     const d    = new Date(`${last}T00:00:00Z`);
-    if      (period === "1M") d.setUTCMonth(d.getUTCMonth()      -  1);
-    else if (period === "3M") d.setUTCMonth(d.getUTCMonth()      -  3);
-    else if (period === "6M") d.setUTCMonth(d.getUTCMonth()      -  6);
-    else if (period === "1A") d.setUTCFullYear(d.getUTCFullYear()-  1);
-    else if (period === "3A") d.setUTCFullYear(d.getUTCFullYear()-  3);
-    else if (period === "5A") d.setUTCFullYear(d.getUTCFullYear()-  5);
+    if      (period === "1M" ) d.setUTCMonth(d.getUTCMonth()       -  1);
+    else if (period === "3M" ) d.setUTCMonth(d.getUTCMonth()       -  3);
+    else if (period === "6M" ) d.setUTCMonth(d.getUTCMonth()       -  6);
+    else if (period === "YTD") { d.setUTCMonth(0); d.setUTCDate(1); }
+    else if (period === "1A" ) d.setUTCFullYear(d.getUTCFullYear() -  1);
+    else if (period === "3A" ) d.setUTCFullYear(d.getUTCFullYear() -  3);
+    else if (period === "5A" ) d.setUTCFullYear(d.getUTCFullYear() -  5);
     const from = d.toISOString().slice(0, 10);
     return bars.filter(b => b.date >= from);
 }
@@ -214,45 +290,88 @@ function chartColor(bars: ReturnType<typeof filterByPeriod>): string {
     return last > first ? COLOR_UP : last < first ? COLOR_DOWN : COLOR_FLAT;
 }
 
-function ChartTooltip({ active, payload }: {
-    active ?: boolean;
-    payload?: Array<{ payload: { date: string; value: number } }>;
-}) {
-    if (!active || !payload?.length) return null;
-    const { date, value } = payload[0].payload;
-    const d = new Date(`${date}T00:00:00Z`);
-    return (
-        <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
-            <p className="text-muted-foreground">
-                {d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
-            </p>
-            <p className="font-semibold tabular-nums mt-0.5">{value.toFixed(2)}</p>
-        </div>
-    );
+type ChartPoint = { date: string; value: number };
+
+
+// ── Helpers axes ──────────────────────────────────────────────
+
+function axisFormatPrice(value: number): string {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 10_000)    return `${(value / 1_000).toFixed(0)}k`;
+    if (value >= 1_000)     return `${(value / 1_000).toFixed(1)}k`;
+    if (value >= 100)       return value.toFixed(0);
+    if (value >= 10)        return value.toFixed(1);
+    return value.toFixed(2);
 }
 
-type ChartPoint = { date: string; value: number };
+function formatAxisDate(dateStr: string, period: Period): string {
+    const d = new Date(`${dateStr}T00:00:00Z`);
+    if (period === "1M" || period === "3M") return format(d, "d MMM",    { locale: fr });
+    if (period === "6M" || period === "1A") return format(d, "MMM",      { locale: fr });
+    return                                         format(d, "MMM yy",   { locale: fr });
+}
+
+function computeTicks(data: ChartPoint[], period: Period): string[] {
+    if (data.length <= 1) return data.map(d => d.date);
+    const n = period === "1M" ? 5 : period === "3M" ? 4 : 6;
+    const count = Math.min(n, data.length);
+    const ticks: string[] = [];
+    for (let i = 0; i < count; i++) {
+        ticks.push(data[Math.round((i / (count - 1)) * (data.length - 1))].date);
+    }
+    return [...new Set(ticks)];
+}
+
+
+// ── PriceChart ────────────────────────────────────────────────
 
 function PriceChart({
     series,
     period,
     height,
     gradientId,
+    item,
+    showHeader = false,
 }: {
-    series    : NormalizedSeries;
-    period    : Period;
-    height    : number;
-    gradientId: string;
+    series     : NormalizedSeries;
+    period     : Period;
+    height     : number;
+    gradientId : string;
+    item        : EnrichedWatchlistItem;
+    showHeader?: boolean;
 }) {
     const data: ChartPoint[] = useMemo(() => {
         const filtered = filterByPeriod(series, period);
         return decimate(filtered).map(b => ({ date: b.date, value: b.adjusted_close }));
     }, [series, period]);
 
-    const color = useMemo(() => {
+    const { color, lastPrice, perf } = useMemo(() => {
         const filtered = filterByPeriod(series, period);
-        return chartColor(filtered);
+        const c        = chartColor(filtered);
+        const lp       = filtered.length > 0 ? filtered[filtered.length - 1].adjusted_close : undefined;
+        const first    = filtered.length > 0 ? filtered[0].adjusted_close : undefined;
+        const p        = lp && first && first > 0 ? (lp / first - 1) * 100 : undefined;
+        return { color: c, lastPrice: lp, perf: p };
     }, [series, period]);
+
+    const ticks      = useMemo(() => computeTicks(data, period), [data, period]);
+    const firstValue = data[0]?.value;
+    const lastPoint  = data[data.length - 1];
+
+    const yDomain = useMemo((): [number, number] | ["auto", "auto"] => {
+        if (data.length === 0) return ["auto", "auto"];
+        const values = data.map(d => d.value);
+        const min    = Math.min(...values);
+        const max    = Math.max(...values);
+        return [min * 0.995, max * 1.005];
+    }, [data]);
+
+    const tooltipContent = useCallback(
+        (props: { active?: boolean; payload?: Array<{ payload: ChartPoint }> }) => (
+            <ChartTooltip {...props} firstValue={firstValue} currency={item.currency} />
+        ),
+        [firstValue, item.currency],
+    );
 
     if (data.length < 2) {
         return (
@@ -263,29 +382,89 @@ function PriceChart({
     }
 
     return (
-        <ResponsiveContainer width="100%" height={height}>
-            <AreaChart data={data} margin={{ top: 4, right: 2, left: 2, bottom: 4 }}>
-                <defs>
-                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor={color} stopOpacity={0.18} />
-                        <stop offset="95%" stopColor={color} stopOpacity={0}    />
-                    </linearGradient>
-                </defs>
-                <XAxis dataKey="date" hide />
-                <YAxis hide domain={["auto", "auto"]} />
-                <ReTooltip content={<ChartTooltip />} cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: "4 2" }} />
-                <Area
-                    type="linear"
-                    dataKey="value"
-                    stroke={color}
-                    strokeWidth={1.5}
-                    fill={`url(#${gradientId})`}
-                    dot={false}
-                    activeDot={{ r: 3, strokeWidth: 0, fill: color }}
-                    isAnimationActive={false}
+        <div className="pb-2">
+            {showHeader && (
+                <ChartHeader
+                    name={item.name ?? item.symbol}
+                    symbol={item.symbol}
+                    price={lastPrice}
+                    currency={item.currency}
+                    perf={perf}
+                    period={PERIOD_LABEL[period]}
+                    country={item.country}
+                    countryIso2={item.countryIso2 ?? enCountryToIso2(item.country)}
+                    exchangeCode={item.exchangeCode}
                 />
-            </AreaChart>
-        </ResponsiveContainer>
+            )}
+
+            <ResponsiveContainer width="100%" height={height}>
+                <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 10 }}>
+                    <defs>
+                        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%"  stopColor={color} stopOpacity={0.20} />
+                            <stop offset="95%" stopColor={color} stopOpacity={0}    />
+                        </linearGradient>
+                    </defs>
+
+                    <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="hsl(var(--border))"
+                        opacity={0.3}
+                        vertical={false}
+                    />
+
+                    <XAxis
+                        dataKey="date"
+                        ticks={ticks}
+                        tickFormatter={(v) => formatAxisDate(v, period)}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        stroke="var(--muted-foreground)"
+                        dy={4}
+                    />
+
+                    <YAxis
+                        tickFormatter={axisFormatPrice}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        stroke="var(--muted-foreground)"
+                        width={52}
+                        domain={yDomain}
+                        tickCount={5}
+                        dx={-2}
+                    />
+
+                    <ReTooltip
+                        content={tooltipContent}
+                        cursor={{ stroke: "hsl(var(--border))", strokeDasharray: "3 3", strokeWidth: 1 }}
+                    />
+
+                    <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={color}
+                        strokeWidth={2}
+                        fill={`url(#${gradientId})`}
+                        dot={false}
+                        activeDot={{ r: 4, fill: color, stroke: "hsl(var(--background))", strokeWidth: 2 }}
+                        isAnimationActive={false}
+                    />
+
+                    {lastPoint && (
+                        <ReferenceDot
+                            x={lastPoint.date}
+                            y={lastPoint.value}
+                            r={4}
+                            fill={color}
+                            stroke="hsl(var(--background))"
+                            strokeWidth={2}
+                        />
+                    )}
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
     );
 }
 
@@ -306,7 +485,7 @@ type Props = {
 
 // ── Mode inline (accordion screener) ─────────────────────────
 
-function AssetPanelInline({ item, onCloseAction }: Omit<Props, "mode" | "assetType" | "onRemoveFavoriteAction">) {
+function AssetPanelInline({ item }: Omit<Props, "mode" | "assetType" | "onRemoveFavoriteAction">) {
     const [period, setPeriod]   = useState<Period>("1A");
     const { series, status }    = useAssetPanelMetrics(item);
     const loading               = status === "loading";
@@ -320,29 +499,33 @@ function AssetPanelInline({ item, onCloseAction }: Omit<Props, "mode" | "assetTy
         return computePanelMetrics({ kind: series.kind, bars: filtered, source: series.source });
     }, [series, period]);
 
-    const kpis = metrics ? metricsToKpis(metrics, isForex) : KPIS_DASH;
+    const kpis         = metrics ? metricsToKpis(metrics, isForex) : KPIS_DASH;
+    const enrichedKpis = useMemo(
+        () => enrichKpis(kpis, period, series, item.symbol),
+        [kpis, period, series, item.symbol],
+    );
 
     return (
-        <div className="bg-muted/20">
+        <div className="bg-transparent">
 
             {/* KPI row — pleine largeur */}
-            <KpiGrid kpis={kpis} cols={isForex ? 7 : 6} loading={loading} />
+            <div className={cn(
+                "grid gap-3 px-4 py-4",
+                isForex ? "grid-cols-7" : "grid-cols-6",
+            )}>
+                {enrichedKpis.map((kpi) => (
+                    <MetricCard key={kpi.label} {...kpi} loading={loading} />
+                ))}
+            </div>
 
             <Separator />
 
             {/* Sélecteur période + graphique */}
             <div className="px-4 py-4 space-y-3">
-                <div className="flex items-center justify-between">
-                    <PeriodSelector value={period} onChange={setPeriod} periods={PERIODS_FULL} />
-                    {onCloseAction && (
-                        <Button variant="ghost" size="icon-sm" onClick={onCloseAction} className="text-muted-foreground" aria-label="Fermer">
-                            <ChevronUp />
-                        </Button>
-                    )}
-                </div>
+                <PeriodSelector value={period} onChange={setPeriod} periods={PERIODS_FULL} />
                 {series
-                    ? <PriceChart series={series} period={period} height={220} gradientId={gradId} />
-                    : <div className="w-full rounded-lg bg-muted/20 animate-pulse" style={{ height: 220 }} />
+                    ? <PriceChart series={series} period={period} height={160} gradientId={gradId} item={item} showHeader />
+                    : <div className="w-full rounded-lg bg-muted/20 animate-pulse" style={{ height: 160 }} />
                 }
             </div>
 
@@ -366,7 +549,11 @@ function AssetPanelCard({ item, onRemoveFavoriteAction, dragHandleProps }: Omit<
         return computePanelMetrics({ kind: series.kind, bars: filtered, source: series.source });
     }, [series, period]);
 
-    const kpis = metrics ? metricsToKpis(metrics, isForex).slice(0, 4) : KPIS_DASH.slice(0, 4);
+    const kpis         = metrics ? metricsToKpis(metrics, isForex).slice(0, 4) : KPIS_DASH.slice(0, 4);
+    const enrichedKpis = useMemo(
+        () => enrichKpis(kpis, period, series, item.symbol),
+        [kpis, period, series, item.symbol],
+    );
 
     // Prix actuel + perf 1J — calculés sur la série complète (indépendants de la période)
     const { lastPrice, ret1d } = useMemo(() => {
@@ -436,13 +623,17 @@ function AssetPanelCard({ item, onRemoveFavoriteAction, dragHandleProps }: Omit<
             </CardHeader>
 
             {/* KPI (4 métriques) */}
-            <KpiGrid kpis={kpis} cols={4} loading={loading} />
+            <div className="grid grid-cols-2 gap-3 px-4 py-3">
+                {enrichedKpis.map((kpi) => (
+                    <MetricCard key={kpi.label} {...kpi} loading={loading} />
+                ))}
+            </div>
 
             {/* Graphique */}
             <CardContent className="px-4 pt-0 pb-4 space-y-3">
                 <PeriodSelector value={period} onChange={setPeriod} periods={PERIODS_COMPACT} />
                 {series
-                    ? <PriceChart series={series} period={period} height={160} gradientId={`grad-card-${item.symbol.replace(/[^a-zA-Z0-9]/g, "-")}`} />
+                    ? <PriceChart series={series} period={period} height={160} gradientId={`grad-card-${item.symbol.replace(/[^a-zA-Z0-9]/g, "-")}`} item={item} />
                     : <div className="w-full rounded-lg bg-muted/20 animate-pulse" style={{ height: 160 }} />
                 }
             </CardContent>

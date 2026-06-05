@@ -10,6 +10,7 @@ import type { EodBar }                  from "@/lib/yann/analytics/metrics";
 import type { CryptoWatchlistRow }      from "../types";
 import { buildNormalizedSeries }        from "@/lib/yann";
 import { cryptoReturns, distanceTo52WHigh, distanceToATH } from "@/lib/yann";
+import { extractSparkline6m }           from "./shared";
 
 
 
@@ -61,5 +62,6 @@ export function buildCryptoRow(inputs: CryptoBuilderInputs): CryptoWatchlistRow 
         // Distance (%) au plus haut 52 semaines et à l'ATH (close nominal)
         distanceTo52WHigh: dist52w,
         distanceToATH   : distATH,
+        sparkline6m      : extractSparkline6m(series.bars),
     };
 }

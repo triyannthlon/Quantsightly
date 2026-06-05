@@ -87,6 +87,13 @@ export type Range52W = {
                        low52w  ?: number;
                        };
 
+export type Sparkline6M = {
+
+                          /** Série de closes ajustés sur les 6 derniers mois, prêts pour le mini-graphique en colonne. */
+
+                          sparkline6m?: { date: string; value: number }[];
+                          };
+
 export type CountryLocation = {
 
                               /** Localisation pays d'un actif (stock, ETF, index). */
@@ -105,7 +112,8 @@ export type StockWatchlistRow = & { kind: "stock" } & WatchlistIdentity & Countr
                                                                                             logoUrl?: string /* logo société (EODHD) */
                                                                                             } & LastPrice
                                                                                               & ReturnsWeekdayMultiHorizon
-                                                                                              & Distance52WHigh;
+                                                                                              & Distance52WHigh
+                                                                                              & Sparkline6M;
 
 
 /**
@@ -116,7 +124,8 @@ export type EtfWatchlistRow = & { kind: "etf" } & WatchlistIdentity & CountryLoc
                                                                                         logoUrl?: string
                                                                                         } & LastPrice
                                                                                           & ReturnsWeekdayMultiHorizon
-                                                                                          & Distance52WHigh;
+                                                                                          & Distance52WHigh
+                                                                                          & Sparkline6M;
 
 
 /**
@@ -128,7 +137,8 @@ export type CryptoWatchlistRow = & { kind: "crypto" } & WatchlistIdentity
                                                        & LastPrice
                                                        & ReturnsCryptoMultiHorizon
                                                        & Distance52WHigh
-                                                       & { distanceToATH?: number };
+                                                       & { distanceToATH?: number }
+                                                       & Sparkline6M;
 
 
 /**
@@ -140,7 +150,8 @@ export type IndexWatchlistRow = & { kind: "index" } & WatchlistIdentity & Countr
                                                                                             region ?: string; /* groupe macro déduit du pays */
                                                                                             } & LastPrice
                                                                                               & ReturnsWeekdayMultiHorizon
-                                                                                              & Distance52WHigh;
+                                                                                              & Distance52WHigh
+                                                                                              & Sparkline6M;
 
 
 /**
@@ -154,7 +165,8 @@ export type ForexWatchlistRow = & { kind: "forex" } & WatchlistIdentity & {
                                                                           quoteIso2  ?: string;    /* ISO2 du pays / zone de la devise quote (drapeau) */
                                                                           } & LastPrice
                                                                             & ReturnsWeekdayMultiHorizon
-                                                                            & Range52W;            /* ← low + high (52W Range) */
+                                                                            & Range52W             /* ← low + high (52W Range) */
+                                                                            & Sparkline6M;
 
 
 

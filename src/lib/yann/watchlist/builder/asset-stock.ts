@@ -9,6 +9,7 @@ import type { EodBar }             from "@/lib/yann/analytics/metrics";
 import type { StockWatchlistRow }  from "../types";
 import { buildNormalizedSeries }   from "@/lib/yann";
 import { weekdayReturns, distanceTo52WHigh } from "@/lib/yann";
+import { extractSparkline6m }      from "./shared";
 
 
 export type StockBuilderInputs = {
@@ -41,5 +42,6 @@ export function buildStockRow(inputs: StockBuilderInputs): StockWatchlistRow {
         lastDate    : lastBar?.date,
         ...returns,
         distanceTo52WHigh: dist52w,
+        sparkline6m      : extractSparkline6m(series.bars),
     };
 }

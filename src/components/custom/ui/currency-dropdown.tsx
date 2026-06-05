@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 import { ChevronDownIcon, CheckIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,13 +11,10 @@ import { type Currency, type CurrencyCode, CURRENCY_FLAG } from "@/data/currenci
 
 export type { Currency, CurrencyCode };
 
-/******* CurrencyFlag *****/
 function CurrencyFlag({ code, label }: { code: string; label: string }) {
   const flagCode = CURRENCY_FLAG[code];
   if (!flagCode) return null;
-  return (
-    <Image src={`/flags/${flagCode}.svg`} alt={label} width={20} height={15} className="shrink-0 rounded-[2px] object-cover" />
-  );
+  return <CountryFlag code={flagCode} countryName={label} size={20} />;
 }
 
 export { CurrencyBadge } from "@/components/custom/ui/currency-badge";

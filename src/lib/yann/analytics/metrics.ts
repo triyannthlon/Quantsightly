@@ -32,6 +32,37 @@ import type { NormalizedSeries, NormalizedBar } from "../series/types";
 export type { EodBar } from "../series/types";
 
 
+/************** drawdownSeries *****/
+export function drawdownSeries(bars: NormalizedBar[]): { date: string; value: number }[]
+       {//drawdownSeries
+
+       /**
+        * Série temporelle du drawdown roulant (en %) par rapport au pic historique
+        * courant à chaque barre.
+        *
+        * Formule : `(adjusted_close_t / max(adjusted_close_{0..t}) − 1) × 100`
+        *
+        * Retourne des valeurs ≤ 0 :
+        *   • 0     → barre au niveau du pic (nouveau sommet)
+        *   • -10   → 10 % en dessous du pic le plus récent
+        *
+        * Utilisé pour la sparkline des cards « Max DD » et « DD courant ».
+        *
+        * @param bars  Barres normalisées triées par date croissante.
+        * @returns     Tableau `{ date, value }` de même longueur que `bars`.
+        */
+
+       let peak = -Infinity;
+
+       return bars.map(b => {
+              const p = b.adjusted_close;
+                  if (p > peak) peak = p;
+              return { date: b.date, value: peak > 0 ? (p / peak - 1) * 100 : 0 };
+       });
+
+       }//drawdownSeries
+
+
 // ── Formatters ────────────────────────────────────────────────
 
 export function formatPrice(value: number | undefined, currency?: string): string {

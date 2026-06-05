@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { Coins, ChartLine, ArrowRight } from "lucide-react";
 import { CURRENCY_FLAG } from "@/data/currencies";
+import { CountryFlag } from "@/components/ui/CountryFlag";
 
 type Props = {
     countryIso2 ?: string | null;
@@ -22,27 +22,23 @@ export function ForexPairFlags({ code }: { code: string }) {
         base  = code.substring(0, 3);
         quote = code.substring(3, 6);
     } else {
-        return <div className="w-5 h-3.75 rounded-[2px] bg-muted" />;
+        return <div className="w-4 h-4 rounded-full bg-muted" />;
     }
 
-    const baseFlag  = CURRENCY_FLAG[base];
-    const quoteFlag = CURRENCY_FLAG[quote];
+    const baseCode  = CURRENCY_FLAG[base];
+    const quoteCode = CURRENCY_FLAG[quote];
 
     return (
         <div className="flex items-center gap-1">
-            {baseFlag ? (
-                <Image src={`/flags/${baseFlag}.svg`} alt={base} width={18} height={13} className="rounded-[2px] object-cover" />
-            ) : (
-                <div className="w-4.5 h-3.25 rounded-[2px] bg-muted" />
-            )}
-
+            {baseCode
+                ? <CountryFlag code={baseCode} countryName={base} size={16} />
+                : <div className="w-4 h-4 rounded-full bg-muted shrink-0" />
+            }
             <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-
-            {quoteFlag ? (
-                <Image src={`/flags/${quoteFlag}.svg`} alt={quote} width={18} height={13} className="rounded-[2px] object-cover" />
-            ) : (
-                <div className="w-4.5 h-3.25 rounded-[2px] bg-muted" />
-            )}
+            {quoteCode
+                ? <CountryFlag code={quoteCode} countryName={quote} size={16} />
+                : <div className="w-4 h-4 rounded-full bg-muted shrink-0" />
+            }
         </div>
     );
 }
@@ -71,19 +67,11 @@ export function AssetFlag({ countryIso2, exchangeCode, code }: Props) {
         );
     }
 
-    // 4. Action / ETF → drapeau pays
+    // 4. Action / ETF → drapeau pays circulaire
     if (countryIso2) {
-        return (
-            <Image
-                src={`/flags/${countryIso2.toLowerCase()}.svg`}
-                alt=""
-                width={20}
-                height={15}
-                className="rounded-[2px] object-cover"
-            />
-        );
+        return <CountryFlag code={countryIso2} size={20} />;
     }
 
-    // 4. Fallback
-    return <div className="w-5 h-3.75 rounded-[2px] bg-muted" />;
+    // 5. Fallback
+    return <div className="w-5 h-5 rounded-full bg-muted" />;
 }
