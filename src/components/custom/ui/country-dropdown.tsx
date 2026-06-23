@@ -3,7 +3,12 @@
 import * as React from "react";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { ChevronDownIcon, CheckIcon } from "lucide-react";
-import {DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,} from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,23 +16,32 @@ import { type Country, type CountryCode } from "@/data/countries";
 
 export type { Country, CountryCode };
 
-
-interface CountryDropdownProps {countries   : Country[];
-                                value      ?: CountryCode;
-                                onChange   ?: (country: Country) => void;
-                                className  ?: string;
-                                placeholder?: string;}
+interface CountryDropdownProps {
+  countries: Country[];
+  value?: CountryCode;
+  onChange?: (country: Country) => void;
+  className?: string;
+  placeholder?: string;
+}
 
 /************** CountryDropdown *****/
-export function CountryDropdown({ countries, value, onChange, className, placeholder = "Sélectionner un pays" }: CountryDropdownProps)
-       {//CountryDropdown
-
-       const selected = countries.find((c) => c.code === value) ?? null;
+export function CountryDropdown({
+  countries,
+  value,
+  onChange,
+  className,
+  placeholder = "Sélectionner un pays",
+}: CountryDropdownProps) {
+  const selected = countries.find((c) => c.code === value) ?? null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" role="combobox" className={cn("w-52 justify-between font-normal cursor-pointer", className)}>
+        <Button
+          variant="outline"
+          role="combobox"
+          className={cn("w-52 justify-between font-normal cursor-pointer", className)}
+        >
           {selected ? (
             <span className="flex items-center gap-2">
               <CountryFlag code={selected.code} countryName={selected.label} size={20} />
@@ -58,6 +72,5 @@ export function CountryDropdown({ countries, value, onChange, className, placeho
         </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
-         );
-
-       }////CountryDropdown
+  );
+} ////CountryDropdown

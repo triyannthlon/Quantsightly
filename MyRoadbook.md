@@ -1,10 +1,26 @@
-📁 Fichier 1 — src/lib/auth/get-user.ts (le helper)
-📁 Fichier 2 — src/app/api/me/watchlist/[type]/route.ts (GET)
-📁 Fichier 3 — src/app/api/me/watchlist/[type]/items/route.ts (POST)
-📁 Fichier 4 — src/app/api/me/watchlist/[type]/items/[id]/route.ts (DELETE)
+# MyRoadbook — Notes de dev Quantsightly
 
-🌳 Arborescence finale
+Carnet de bord personnel : recettes, snippets, commandes, et architecture des morceaux que tu veux pouvoir retrouver vite.
+Pour la vue d'ensemble du projet, voir [`README.md`](./README.md) et [`ONBOARDING.md`](./ONBOARDING.md).
 
+---
+
+## Sommaire
+
+1. [Watchlist API (Next.js) — création des 4 routes](#1-watchlist-api-nextjs--création-des-4-routes)
+2. [Tester la watchlist API](#2-tester-la-watchlist-api)
+3. [Handler C++ — `CatalogResolveHandler`](#3-handler-c--catalogresolvehandler)
+4. [Suite : composants frontend (étape 3 du pipeline watchlist)](#4-suite--composants-frontend-étape-3-du-pipeline-watchlist)
+
+---
+
+## 1. Watchlist API (Next.js) — création des 4 routes
+
+Quatre fichiers à créer pour exposer la watchlist côté Next.
+
+### Arborescence
+
+```
 src/
 ├── lib/
 │   └── auth/
@@ -12,32 +28,27 @@ src/
 │       └── tokens.ts            (existant)
 │
 └── app/
-└── api/
-└── me/
-└── watchlist/
-└── [type]/
-├── route.ts                  ← Fichier 2 (GET)
-└── items/
-├── route.ts              ← Fichier 3 (POST)
-└── [id]/
-└── route.ts          ← Fichier 4 (DELETE)
+    └── api/
+        └── me/
+            └── watchlist/
+                └── [type]/
+                    ├── route.ts                  ← Fichier 2 (GET)
+                    └── items/
+                        ├── route.ts              ← Fichier 3 (POST)
+                        └── [id]/
+                            └── route.ts          ← Fichier 4 (DELETE)
+```
 
-🧪 Tester rapidement
-
-OK on reprend tranquillement, étape par étape. Tu n'as **4 fichiers** à créer.
-
-## 📁 Fichier 1 — `src/lib/auth/get-user.ts` (le helper)
-
-Crée ce fichier (nouveau dossier `auth` dans `lib` si pas existant) :
+### 📁 Fichier 1 — `src/lib/auth/get-user.ts` (helper)
 
 ```typescript
 import { cookies } from "next/headers";
 import { verifyAccessToken } from "@/lib/auth/tokens";
 
 export type CurrentUser = {
-  id        : string;
-  email     : string;
-  sessionId : string;
+  id: string;
+  email: string;
+  sessionId: string;
 };
 
 /**
@@ -54,9 +65,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   try {
     const payload = await verifyAccessToken(accessToken);
     return {
-      id        : payload.userId,
-      email     : payload.email,
-      sessionId : payload.sid,
+      id: payload.userId,
+      email: payload.email,
+      sessionId: payload.sid,
     };
   } catch {
     return null;
@@ -64,11 +75,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 }
 ```
 
----
-
-## 📁 Fichier 2 — `src/app/api/me/watchlist/[type]/route.ts` (GET)
-
-Crée toute l'arborescence `app/api/me/watchlist/[type]/` puis le fichier `route.ts` :
+### 📁 Fichier 2 — `src/app/api/me/watchlist/[type]/route.ts` (GET)
 
 ```typescript
 import { NextResponse } from "next/server";
@@ -82,10 +89,7 @@ const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
  * Récupère la watchlist du user pour un type donné.
  * Crée automatiquement la watchlist vide si elle n'existe pas.
  */
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ type: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ type: string }> }) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -102,33 +106,29 @@ export async function GET(
 
   // Upsert : crée la watchlist si elle n'existe pas, sinon la retourne
   const watchlist = await prisma.watchlist.upsert({
-    where  : { userId_assetType: { userId: user.id, assetType: type } },
-    update : {},
-    create : { userId: user.id, assetType: type },
+    where: { userId_assetType: { userId: user.id, assetType: type } },
+    update: {},
+    create: { userId: user.id, assetType: type },
     include: {
       items: { orderBy: [{ positionRank: "asc" }, { addedAt: "asc" }] },
     },
   });
 
   return NextResponse.json({
-    watchlistId : watchlist.id.toString(),
-    assetType   : watchlist.assetType,
-    items       : watchlist.items.map((i) => ({
-      id           : i.id.toString(),
-      symbol       : i.symbol,
-      positionRank : i.positionRank,
-      addedAt      : i.addedAt.toISOString(),
+    watchlistId: watchlist.id.toString(),
+    assetType: watchlist.assetType,
+    items: watchlist.items.map((i) => ({
+      id: i.id.toString(),
+      symbol: i.symbol,
+      positionRank: i.positionRank,
+      addedAt: i.addedAt.toISOString(),
     })),
     count: watchlist.items.length,
   });
 }
 ```
 
----
-
-## 📁 Fichier 3 — `src/app/api/me/watchlist/[type]/items/route.ts` (POST)
-
-Crée le sous-dossier `items/` et son `route.ts` :
+### 📁 Fichier 3 — `src/app/api/me/watchlist/[type]/items/route.ts` (POST)
 
 ```typescript
 import { NextResponse } from "next/server";
@@ -140,7 +140,13 @@ const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
 
 const PostBodySchema = z.object({
   symbols: z
-    .array(z.string().min(2).max(50).regex(/^[A-Z0-9.\-]+$/i, "symbol invalide"))
+    .array(
+      z
+        .string()
+        .min(2)
+        .max(50)
+        .regex(/^[A-Z0-9.\-]+$/i, "symbol invalide"),
+    )
     .min(1, "Au moins un symbol requis")
     .max(50, "Maximum 50 symbols par requête"),
 });
@@ -150,10 +156,7 @@ const PostBodySchema = z.object({
  * Body : { symbols: string[] }
  * Ajoute 1..N symbols à la watchlist (dédoublonnage automatique).
  */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ type: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ type: string }> }) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -178,25 +181,25 @@ export async function POST(
 
   // Auto-create watchlist
   const watchlist = await prisma.watchlist.upsert({
-    where : { userId_assetType: { userId: user.id, assetType: type } },
+    where: { userId_assetType: { userId: user.id, assetType: type } },
     update: {},
     create: { userId: user.id, assetType: type },
   });
 
   // Quels symbols sont déjà présents ?
   const existing = await prisma.watchlistItem.findMany({
-    where  : { watchlistId: watchlist.id, symbol: { in: symbolsToAdd } },
-    select : { symbol: true },
+    where: { watchlistId: watchlist.id, symbol: { in: symbolsToAdd } },
+    select: { symbol: true },
   });
   const existingSet = new Set(existing.map((e) => e.symbol));
-  const newSymbols  = symbolsToAdd.filter((s) => !existingSet.has(s));
-  const skipped     = symbolsToAdd.filter((s) =>  existingSet.has(s));
+  const newSymbols = symbolsToAdd.filter((s) => !existingSet.has(s));
+  const skipped = symbolsToAdd.filter((s) => existingSet.has(s));
 
   // Trouver le rank max actuel
   const maxRank = await prisma.watchlistItem.findFirst({
-    where  : { watchlistId: watchlist.id },
+    where: { watchlistId: watchlist.id },
     orderBy: { positionRank: "desc" },
-    select : { positionRank: true },
+    select: { positionRank: true },
   });
   let nextRank = (maxRank?.positionRank ?? 0) + 1;
 
@@ -204,39 +207,35 @@ export async function POST(
   if (newSymbols.length > 0) {
     await prisma.watchlistItem.createMany({
       data: newSymbols.map((symbol, idx) => ({
-        watchlistId  : watchlist.id,
+        watchlistId: watchlist.id,
         symbol,
-        positionRank : nextRank + idx,
+        positionRank: nextRank + idx,
       })),
     });
   }
 
   // Renvoyer la liste mise à jour
   const updatedItems = await prisma.watchlistItem.findMany({
-    where  : { watchlistId: watchlist.id },
+    where: { watchlistId: watchlist.id },
     orderBy: [{ positionRank: "asc" }, { addedAt: "asc" }],
   });
 
   return NextResponse.json({
-    watchlistId : watchlist.id.toString(),
-    added       : newSymbols,
+    watchlistId: watchlist.id.toString(),
+    added: newSymbols,
     skipped,
-    items       : updatedItems.map((i) => ({
-      id           : i.id.toString(),
-      symbol       : i.symbol,
-      positionRank : i.positionRank,
-      addedAt      : i.addedAt.toISOString(),
+    items: updatedItems.map((i) => ({
+      id: i.id.toString(),
+      symbol: i.symbol,
+      positionRank: i.positionRank,
+      addedAt: i.addedAt.toISOString(),
     })),
     count: updatedItems.length,
   });
 }
 ```
 
----
-
-## 📁 Fichier 4 — `src/app/api/me/watchlist/[type]/items/[id]/route.ts` (DELETE)
-
-Crée le sous-dossier `[id]/` et son `route.ts` :
+### 📁 Fichier 4 — `src/app/api/me/watchlist/[type]/items/[id]/route.ts` (DELETE)
 
 ```typescript
 import { NextResponse } from "next/server";
@@ -274,8 +273,8 @@ export async function DELETE(
   // Sécurité critique : vérifier ownership avant de supprimer
   const item = await prisma.watchlistItem.findFirst({
     where: {
-      id        : itemId,
-      watchlist : { userId: user.id, assetType: type },
+      id: itemId,
+      watchlist: { userId: user.id, assetType: type },
     },
     select: { id: true },
   });
@@ -292,654 +291,47 @@ export async function DELETE(
 
 ---
 
-## 🌳 Arborescence finale
+## 2. Tester la watchlist API
 
-```
-src/
-├── lib/
-│   └── auth/
-│       ├── get-user.ts          ← Fichier 1 (NOUVEAU)
-│       └── tokens.ts            (existant)
-│
-└── app/
-    └── api/
-        └── me/
-            └── watchlist/
-                └── [type]/
-                    ├── route.ts                  ← Fichier 2 (GET)
-                    └── items/
-                        ├── route.ts              ← Fichier 3 (POST)
-                        └── [id]/
-                            └── route.ts          ← Fichier 4 (DELETE)
-```
-
----
-
-## 🧪 Tester rapidement
-
-Une fois les 4 fichiers créés, lance `pnpm dev` puis dans le navigateur (déjà connecté à ta session) :
-
-OK on reprend tranquillement, étape par étape. Tu n'as **4 fichiers** à créer.
-
-## 📁 Fichier 1 — `src/lib/auth/get-user.ts` (le helper)
-
-Crée ce fichier (nouveau dossier `auth` dans `lib` si pas existant) :
-
-```typescript
-import { cookies } from "next/headers";
-import { verifyAccessToken } from "@/lib/auth/tokens";
-
-export type CurrentUser = {
-  id        : string;
-  email     : string;
-  sessionId : string;
-};
-
-/**
- * Retourne le user courant à partir du cookie access_token.
- * Le middleware garantit la validité de l'access_token sur les routes /api/me/*.
- * Renvoie null si non authentifié → la route doit répondre 401.
- */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get("access_token")?.value;
-
-  if (!accessToken) return null;
-
-  try {
-    const payload = await verifyAccessToken(accessToken);
-    return {
-      id        : payload.userId,
-      email     : payload.email,
-      sessionId : payload.sid,
-    };
-  } catch {
-    return null;
-  }
-}
-```
-
----
-
-## 📁 Fichier 2 — `src/app/api/me/watchlist/[type]/route.ts` (GET)
-
-Crée toute l'arborescence `app/api/me/watchlist/[type]/` puis le fichier `route.ts` :
-
-```typescript
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/get-user";
-import { prisma } from "@/lib/prisma";
-
-const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
-
-/**
- * GET /api/me/watchlist/[type]
- * Récupère la watchlist du user pour un type donné.
- * Crée automatiquement la watchlist vide si elle n'existe pas.
- */
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ type: string }> },
-) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  const { type } = await params;
-
-  if (!ALLOWED_TYPES.includes(type as (typeof ALLOWED_TYPES)[number])) {
-    return NextResponse.json(
-      { error: "invalid_type", message: "type must be stock, etf, crypto or currency" },
-      { status: 400 },
-    );
-  }
-
-  // Upsert : crée la watchlist si elle n'existe pas, sinon la retourne
-  const watchlist = await prisma.watchlist.upsert({
-    where  : { userId_assetType: { userId: user.id, assetType: type } },
-    update : {},
-    create : { userId: user.id, assetType: type },
-    include: {
-      items: { orderBy: [{ positionRank: "asc" }, { addedAt: "asc" }] },
-    },
-  });
-
-  return NextResponse.json({
-    watchlistId : watchlist.id.toString(),
-    assetType   : watchlist.assetType,
-    items       : watchlist.items.map((i) => ({
-      id           : i.id.toString(),
-      symbol       : i.symbol,
-      positionRank : i.positionRank,
-      addedAt      : i.addedAt.toISOString(),
-    })),
-    count: watchlist.items.length,
-  });
-}
-```
-
----
-
-## 📁 Fichier 3 — `src/app/api/me/watchlist/[type]/items/route.ts` (POST)
-
-Crée le sous-dossier `items/` et son `route.ts` :
-
-```typescript
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth/get-user";
-import { prisma } from "@/lib/prisma";
-
-const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
-
-const PostBodySchema = z.object({
-  symbols: z
-    .array(z.string().min(2).max(50).regex(/^[A-Z0-9.\-]+$/i, "symbol invalide"))
-    .min(1, "Au moins un symbol requis")
-    .max(50, "Maximum 50 symbols par requête"),
-});
-
-/**
- * POST /api/me/watchlist/[type]/items
- * Body : { symbols: string[] }
- * Ajoute 1..N symbols à la watchlist (dédoublonnage automatique).
- */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ type: string }> },
-) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  const { type } = await params;
-
-  if (!ALLOWED_TYPES.includes(type as (typeof ALLOWED_TYPES)[number])) {
-    return NextResponse.json({ error: "invalid_type" }, { status: 400 });
-  }
-
-  const body = await request.json().catch(() => null);
-  const parsed = PostBodySchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "invalid_body", message: parsed.error.issues[0]?.message },
-      { status: 400 },
-    );
-  }
-
-  const symbolsToAdd = parsed.data.symbols.map((s) => s.toUpperCase());
-
-  // Auto-create watchlist
-  const watchlist = await prisma.watchlist.upsert({
-    where : { userId_assetType: { userId: user.id, assetType: type } },
-    update: {},
-    create: { userId: user.id, assetType: type },
-  });
-
-  // Quels symbols sont déjà présents ?
-  const existing = await prisma.watchlistItem.findMany({
-    where  : { watchlistId: watchlist.id, symbol: { in: symbolsToAdd } },
-    select : { symbol: true },
-  });
-  const existingSet = new Set(existing.map((e) => e.symbol));
-  const newSymbols  = symbolsToAdd.filter((s) => !existingSet.has(s));
-  const skipped     = symbolsToAdd.filter((s) =>  existingSet.has(s));
-
-  // Trouver le rank max actuel
-  const maxRank = await prisma.watchlistItem.findFirst({
-    where  : { watchlistId: watchlist.id },
-    orderBy: { positionRank: "desc" },
-    select : { positionRank: true },
-  });
-  let nextRank = (maxRank?.positionRank ?? 0) + 1;
-
-  // Insérer les nouveaux symbols
-  if (newSymbols.length > 0) {
-    await prisma.watchlistItem.createMany({
-      data: newSymbols.map((symbol, idx) => ({
-        watchlistId  : watchlist.id,
-        symbol,
-        positionRank : nextRank + idx,
-      })),
-    });
-  }
-
-  // Renvoyer la liste mise à jour
-  const updatedItems = await prisma.watchlistItem.findMany({
-    where  : { watchlistId: watchlist.id },
-    orderBy: [{ positionRank: "asc" }, { addedAt: "asc" }],
-  });
-
-  return NextResponse.json({
-    watchlistId : watchlist.id.toString(),
-    added       : newSymbols,
-    skipped,
-    items       : updatedItems.map((i) => ({
-      id           : i.id.toString(),
-      symbol       : i.symbol,
-      positionRank : i.positionRank,
-      addedAt      : i.addedAt.toISOString(),
-    })),
-    count: updatedItems.length,
-  });
-}
-```
-
----
-
-## 📁 Fichier 4 — `src/app/api/me/watchlist/[type]/items/[id]/route.ts` (DELETE)
-
-Crée le sous-dossier `[id]/` et son `route.ts` :
-
-```typescript
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/get-user";
-import { prisma } from "@/lib/prisma";
-
-const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
-
-/**
- * DELETE /api/me/watchlist/[type]/items/[id]
- * Retire un item de la watchlist (vérification d'ownership obligatoire).
- */
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ type: string; id: string }> },
-) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  const { type, id } = await params;
-
-  if (!ALLOWED_TYPES.includes(type as (typeof ALLOWED_TYPES)[number])) {
-    return NextResponse.json({ error: "invalid_type" }, { status: 400 });
-  }
-
-  let itemId: bigint;
-  try {
-    itemId = BigInt(id);
-  } catch {
-    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
-  }
-
-  // Sécurité critique : vérifier ownership avant de supprimer
-  const item = await prisma.watchlistItem.findFirst({
-    where: {
-      id        : itemId,
-      watchlist : { userId: user.id, assetType: type },
-    },
-    select: { id: true },
-  });
-
-  if (!item) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
-  }
-
-  await prisma.watchlistItem.delete({ where: { id: itemId } });
-
-  return new NextResponse(null, { status: 204 });
-}
-```
-
----
-
-## 🌳 Arborescence finale
-
-```
-src/
-├── lib/
-│   └── auth/
-│       ├── get-user.ts          ← Fichier 1 (NOUVEAU)
-│       └── tokens.ts            (existant)
-│
-└── app/
-    └── api/
-        └── me/
-            └── watchlist/
-                └── [type]/
-                    ├── route.ts                  ← Fichier 2 (GET)
-                    └── items/
-                        ├── route.ts              ← Fichier 3 (POST)
-                        └── [id]/
-                            └── route.ts          ← Fichier 4 (DELETE)
-```
-
----
-
-## 🧪 Tester rapidement
-
-OK on reprend tranquillement, étape par étape. Tu n'as **4 fichiers** à créer.
-
-## 📁 Fichier 1 — `src/lib/auth/get-user.ts` (le helper)
-
-Crée ce fichier (nouveau dossier `auth` dans `lib` si pas existant) :
-
-```typescript
-import { cookies } from "next/headers";
-import { verifyAccessToken } from "@/lib/auth/tokens";
-
-export type CurrentUser = {
-  id        : string;
-  email     : string;
-  sessionId : string;
-};
-
-/**
- * Retourne le user courant à partir du cookie access_token.
- * Le middleware garantit la validité de l'access_token sur les routes /api/me/*.
- * Renvoie null si non authentifié → la route doit répondre 401.
- */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get("access_token")?.value;
-
-  if (!accessToken) return null;
-
-  try {
-    const payload = await verifyAccessToken(accessToken);
-    return {
-      id        : payload.userId,
-      email     : payload.email,
-      sessionId : payload.sid,
-    };
-  } catch {
-    return null;
-  }
-}
-```
-
----
-
-## 📁 Fichier 2 — `src/app/api/me/watchlist/[type]/route.ts` (GET)
-
-Crée toute l'arborescence `app/api/me/watchlist/[type]/` puis le fichier `route.ts` :
-
-```typescript
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/get-user";
-import { prisma } from "@/lib/prisma";
-
-const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
-
-/**
- * GET /api/me/watchlist/[type]
- * Récupère la watchlist du user pour un type donné.
- * Crée automatiquement la watchlist vide si elle n'existe pas.
- */
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ type: string }> },
-) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  const { type } = await params;
-
-  if (!ALLOWED_TYPES.includes(type as (typeof ALLOWED_TYPES)[number])) {
-    return NextResponse.json(
-      { error: "invalid_type", message: "type must be stock, etf, crypto or currency" },
-      { status: 400 },
-    );
-  }
-
-  // Upsert : crée la watchlist si elle n'existe pas, sinon la retourne
-  const watchlist = await prisma.watchlist.upsert({
-    where  : { userId_assetType: { userId: user.id, assetType: type } },
-    update : {},
-    create : { userId: user.id, assetType: type },
-    include: {
-      items: { orderBy: [{ positionRank: "asc" }, { addedAt: "asc" }] },
-    },
-  });
-
-  return NextResponse.json({
-    watchlistId : watchlist.id.toString(),
-    assetType   : watchlist.assetType,
-    items       : watchlist.items.map((i) => ({
-      id           : i.id.toString(),
-      symbol       : i.symbol,
-      positionRank : i.positionRank,
-      addedAt      : i.addedAt.toISOString(),
-    })),
-    count: watchlist.items.length,
-  });
-}
-```
-
----
-
-## 📁 Fichier 3 — `src/app/api/me/watchlist/[type]/items/route.ts` (POST)
-
-Crée le sous-dossier `items/` et son `route.ts` :
-
-```typescript
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth/get-user";
-import { prisma } from "@/lib/prisma";
-
-const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
-
-const PostBodySchema = z.object({
-  symbols: z
-    .array(z.string().min(2).max(50).regex(/^[A-Z0-9.\-]+$/i, "symbol invalide"))
-    .min(1, "Au moins un symbol requis")
-    .max(50, "Maximum 50 symbols par requête"),
-});
-
-/**
- * POST /api/me/watchlist/[type]/items
- * Body : { symbols: string[] }
- * Ajoute 1..N symbols à la watchlist (dédoublonnage automatique).
- */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ type: string }> },
-) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  const { type } = await params;
-
-  if (!ALLOWED_TYPES.includes(type as (typeof ALLOWED_TYPES)[number])) {
-    return NextResponse.json({ error: "invalid_type" }, { status: 400 });
-  }
-
-  const body = await request.json().catch(() => null);
-  const parsed = PostBodySchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "invalid_body", message: parsed.error.issues[0]?.message },
-      { status: 400 },
-    );
-  }
-
-  const symbolsToAdd = parsed.data.symbols.map((s) => s.toUpperCase());
-
-  // Auto-create watchlist
-  const watchlist = await prisma.watchlist.upsert({
-    where : { userId_assetType: { userId: user.id, assetType: type } },
-    update: {},
-    create: { userId: user.id, assetType: type },
-  });
-
-  // Quels symbols sont déjà présents ?
-  const existing = await prisma.watchlistItem.findMany({
-    where  : { watchlistId: watchlist.id, symbol: { in: symbolsToAdd } },
-    select : { symbol: true },
-  });
-  const existingSet = new Set(existing.map((e) => e.symbol));
-  const newSymbols  = symbolsToAdd.filter((s) => !existingSet.has(s));
-  const skipped     = symbolsToAdd.filter((s) =>  existingSet.has(s));
-
-  // Trouver le rank max actuel
-  const maxRank = await prisma.watchlistItem.findFirst({
-    where  : { watchlistId: watchlist.id },
-    orderBy: { positionRank: "desc" },
-    select : { positionRank: true },
-  });
-  let nextRank = (maxRank?.positionRank ?? 0) + 1;
-
-  // Insérer les nouveaux symbols
-  if (newSymbols.length > 0) {
-    await prisma.watchlistItem.createMany({
-      data: newSymbols.map((symbol, idx) => ({
-        watchlistId  : watchlist.id,
-        symbol,
-        positionRank : nextRank + idx,
-      })),
-    });
-  }
-
-  // Renvoyer la liste mise à jour
-  const updatedItems = await prisma.watchlistItem.findMany({
-    where  : { watchlistId: watchlist.id },
-    orderBy: [{ positionRank: "asc" }, { addedAt: "asc" }],
-  });
-
-  return NextResponse.json({
-    watchlistId : watchlist.id.toString(),
-    added       : newSymbols,
-    skipped,
-    items       : updatedItems.map((i) => ({
-      id           : i.id.toString(),
-      symbol       : i.symbol,
-      positionRank : i.positionRank,
-      addedAt      : i.addedAt.toISOString(),
-    })),
-    count: updatedItems.length,
-  });
-}
-```
-
----
-
-## 📁 Fichier 4 — `src/app/api/me/watchlist/[type]/items/[id]/route.ts` (DELETE)
-
-Crée le sous-dossier `[id]/` et son `route.ts` :
-
-```typescript
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/get-user";
-import { prisma } from "@/lib/prisma";
-
-const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency"] as const;
-
-/**
- * DELETE /api/me/watchlist/[type]/items/[id]
- * Retire un item de la watchlist (vérification d'ownership obligatoire).
- */
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ type: string; id: string }> },
-) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  const { type, id } = await params;
-
-  if (!ALLOWED_TYPES.includes(type as (typeof ALLOWED_TYPES)[number])) {
-    return NextResponse.json({ error: "invalid_type" }, { status: 400 });
-  }
-
-  let itemId: bigint;
-  try {
-    itemId = BigInt(id);
-  } catch {
-    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
-  }
-
-  // Sécurité critique : vérifier ownership avant de supprimer
-  const item = await prisma.watchlistItem.findFirst({
-    where: {
-      id        : itemId,
-      watchlist : { userId: user.id, assetType: type },
-    },
-    select: { id: true },
-  });
-
-  if (!item) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
-  }
-
-  await prisma.watchlistItem.delete({ where: { id: itemId } });
-
-  return new NextResponse(null, { status: 204 });
-}
-```
-
----
-
-## 🌳 Arborescence finale
-
-```
-src/
-├── lib/
-│   └── auth/
-│       ├── get-user.ts          ← Fichier 1 (NOUVEAU)
-│       └── tokens.ts            (existant)
-│
-└── app/
-    └── api/
-        └── me/
-            └── watchlist/
-                └── [type]/
-                    ├── route.ts                  ← Fichier 2 (GET)
-                    └── items/
-                        ├── route.ts              ← Fichier 3 (POST)
-                        └── [id]/
-                            └── route.ts          ← Fichier 4 (DELETE)
-```
-
----
-
-## 🧪 Tester rapidement
+Une fois les 4 fichiers créés, lance `pnpm dev` puis dans la console du navigateur (déjà connecté à ta session) :
 
 ```javascript
 // Console navigateur (F12)
 
 // 1. GET — récupérer la watchlist Stock (vide au début)
-fetch("/api/me/watchlist/stock").then(r => r.json()).then(console.log)
+fetch("/api/me/watchlist/stock")
+  .then((r) => r.json())
+  .then(console.log);
 
 // 2. POST — ajouter 3 actifs
 fetch("/api/me/watchlist/stock/items", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ symbols: ["AAPL.US", "MSFT.US", "GOOGL.US"] })
-}).then(r => r.json()).then(console.log)
+  body: JSON.stringify({ symbols: ["AAPL.US", "MSFT.US", "GOOGL.US"] }),
+})
+  .then((r) => r.json())
+  .then(console.log);
 
 // 3. GET à nouveau — voir les 3 items
-fetch("/api/me/watchlist/stock").then(r => r.json()).then(console.log)
+fetch("/api/me/watchlist/stock")
+  .then((r) => r.json())
+  .then(console.log);
 
 // 4. DELETE — retirer le premier (remplace 1 par l'ID retourné)
-fetch("/api/me/watchlist/stock/items/1", { method: "DELETE" })
-  .then(r => console.log("Status:", r.status))  // doit être 204
+fetch("/api/me/watchlist/stock/items/1", { method: "DELETE" }).then((r) =>
+  console.log("Status:", r.status),
+); // doit être 204
 ```
 
-Créer /api/catalog/resolve (léger) pour l'affichage de la watchlist, puis /api/stock/:symbol au clic sur une ligne pour les détails complets. Séparation claire : "liste = léger", "détail = complet".
+> **Note d'architecture :** côté C++, créer `/api/catalog/resolve` (léger) pour l'affichage de la watchlist, puis `/api/stock/:symbol` au clic sur une ligne pour les détails complets. Séparation claire : « liste = léger », « détail = complet ».
 
-📄 Handler C++ — CatalogResolveHandler
+---
 
-CatalogResolveHandler.h
-CatalogResolveHandler.cpp
+## 3. Handler C++ — `CatalogResolveHandler`
 
-🧪 Test après recompilation
+Architecture verrouillée : **Next.js → API C++ → eodhd**, pas de connexion directe.
 
-Parfait, architecture verrouillée : **Next.js → API C++ → eodhd**, pas de connexion directe. Je te rédige le handler `/api/catalog/resolve` côté C++ Builder.
-
-## 📄 Handler C++ — `CatalogResolveHandler`
-
-### `CatalogResolveHandler.h` (nouveau)
+### 📄 `CatalogResolveHandler.h` (nouveau)
 
 ```cpp
 #ifndef _CatalogResolveHandler_
@@ -962,7 +354,7 @@ void CatalogResolveHandler_Get(const THttpRouteContext& Ctx, THttpRouteResult& R
 #endif
 ```
 
-### `CatalogResolveHandler.cpp` (nouveau)
+### 📄 `CatalogResolveHandler.cpp` (nouveau)
 
 ```cpp
 #include <vcl.h>
@@ -1112,7 +504,7 @@ Dans ton fichier de routing (avec les autres `Router->Register`) :
 Router->Register("GET", "/api/catalog/resolve", CatalogResolveHandler_Get);
 ```
 
-## 🎯 Format de réponse
+### Format de réponse
 
 ```bash
 curl "http://192.168.1.100:4000/api/catalog/resolve?symbols=AAPL.US,MSFT.US,BTC-USD.CC"
@@ -1129,30 +521,29 @@ curl "http://192.168.1.100:4000/api/catalog/resolve?symbols=AAPL.US,MSFT.US,BTC-
     "isin": "US0378331005",
     "currency": "USD",
     "country": "USA",
-    "country_iso2": "US"          ← pour ton <FlagIcon code="US" />
+    "country_iso2": "US"
   },
   {
     "symbol": "MSFT.US",
     "name": "Microsoft Corp",
-    "country_iso2": "US",
-    ...
+    "country_iso2": "US"
   },
   {
     "symbol": "BTC-USD.CC",
     "name": "Bitcoin",
     "currency": "USD",
-    "country_iso2": null          ← crypto, pas de pays → icône générique
+    "country_iso2": null
   }
 ]
 ```
 
-## ✨ Pourquoi le JOIN exchanges
+### ✨ Pourquoi le JOIN exchanges
 
-`tickers_catalog.country` contient "USA" / "Germany" (nom complet). Pour afficher ton `<FlagIcon code="US" />`, il faut le **code ISO 2 lettres** → c'est `exchanges.country_iso2`. Le JOIN te le donne directement.
+`tickers_catalog.country` contient « USA » / « Germany » (nom complet). Pour afficher `<FlagIcon code="US" />`, il faut le **code ISO 2 lettres** → c'est `exchanges.country_iso2`. Le JOIN te le donne directement.
 
-→ Côté frontend : `<FlagIcon code={item.country_iso2} />` + `<CurrencyFlag code={item.currency} />`. Tes 2 composants réutilisés. 🎯
+→ Côté frontend : `<FlagIcon code={item.country_iso2} />` + `<CurrencyFlag code={item.currency} />`. 🎯
 
-## 🧪 Test après recompilation
+### Tester après recompilation
 
 ```powershell
 # Recompiler + redémarrer
@@ -1165,30 +556,34 @@ curl "http://localhost:3000/qs-api/api/catalog/resolve?symbols=AAPL.US,MSFT.US"
 curl "http://192.168.1.100:4000/api/catalog/resolve?symbols=AAPL.US,MSFT.US"
 ```
 
+---
+
+## 4. Suite : composants frontend (étape 3 du pipeline watchlist)
+
+```
 src/
-├── lib/quantsightly/
-│   └── watchlist-client.ts       ← 3a : appels API (watchlist + resolve)
+├── lib/markets/watchlist/
+│   └── clients/watchlist-client.ts   ← 3a : appels API (watchlist + resolve)
 │
 ├── hooks/
-│   └── use-watchlist.ts          ← 3b : hook qui charge + résout
+│   └── use-watchlist.ts              ← 3b : hook qui charge + résout
 │
-├── components/screener/
-│   ├── screener-page.tsx         ← 3c : composant principal
-│   ├── watchlist-table.tsx       ← 3d : la table
-│   └── watchlist-row.tsx         ← 3d : une ligne + sous-menu
+├── components/custom/screener/
+│   └── screener-page.tsx             ← 3c : composant principal
+│
+├── components/custom/watchlist/
+│   ├── watchlist-table.tsx           ← 3d : la table
+│   └── watchlist-row.tsx             ← 3d : une ligne + sous-menu
 │
 └── app/(admin)/screener/
-├── stock/page.tsx            ← point d'entrée (3 lignes)
-├── etf/page.tsx
-├── crypto/page.tsx
-└── currency/page.tsx
+    ├── asset-stock/page.tsx          ← point d'entrée (3 lignes)
+    ├── asset-etf/page.tsx
+    ├── asset-crypto/page.tsx
+    ├── asset-index/page.tsx
+    └── asset-currency/page.tsx
+```
 
-watchlist-client.ts — les fonctions fetch (GET watchlist, POST resolve, DELETE item)
-use-watchlist.ts — le hook React
-screener-page.tsx + table + row — la page complète
-Les 4 page.tsx — points d'entrée
-
-📁 3a — src/lib/quantsightly/watchlist-client.ts
-📁 3b — src/hooks/use-watchlist.ts
-📁 3d — src/components/screener/watchlist-table.tsx
-📁 3d — src/components/screener/watchlist-row.tsx
+- `watchlist-client.ts` — les fonctions fetch (GET watchlist, POST resolve, DELETE item). Utilise désormais `fetchAuth` (`lib/api/fetch-auth.ts`) pour le handling 401 centralisé.
+- `use-watchlist.ts` — le hook React (mise à jour optimiste + rollback + toast)
+- `screener-page.tsx` + table + row — la page complète
+- Les 5 `page.tsx` (un par type d'actif) — points d'entrée minces qui rendent `<ScreenerPage assetType="..." />`

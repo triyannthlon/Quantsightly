@@ -6,10 +6,15 @@ import SidebarLinkItem from "./sidebar-link-item";
 import SidebarSubmenuItem from "./sidebar-submenu-item";
 
 /********************** SidebarItem *****/
-export default function SidebarItem({item, pathname,density = "normal",}: { item: NavItem; pathname: string; density?: "compact" | "normal";})
-                        {//SidebarItem
-
-                        if (item.href) return <SidebarLinkItem    item={item} pathname={pathname} density={density}/>;
-                                       return <SidebarSubmenuItem item={item} pathname={pathname} density={density}/>;
-
-                        }//SidebarItem
+export default function SidebarItem({
+  item,
+  pathname,
+  density = "normal",
+}: {
+  item: NavItem;
+  pathname: string;
+  density?: "compact" | "normal";
+}) {
+  if (item.href) return <SidebarLinkItem item={item} pathname={pathname} density={density} />;
+  return <SidebarSubmenuItem item={item} pathname={pathname} density={density} />;
+}

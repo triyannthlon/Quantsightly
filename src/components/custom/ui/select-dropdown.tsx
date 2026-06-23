@@ -2,31 +2,45 @@
 
 import * as React from "react";
 import { ChevronDownIcon, CheckIcon } from "lucide-react";
-import {DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,} from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /* ----- Types -----*/
 
-export interface SelectItem {value : string;
-                             label : string;}
+export interface SelectItem {
+  value: string;
+  label: string;
+}
 
 /******** SelectDropdownProps *****/
-interface SelectDropdownProps {items       : SelectItem[];
-                               value      ?: string;
-                               onChange   ?: (item: SelectItem) => void;
-                               className  ?: string;
-                               placeholder?: string;
-                               width      ?: string;    /* ex: "w-52", "w-72" — défaut : "w-52"             */
-                               maxHeight  ?: string;}   /* ex: "max-h-48", "max-h-96" — défaut : "max-h-72" */
-
+interface SelectDropdownProps {
+  items: SelectItem[];
+  value?: string;
+  onChange?: (item: SelectItem) => void;
+  className?: string;
+  placeholder?: string;
+  width?: string; /* ex: "w-52", "w-72" — défaut : "w-52"             */
+  maxHeight?: string;
+} /* ex: "max-h-48", "max-h-96" — défaut : "max-h-72" */
 
 /************** SelectDropdown *****/
-export function SelectDropdown({items, value, onChange, className, placeholder = "Sélectionner", width       = "w-52", maxHeight   = "max-h-72",}: SelectDropdownProps)
-       {//SelectDropdown
-
-       const selected = items.find((i) => i.value === value) ?? null;
+export function SelectDropdown({
+  items,
+  value,
+  onChange,
+  className,
+  placeholder = "Sélectionner",
+  width = "w-52",
+  maxHeight = "max-h-72",
+}: SelectDropdownProps) {
+  const selected = items.find((i) => i.value === value) ?? null;
 
   return (
     <DropdownMenu>
@@ -36,10 +50,11 @@ export function SelectDropdown({items, value, onChange, className, placeholder =
           role="combobox"
           className={cn(width, "justify-between font-normal cursor-pointer", className)}
         >
-          {selected
-            ? <span>{selected.label}</span>
-            : <span className="text-muted-foreground">{placeholder}</span>
-          }
+          {selected ? (
+            <span>{selected.label}</span>
+          ) : (
+            <span className="text-muted-foreground">{placeholder}</span>
+          )}
           <ChevronDownIcon className="ml-auto size-4 shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
@@ -54,15 +69,12 @@ export function SelectDropdown({items, value, onChange, className, placeholder =
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <span className="flex-1">{item.label}</span>
-                {selected?.value === item.value && (
-                  <CheckIcon className="size-4 text-primary" />
-                )}
+                {selected?.value === item.value && <CheckIcon className="size-4 text-primary" />}
               </DropdownMenuItem>
             ))}
           </div>
         </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
-         );
-
-       }//SelectDropdown
+  );
+}

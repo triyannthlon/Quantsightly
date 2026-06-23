@@ -1,32 +1,40 @@
-import { unstable_cache }                            from "next/cache";
-import { getDistinctValues }                        from "@/lib/coredata-db";
-import { type Country,  COUNTRIES_BY_LABEL }        from "@/data/countries";
-import { type Currency, CURRENCIES_BY_CODE }        from "@/data/currencies";
+import { unstable_cache } from "next/cache";
+import { getDistinctValues } from "@/lib/coredata-db";
+import { type Country, COUNTRIES_BY_LABEL } from "@/data/countries";
+import { type Currency, CURRENCIES_BY_CODE } from "@/data/currencies";
 
-export interface FilterOptions {countries : Country [];
-                                types     : string  [];
-                                classes   : string  [];
-                                currencies: Currency[];}
+export interface FilterOptions {
+  countries: Country[];
+  types: string[];
+  classes: string[];
+  currencies: Currency[];
+}
 
-export const getFilterOptions = unstable_cache
-       (
-       async (): Promise<FilterOptions> => {
+export const getFilterOptions = unstable_cache(
+  async (): Promise<FilterOptions> => {
+    const [countryLabels, types, classes, ccyCodes] = await Promise.all([
+      getDistinctValues("country"),
+      getDistinctValues("type"),
+      getDistinctValues("class"),
+      getDistinctValues("ccy"),
+    ]);
 
-                                           const [countryLabels, types, classes, ccyCodes] = await Promise.all([getDistinctValues("country"),
-                                                                                                                getDistinctValues("type"   ),
-                                                                                                                getDistinctValues("class"  ),
-                                                                                                                getDistinctValues("ccy"    ),]);
+    const countries = [
+      { code: "WORLD", label: "Monde" },
+      ...countryLabels
+        .filter((label) => label.toLowerCase() !== "monde")
+        .map((label) => COUNTRIES_BY_LABEL.get(label.toLowerCase()))
+        .filter((c): c is Country => c !== undefined),
+    ];
+    const currencies = ccyCodes
+      .map((code) => CURRENCIES_BY_CODE.get(code) ?? { code, label: code })
+      .filter((c): c is Currency => c !== undefined);
 
-                                           const countries  = [{ code: "WORLD", label: "Monde" },
-                                                               ...countryLabels.filter(label => label.toLowerCase() !== "monde")
-                                                                               .map(label => COUNTRIES_BY_LABEL.get(label.toLowerCase()))
-                                                                               .filter((c): c is Country => c !== undefined)];
-                                           const currencies =      ccyCodes.map(code  => CURRENCIES_BY_CODE.get(code) ?? { code, label: code }).filter((c): c is Currency => c !== undefined);
-
-                                           return { countries, types, classes, currencies };
-                                           },
-       ["filter-options"], { revalidate: 3600 } /* re-interroge coredatadb toutes les heures */
-       );
+    return { countries, types, classes, currencies };
+  },
+  ["filter-options"],
+  { revalidate: 3600 } /* re-interroge coredatadb toutes les heures */,
+);
 
 /*
 
@@ -52,4 +60,3 @@ Si un code devise est inconnu de la liste statique, il passe quand même avec co
 ├─────────────────────────────────┼────────────────────────────────┤
 │ TTL d'1h écoulé                 │ Oui — revalidation silencieuse │
 └─────────────────────────────────┴────────────────────────────────┘ */
-

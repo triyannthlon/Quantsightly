@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/get-user";
 import { prisma } from "@/lib/prisma";
 
-const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency", "index"] as const;
+const ALLOWED_TYPES = ["stock", "etf", "crypto", "currency", "index", "bond"] as const;
 
 /**
  * DELETE /api/me/watchlist/[type]/items/[id]
@@ -33,8 +33,8 @@ export async function DELETE(
   // Sécurité critique : vérifier ownership avant de supprimer
   const item = await prisma.watchlistItem.findFirst({
     where: {
-      id        : itemId,
-      watchlist : { userId: user.id, assetType: type },
+      id: itemId,
+      watchlist: { userId: user.id, assetType: type },
     },
     select: { id: true },
   });
@@ -64,8 +64,11 @@ export async function PATCH(
     return NextResponse.json({ error: "invalid_type" }, { status: 400 });
 
   let itemId: bigint;
-  try { itemId = BigInt(id); }
-  catch { return NextResponse.json({ error: "invalid_id" }, { status: 400 }); }
+  try {
+    itemId = BigInt(id);
+  } catch {
+    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+  }
 
   const body = await request.json().catch(() => ({}));
   if (typeof body?.isFavorite !== "boolean")
@@ -79,7 +82,7 @@ export async function PATCH(
 
   await prisma.watchlistItem.update({
     where: { id: itemId },
-    data : { isFavorite: body.isFavorite },
+    data: { isFavorite: body.isFavorite },
   });
 
   return new NextResponse(null, { status: 204 });

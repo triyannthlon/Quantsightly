@@ -8,14 +8,14 @@
 
 ## Stack technique
 
-| Couche | Technologie |
-|---|---|
-| Framework | Next.js 16.1.6 (App Router, TypeScript) |
-| UI | React 19, Tailwind CSS v4, Radix UI, Framer Motion |
-| Base de données | PostgreSQL × 2 (Prisma ORM + pg Pool) |
-| Auth | Email + OTP sans mot de passe, JWT + refresh token |
-| Formulaires | React Hook Form + Zod |
-| Email | Nodemailer (SMTP) |
+| Couche          | Technologie                                        |
+| --------------- | -------------------------------------------------- |
+| Framework       | Next.js 16.1.6 (App Router, TypeScript)            |
+| UI              | React 19, Tailwind CSS v4, Radix UI, Framer Motion |
+| Base de données | PostgreSQL × 2 (Prisma ORM + pg Pool)              |
+| Auth            | Email + OTP sans mot de passe, JWT + refresh token |
+| Formulaires     | React Hook Form + Zod                              |
+| Email           | Nodemailer (SMTP)                                  |
 
 ---
 

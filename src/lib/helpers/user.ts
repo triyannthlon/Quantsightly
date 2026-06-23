@@ -1,4 +1,3 @@
-
 export function getDisplayName(email: string, name?: string) {
   if (name && name.trim().length > 0) {
     return name.trim();
@@ -23,7 +22,5 @@ export function getInitials(displayName: string) {
     return parts[0][0]?.toUpperCase() ?? "G";
   }
 
-  return (
-    (parts[0][0] + parts[1][0]).toUpperCase()
-  );
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 }

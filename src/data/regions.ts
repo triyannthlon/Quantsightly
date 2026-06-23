@@ -9,48 +9,72 @@
  */
 
 const REGION_BY_ISO2: Record<string, string> = {
+  // ── Amérique du Nord ──────────────────────────────────
+  US: "Amérique du Nord",
+  CA: "Amérique du Nord",
+  MX: "Amérique du Nord",
 
-    // ── Amérique du Nord ──────────────────────────────────
-    US: "Amérique du Nord", CA: "Amérique du Nord", MX: "Amérique du Nord",
+  // ── Europe ────────────────────────────────────────────
+  FR: "Europe",
+  DE: "Europe",
+  GB: "Europe",
+  IT: "Europe",
+  ES: "Europe",
+  NL: "Europe",
+  BE: "Europe",
+  CH: "Europe",
+  SE: "Europe",
+  DK: "Europe",
+  NO: "Europe",
+  FI: "Europe",
+  AT: "Europe",
+  IE: "Europe",
+  PT: "Europe",
+  PL: "Europe",
+  CZ: "Europe",
+  GR: "Europe",
+  LU: "Europe",
+  HU: "Europe",
 
-    // ── Europe ────────────────────────────────────────────
-    FR: "Europe", DE: "Europe", GB: "Europe", IT: "Europe", ES: "Europe",
-    NL: "Europe", BE: "Europe", CH: "Europe", SE: "Europe", DK: "Europe",
-    NO: "Europe", FI: "Europe", AT: "Europe", IE: "Europe", PT: "Europe",
-    PL: "Europe", CZ: "Europe", GR: "Europe", LU: "Europe", HU: "Europe",
+  // ── Asie ──────────────────────────────────────────────
+  JP: "Asie",
+  HK: "Asie",
+  SG: "Asie",
+  KR: "Asie",
+  TW: "Asie",
+  CN: "Asie",
+  IN: "Asie",
 
-    // ── Asie ──────────────────────────────────────────────
-    JP: "Asie", HK: "Asie", SG: "Asie", KR: "Asie", TW: "Asie",
-    CN: "Asie", IN: "Asie",
+  // ── Pacifique ─────────────────────────────────────────
+  AU: "Pacifique",
+  NZ: "Pacifique",
 
-    // ── Pacifique ─────────────────────────────────────────
-    AU: "Pacifique", NZ: "Pacifique",
+  // ── Amérique latine ───────────────────────────────────
+  BR: "Amérique latine",
+  AR: "Amérique latine",
+  CL: "Amérique latine",
+  CO: "Amérique latine",
+  PE: "Amérique latine",
 
-    // ── Amérique latine ───────────────────────────────────
-    BR: "Amérique latine", AR: "Amérique latine", CL: "Amérique latine",
-    CO: "Amérique latine", PE: "Amérique latine",
+  // ── Moyen-Orient ──────────────────────────────────────
+  IL: "Moyen-Orient",
+  AE: "Moyen-Orient",
+  SA: "Moyen-Orient",
+  TR: "Moyen-Orient",
 
-    // ── Moyen-Orient ──────────────────────────────────────
-    IL: "Moyen-Orient", AE: "Moyen-Orient", SA: "Moyen-Orient", TR: "Moyen-Orient",
-
-    // ── Afrique ───────────────────────────────────────────
-    ZA: "Afrique",
+  // ── Afrique ───────────────────────────────────────────
+  ZA: "Afrique",
 };
 
+export function iso2ToRegion(iso2?: string): string | undefined {
+  /**
+   * Renvoie la région macro associée à un code ISO2.
+   *
+   * @returns nom de la région ("Europe", "Asie", …) ou `undefined`
+   *          si le code n'est pas mappé (indices globaux, codes inconnus).
+   */
 
+  if (!iso2) return undefined;
 
-export function iso2ToRegion(iso2?: string): string | undefined
-       {//iso2ToRegion
-
-       /**
-        * Renvoie la région macro associée à un code ISO2.
-        *
-        * @returns nom de la région ("Europe", "Asie", …) ou `undefined`
-        *          si le code n'est pas mappé (indices globaux, codes inconnus).
-        */
-
-       if(!iso2) return undefined;
-
-       return REGION_BY_ISO2[iso2.toUpperCase()];
-
-       }//iso2ToRegion
+  return REGION_BY_ISO2[iso2.toUpperCase()];
+}

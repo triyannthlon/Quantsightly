@@ -1,4 +1,6 @@
-Pour IntelliJ IDEA, voici un .gitignore adapté et propre pour un projet Next.js + TypeScript + Docker :
+# ============================================================================
+# Quantsightly — Next.js + TypeScript + Prisma + Docker
+# ============================================================================
 
 ################################
 # Dependencies

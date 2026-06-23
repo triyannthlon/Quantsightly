@@ -1,11 +1,6 @@
-
-import {redirect} from "next/navigation";
+import { redirect } from "next/navigation";
 
 /********************** HomePage *****/
-export default function HomePage()
-       {//HomePage
-
-       redirect("/sign-in");
-
-       }//HomePage
-
+export default function HomePage() {
+  redirect("/sign-in");
+}

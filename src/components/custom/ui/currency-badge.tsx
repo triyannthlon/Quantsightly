@@ -4,7 +4,7 @@ import { CURRENCY_FLAG } from "@/data/currencies";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 
 interface CurrencyBadgeProps {
-  code : string;
+  code: string;
   label: string;
 }
 

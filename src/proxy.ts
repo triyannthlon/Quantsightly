@@ -1,154 +1,168 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import {generateRefreshToken, hashRefreshToken, signAccessToken, verifyAccessToken} from "@/lib/auth/tokens";
-import {prisma} from "@/lib/prisma";
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+  signAccessToken,
+  verifyAccessToken,
+} from "@/lib/auth/tokens";
+import { prisma } from "@/lib/prisma";
 
 /******* redirectToSignIn *****/
-function redirectToSignIn(nextRequest: NextRequest)
-         {//redirectToSignIn
-
-         return NextResponse.redirect(new URL("/", nextRequest.url));
-
-         }//redirectToSignIn
-
-
-/******* logOut *****/
-function logOut(nextRequest: NextRequest, isApiRoute: boolean)
-         {//logOut
-
-          /* Route API → 401 JSON (un fetch ne doit pas suivre une redirection HTML).
-             Route page → redirection vers la page de connexion.                      */
-          const nextResponse = isApiRoute
-                             ? NextResponse.json({ error: "session_expired" }, { status: 401 })
-                             : redirectToSignIn(nextRequest);
-
-                nextResponse.cookies.delete( "access_token");
-                nextResponse.cookies.delete("refresh_token");
-
-         return nextResponse;
-
-         }//logOut
-
-/******* extractSessionID *****/
-function extractSessionID(token: string): string | null
-         {//extractSessionID
-
-         try {
-              const payload = JSON.parse( Buffer.from(token.split(".")[1], "base64").toString() );
-             return payload.sid ?? null;
-             }
-         catch { return null; }
-
-         }//extractSessionID
-
-
-function denyAccess(nextRequest: NextRequest, isApiRoute: boolean) {
-    if (isApiRoute) {
-        return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-    return redirectToSignIn(nextRequest);
+function redirectToSignIn(nextRequest: NextRequest) {
+  return NextResponse.redirect(new URL("/", nextRequest.url));
 }
 
+/******* logOut *****/
+function logOut(nextRequest: NextRequest, isApiRoute: boolean) {
+  /* Route API → 401 JSON (un fetch ne doit pas suivre une redirection HTML).
+             Route page → redirection vers la page de connexion.                      */
+  const nextResponse = isApiRoute
+    ? NextResponse.json({ error: "session_expired" }, { status: 401 })
+    : redirectToSignIn(nextRequest);
 
-const PUBLIC_ROUTES = ["/","/sign-in", "/verify-code"];
+  nextResponse.cookies.delete("access_token");
+  nextResponse.cookies.delete("refresh_token");
+
+  return nextResponse;
+}
+
+/******* extractSessionID *****/
+function extractSessionID(token: string): string | null {
+  try {
+    const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString());
+    return payload.sid ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function denyAccess(nextRequest: NextRequest, isApiRoute: boolean) {
+  if (isApiRoute) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return redirectToSignIn(nextRequest);
+}
+
+const PUBLIC_ROUTES = ["/", "/sign-in", "/verify-code"];
 
 /******************** proxy *****/
-export async function proxy(nextRequest: NextRequest)
-                     {//proxy
+export async function proxy(nextRequest: NextRequest) {
+  const pathname = nextRequest.nextUrl.pathname;
 
-                     const pathname = nextRequest.nextUrl.pathname;
+  const isApiRoute = pathname.startsWith("/api/");
 
-                     const isApiRoute = pathname.startsWith("/api/");
-                     
-                     const isPublic = PUBLIC_ROUTES.includes(pathname);
+  const isPublic = PUBLIC_ROUTES.includes(pathname);
 
-                     const  accessToken = nextRequest.cookies.get( "access_token")?.value;
-                     const refreshToken = nextRequest.cookies.get("refresh_token")?.value;
+  const accessToken = nextRequest.cookies.get("access_token")?.value;
+  const refreshToken = nextRequest.cookies.get("refresh_token")?.value;
 
-                        if(!accessToken)
-                          {
-                          if (!isPublic) return denyAccess(nextRequest,isApiRoute); /* Pas de token → accès interdit aux routes privées */
-                                         return NextResponse.next();
-                          }
+  if (!accessToken) {
+    if (!isPublic)
+      return denyAccess(
+        nextRequest,
+        isApiRoute,
+      ); /* Pas de token → accès interdit aux routes privées */
+    return NextResponse.next();
+  }
 
-                     try {
-                                                                                const payload = await verifyAccessToken(accessToken);
-                         const session = await prisma.session.findUnique({where: {id: payload.sid},select: { revokedAt: true }});
-                           if(!session ||
-                               session.revokedAt) {return logOut(nextRequest, isApiRoute);}
+  try {
+    const payload = await verifyAccessToken(accessToken);
+    const session = await prisma.session.findUnique({
+      where: { id: payload.sid },
+      select: { revokedAt: true },
+    });
+    if (!session || session.revokedAt) {
+      return logOut(nextRequest, isApiRoute);
+    }
 
-                         if(isPublic)
-                           return NextResponse.redirect(new URL("/home", nextRequest.url)); /* Si connecté → empêcher l’accès aux routes publiques */
+    if (isPublic)
+      return NextResponse.redirect(
+        new URL("/home", nextRequest.url),
+      ); /* Si connecté → empêcher l’accès aux routes publiques */
 
-                           return NextResponse.next();
+    return NextResponse.next();
+  } catch {
+    /* access token expiré → on tente le refresh */
+  }
 
-                        } catch { /* access token expiré → on tente le refresh */}
+  // au lieu de : if (!refreshToken) return logOut(nextRequest, isApiRoute);
+  if (!refreshToken) {
+    if (isApiRoute) return NextResponse.json({ error: "session_expired" }, { status: 401 });
+    return logOut(nextRequest, isApiRoute);
+  }
 
-                         // au lieu de : if (!refreshToken) return logOut(nextRequest, isApiRoute);
-                         if (!refreshToken) {
-                             if (isApiRoute) return NextResponse.json({ error: "session_expired" }, { status: 401 });
-                             return logOut(nextRequest, isApiRoute);
-                         }
+  const sessionID = extractSessionID(accessToken);
+  if (!sessionID) return logOut(nextRequest, isApiRoute);
 
-                    const sessionID = extractSessionID(accessToken);
-                      if(!sessionID)
-                        return logOut(nextRequest, isApiRoute);
+  const session = await prisma.session.findUnique({
+    where: { id: sessionID },
+    include: { user: true },
+  });
+  if (!session || session.revokedAt) return logOut(nextRequest, isApiRoute);
 
-                    const session = await prisma.session.findUnique({where: {id: sessionID}, include: {user: true},});
-                      if(!session ||
-                          session.revokedAt) return logOut(nextRequest, isApiRoute);
+  const hashed = hashRefreshToken(refreshToken);
+  if (session.refreshHash !== hashed) return logOut(nextRequest, isApiRoute);
 
-                                            const hashed = hashRefreshToken(refreshToken);
-                       if(session.refreshHash !== hashed) return logOut(nextRequest, isApiRoute);
+  const newRefreshToken = generateRefreshToken();
+  const newRefreshHash = hashRefreshToken(newRefreshToken);
 
-                                                      const newRefreshToken = generateRefreshToken();
-                    const newRefreshHash = hashRefreshToken(newRefreshToken);
+  await prisma.session.update({
+    where: { id: session.id },
+    data: { refreshHash: newRefreshHash },
+  }); /* Mise à jour de la session */
 
-                    await prisma.session.update({ where: { id: session.id }, data: { refreshHash: newRefreshHash }, }); /* Mise à jour de la session */
+  const newAccessToken = await signAccessToken({
+    userId: session.userId,
+    email: session.user.email,
+    sid: session.id,
+  }); /* Raffraîchissement OK → nouvel access_token */
 
-
-                    const newAccessToken = await signAccessToken({ userId: session.userId    ,
-                                                                    email: session.user.email,
-                                                                      sid: session.id,}); /* Raffraîchissement OK → nouvel access_token */
-
-                    /* ─── Propagation du token rafraîchi à la requête courante ───
+  /* ─── Propagation du token rafraîchi à la requête courante ───
                        Sans ça, la route API en aval (getCurrentUser) lirait
                        encore l'ancien access_token expiré dans le header Cookie
                        et renverrait 401. On réécrit le header Cookie de la
                        requête avec les nouveaux jetons.                          */
 
-                    const requestHeaders = new Headers(nextRequest.headers);
+  const requestHeaders = new Headers(nextRequest.headers);
 
-                    const rewrittenCookies = nextRequest.cookies.getAll().map((c) =>
-                          {
-                          if(c.name ===  "access_token") return  `access_token=${ newAccessToken}`;
-                          if(c.name === "refresh_token") return `refresh_token=${newRefreshToken}`;
-                          return `${c.name}=${c.value}`;
-                          });
+  const rewrittenCookies = nextRequest.cookies.getAll().map((c) => {
+    if (c.name === "access_token") return `access_token=${newAccessToken}`;
+    if (c.name === "refresh_token") return `refresh_token=${newRefreshToken}`;
+    return `${c.name}=${c.value}`;
+  });
 
-                    requestHeaders.set("cookie", rewrittenCookies.join("; "));
+  requestHeaders.set("cookie", rewrittenCookies.join("; "));
 
-                    /*  Mise à jour des cookies */
+  /*  Mise à jour des cookies */
 
-                     const nextResponse = NextResponse.next({ request: { headers: requestHeaders } });
-                           nextResponse.cookies.set("access_token",  newAccessToken, { httpOnly: true                                ,
-                                                                                        secure: process.env.NODE_ENV === "production",
-                                                                                      sameSite: "lax"                                ,
-                                                                                          path: "/",});
-                           nextResponse.cookies.set("refresh_token",newRefreshToken, { httpOnly: true                                 ,
-                                                                                         secure: process.env.NODE_ENV === "production",
-                                                                                       sameSite: "lax"                                ,
-                                                                                           path: "/",});
+  const nextResponse = NextResponse.next({ request: { headers: requestHeaders } });
+  nextResponse.cookies.set("access_token", newAccessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+  nextResponse.cookies.set("refresh_token", newRefreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
 
-                    return nextResponse;
+  return nextResponse;
+}
 
-                    }//proxy
-
-
-export const config = {matcher: ["/","/sign-in", "/verify-code","/dashboard/:path*","/api/me/:path*"],};
-
-
-
-
-
-
+export const config = {
+  matcher: [
+    "/",
+    "/sign-in",
+    "/verify-code",
+    "/home",
+    "/screener/:path*",
+    "/items/:path*",
+    "/asset-panel-demo",
+    "/playground",
+    "/api/me/:path*",
+  ],
+};
