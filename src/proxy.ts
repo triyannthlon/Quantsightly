@@ -160,9 +160,8 @@ export const config = {
     "/verify-code",
     "/home",
     "/screener/:path*",
+    "/exploration/:path*",
     "/items/:path*",
-    "/asset-panel-demo",
-    "/playground",
     "/api/me/:path*",
   ],
 };

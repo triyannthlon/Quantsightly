@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 export interface SelectItem {
   value: string;
   label: string;
+  /** Élément optionnel affiché avant le libellé (drapeau, symbole…). */
+  icon?: React.ReactNode;
 }
 
 /******** SelectDropdownProps *****/
@@ -51,7 +53,10 @@ export function SelectDropdown({
           className={cn(width, "justify-between font-normal cursor-pointer", className)}
         >
           {selected ? (
-            <span>{selected.label}</span>
+            <span className="flex items-center gap-2 truncate">
+              {selected.icon}
+              <span className="truncate">{selected.label}</span>
+            </span>
           ) : (
             <span className="text-muted-foreground">{placeholder}</span>
           )}
@@ -68,6 +73,7 @@ export function SelectDropdown({
                 onSelect={() => onChange?.(item)}
                 className="flex items-center gap-2 cursor-pointer"
               >
+                {item.icon}
                 <span className="flex-1">{item.label}</span>
                 {selected?.value === item.value && <CheckIcon className="size-4 text-primary" />}
               </DropdownMenuItem>

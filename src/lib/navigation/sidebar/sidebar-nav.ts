@@ -1,5 +1,5 @@
 // sidebar-nav.ts
-import { House, ScanSearch } from "lucide-react";
+import { House, ScanSearch, LineChart } from "lucide-react";
 import React from "react";
 import { routes } from "@/lib/navigation/sidebar/route";
 
@@ -45,6 +45,12 @@ export const NAV = [
           { label: "Cryptomonnaies", href: routes.screener.crypto },
           { label: "Devises", href: routes.screener.currency },
         ],
+      },
+      {
+        key: "exploration",
+        label: "Exploration",
+        href: routes.exploration,
+        icon: LineChart,
       },
     ],
   },

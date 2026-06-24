@@ -1,6 +1,8 @@
 export const routes = {
   dashboard: "/home",
 
+  exploration: "/exploration",
+
   screener: {
     root: `/screener`,
     stock: `/screener/asset-stock`,
