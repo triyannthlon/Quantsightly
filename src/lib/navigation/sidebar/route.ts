@@ -3,6 +3,11 @@ export const routes = {
 
   exploration: "/exploration",
 
+  comparisons: {
+    signals: "/comparaisons",
+    saved: "/comparaisons/mes",
+  },
+
   screener: {
     root: `/screener`,
     stock: `/screener/asset-stock`,

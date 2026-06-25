@@ -178,7 +178,7 @@ export default function DashboardForm() {
     <div className="px-8 py-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-foreground">Actifs suivis</h1>
         {!loading && !error && (
           <p className="text-sm text-muted-foreground mt-1 h-5">
             {favorites.length === 0

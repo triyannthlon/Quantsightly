@@ -31,6 +31,8 @@ interface Props {
   onCurrencyChange: (c: string) => void;
   /** Devise verrouillée (mesure non convertible : taux, PER, volume…). */
   currencyDisabled?: boolean;
+  /** Met un accent coloré sur le prochain dropdown à remplir (guidage cascade). */
+  guide?: boolean;
 }
 
 export function SeriesSelector({
@@ -51,6 +53,7 @@ export function SeriesSelector({
   currency,
   onCurrencyChange,
   currencyDisabled,
+  guide,
 }: Props) {
   // Prédicat : le type est-il combinable (contrainte éventuelle de la ligne B) ?
   const typeOk = useMemo(() => {
@@ -121,8 +124,20 @@ export function SeriesSelector({
   const isReady = serieId !== null;
   const needsDisambiguation = matches.length > 1;
 
+  // Prochaine étape à remplir (accent de guidage) : pays → classe → mesure.
+  const activeStep = !guide
+    ? null
+    : country === null
+      ? "country"
+      : classRef === null
+        ? "class"
+        : typeRef === null
+          ? "type"
+          : null;
+  const ACCENT = "ring-2 ring-primary/40";
+
   return (
-    <div className="space-y-3 rounded-lg border bg-muted/50 p-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span
           className={cn(
@@ -152,6 +167,7 @@ export function SeriesSelector({
           onChange={(i) => onCountryChange(i.value === NONE ? null : i.value)}
           placeholder={withNoneCountry ? "Aucun" : "Pays"}
           width="w-48"
+          className={cn(activeStep === "country" && ACCENT)}
         />
         <SelectDropdown
           items={classItems}
@@ -159,7 +175,10 @@ export function SeriesSelector({
           onChange={(i) => onClassChange(Number(i.value) as ClassRef)}
           placeholder={country ? "Classe" : "— classe —"}
           width="w-48"
-          className={!country ? "pointer-events-none opacity-40" : ""}
+          className={cn(
+            !country && "pointer-events-none opacity-40",
+            activeStep === "class" && ACCENT,
+          )}
         />
         <SelectDropdown
           items={typeItems}
@@ -167,7 +186,10 @@ export function SeriesSelector({
           onChange={(i) => onTypeChange(Number(i.value) as TypeRef)}
           placeholder={classRef !== null ? "Mesure" : "— mesure —"}
           width="w-48"
-          className={classRef === null ? "pointer-events-none opacity-40" : ""}
+          className={cn(
+            classRef === null && "pointer-events-none opacity-40",
+            activeStep === "type" && ACCENT,
+          )}
         />
         {needsDisambiguation && (
           <SelectDropdown

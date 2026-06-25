@@ -50,7 +50,11 @@ export function SelectDropdown({
         <Button
           variant="outline"
           role="combobox"
-          className={cn(width, "justify-between font-normal cursor-pointer", className)}
+          className={cn(
+            width,
+            "justify-between font-normal cursor-pointer border-foreground/25 bg-background/60 hover:border-foreground/40",
+            className,
+          )}
         >
           {selected ? (
             <span className="flex items-center gap-2 truncate">
@@ -60,7 +64,10 @@ export function SelectDropdown({
           ) : (
             <span className="text-muted-foreground">{placeholder}</span>
           )}
-          <ChevronDownIcon className="ml-auto size-4 shrink-0 opacity-50" />
+          {/* Chevron : suit la couleur du texte (plein si valeur, atténué si placeholder). */}
+          <ChevronDownIcon
+            className={cn("ml-auto size-4 shrink-0", !selected && "text-muted-foreground")}
+          />
         </Button>
       </DropdownMenuTrigger>
 

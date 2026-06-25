@@ -54,6 +54,32 @@ body {
   fill: var(--muted-foreground) !important;
 }
 
+/* Pas d'outline de focus disgracieux (carré blanc, couleur --ring) au clic ou au
+   focus sur un graphique — y compris dans la fenêtre de zoom, où le focus-trap
+   Radix peut cibler n'importe quel élément interne du graphique (wrapper, surface,
+   <g>…). On neutralise tout le sous-arbre Recharts. Les graphiques ne sont pas
+   navigables au clavier ici → aucune perte d'accessibilité. */
+.recharts-responsive-container:focus,
+.recharts-responsive-container *:focus,
+.recharts-responsive-container *:focus-visible {
+  outline: none;
+}
+
+/* Le conteneur de la fenêtre de zoom (Radix Dialog) ne doit pas afficher de
+   cadre de focus arrondi (le focus-trap le cible à l'ouverture). */
+[data-slot="dialog-content"]:focus,
+[data-slot="dialog-content"]:focus-visible {
+  outline: none;
+}
+
+/* Curseur loupe personnalisé sur les graphiques zoomables. PNG (et non SVG, non
+   supporté en curseur par Chrome/Edge), hotspot = centre de la lentille, fallback
+   zoom-in natif. Appliqué aussi aux descendants pour couvrir les SVG Recharts. */
+.cursor-zoom-img,
+.cursor-zoom-img * {
+  cursor: url("/zoomin.png") 13 11, zoom-in;
+}
+
 @utility no-scrollbar {
   &::-webkit-scrollbar {
     display: none;

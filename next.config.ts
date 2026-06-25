@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: { turbopackFileSystemCacheForDev: true },
   devIndicators: false,
-  allowedDevOrigins: ["http://localhost", "http://192.168.1.44"],
+  // hostnames nus (sans protocole) — c'est le format attendu par Next.
+  allowedDevOrigins: ["localhost", "192.168.1.44"],
 
   async rewrites() {
     return [

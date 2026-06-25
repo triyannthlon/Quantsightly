@@ -1,5 +1,5 @@
 // sidebar-nav.ts
-import { House, ScanSearch, LineChart } from "lucide-react";
+import { Eye, ScanSearch, LineChart, Activity, Bookmark } from "lucide-react";
 import React from "react";
 import { routes } from "@/lib/navigation/sidebar/route";
 
@@ -23,15 +23,47 @@ export type NavSection = {
   items: NavItem[];
 };
 
+// Sidebar = parcours mental Quantsightly : comprendre → gérer → analyser →
+// surveiller → chercher. On n'expose que les pages réelles ; les espaces à venir
+// (Cockpit, Portefeuille, Comparaisons) s'insèreront à leur place réservée, au-
+// dessus, sans re-architecturer.
 export const NAV = [
   {
-    title: "",
+    title: "Exploration",
     items: [
       {
-        key: "home",
-        label: "Accueil",
+        key: "comparateur",
+        label: "Comparateur",
+        href: routes.exploration,
+        icon: LineChart,
+      },
+    ],
+  },
+  {
+    title: "Comparaisons",
+    items: [
+      {
+        key: "signaux",
+        label: "Signaux macro",
+        href: routes.comparisons.signals,
+        icon: Activity,
+      },
+      {
+        key: "mes-comparaisons",
+        label: "Mes comparaisons",
+        href: routes.comparisons.saved,
+        icon: Bookmark,
+      },
+    ],
+  },
+  {
+    title: "Marchés",
+    items: [
+      {
+        key: "watchlist",
+        label: "Actifs suivis",
         href: routes.dashboard,
-        icon: House,
+        icon: Eye,
       },
       {
         key: "screener",
@@ -45,12 +77,6 @@ export const NAV = [
           { label: "Cryptomonnaies", href: routes.screener.crypto },
           { label: "Devises", href: routes.screener.currency },
         ],
-      },
-      {
-        key: "exploration",
-        label: "Exploration",
-        href: routes.exploration,
-        icon: LineChart,
       },
     ],
   },

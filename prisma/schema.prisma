@@ -7,15 +7,31 @@ datasource db {
 }
 
 model Users {
-  id              String      @id @default(cuid())
-  email           String      @unique
-  createdAt       DateTime    @default(now())
-  dashboardLayout String?     // JSON : ordered array of WatchlistItem IDs
-  codes           LoginCode[]
-  sessions        Session[]
-  watchlists      Watchlist[]
+  id               String            @id @default(cuid())
+  email            String            @unique
+  createdAt        DateTime          @default(now())
+  dashboardLayout  String?           // JSON : ordered array of WatchlistItem IDs
+  codes            LoginCode[]
+  sessions         Session[]
+  watchlists       Watchlist[]
+  savedComparators SavedComparator[]
 
   @@map("users")
+}
+
+// Graphique de comparaison épinglé depuis l'Exploration (espace « Comparaisons »).
+model SavedComparator {
+  id           String   @id @default(cuid())
+  userId       String
+  title        String   @db.VarChar(200)
+  config       String   // JSON : ComparisonConfig (séries, opération, devises, MM, plage)
+  positionRank Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_comparators")
 }
 
 model Session {

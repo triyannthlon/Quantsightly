@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import type { SeriesKpis } from "@/lib/coredata/compute";
+import React from "react";
 
 export interface KpiColumn {
   title?: string;
@@ -18,7 +19,7 @@ function formatPct(v: number | null): string {
 function toneClass(v: number | null): string {
   if (v === null) return "text-muted-foreground";
   if (v > 0) return "text-emerald-600 dark:text-emerald-400";
-  if (v < 0) return "text-rose-600 dark:text-rose-400";
+  if (v < 0) return "text-red-600 dark:text-red-400";
   return "text-foreground";
 }
 

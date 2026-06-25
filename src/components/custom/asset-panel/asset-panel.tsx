@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Dialog, DialogTitle, FrostedDialogContent } from "@/components/custom/ui/frosted-dialog";
 import { AssetTypeIcon, assetKind } from "@/components/custom/screener/asset-type-icon";
 import { enCountryToIso2 } from "@/data/countries";
 import { useAssetPanelMetrics } from "@/hooks/watchlist/use-asset-panel-metrics";
@@ -401,6 +402,8 @@ function PriceChart({
     [firstValue, item.currency],
   );
 
+  const [zoomOpen, setZoomOpen] = useState(false);
+
   if (data.length < 2) {
     return (
       <div
@@ -411,6 +414,86 @@ function PriceChart({
       </div>
     );
   }
+
+  // Rendu du graphique réutilisable : inline (px) et dans la fenêtre de zoom
+  // (hauteur CSS "vh" → wrapper à hauteur définie + container 100 %). `gid` rend
+  // l'id du dégradé unique entre les deux instances.
+  const renderChart = (h: number | string, gid: string) => {
+    const isCss = typeof h === "string";
+    return (
+      <div style={isCss ? { height: h } : undefined}>
+        <ResponsiveContainer width="100%" height={isCss ? "100%" : h}>
+          <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 10 }}>
+            <defs>
+              <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.2} />
+                <stop offset="95%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="hsl(var(--border))"
+              opacity={0.3}
+              vertical={false}
+            />
+
+            <XAxis
+              dataKey="date"
+              ticks={ticks}
+              tickFormatter={(v) => formatAxisDate(v, period)}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+              stroke="var(--muted-foreground)"
+              dy={4}
+            />
+
+            <YAxis
+              tickFormatter={axisFormatPrice}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+              stroke="var(--muted-foreground)"
+              width={52}
+              domain={yDomain}
+              tickCount={5}
+              dx={-2}
+            />
+
+            <ReTooltip
+              content={tooltipContent}
+              cursor={{ stroke: "hsl(var(--border))", strokeDasharray: "3 3", strokeWidth: 1 }}
+            />
+
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke={color}
+              strokeWidth={2}
+              fill={`url(#${gid})`}
+              dot={false}
+              activeDot={{ r: 4, fill: color, stroke: "hsl(var(--background))", strokeWidth: 2 }}
+              isAnimationActive={true}
+              animationDuration={500}
+              animationEasing="ease-out"
+            />
+
+            {lastPoint && (
+              <ReferenceDot
+                x={lastPoint.date}
+                y={lastPoint.value}
+                r={4}
+                fill={color}
+                stroke="hsl(var(--background))"
+                strokeWidth={2}
+              />
+            )}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  };
 
   return (
     <div className="pb-2">
@@ -428,75 +511,26 @@ function PriceChart({
         />
       )}
 
-      <ResponsiveContainer width="100%" height={height}>
-        <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 10 }}>
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={color} stopOpacity={0.2} />
-              <stop offset="95%" stopColor={color} stopOpacity={0} />
-            </linearGradient>
-          </defs>
+      <button
+        type="button"
+        onClick={() => setZoomOpen(true)}
+        className="cursor-zoom-img block w-full"
+        aria-label="Agrandir le graphique"
+      >
+        {renderChart(height, gradientId)}
+      </button>
 
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="hsl(var(--border))"
-            opacity={0.3}
-            vertical={false}
-          />
-
-          <XAxis
-            dataKey="date"
-            ticks={ticks}
-            tickFormatter={(v) => formatAxisDate(v, period)}
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-            stroke="var(--muted-foreground)"
-            dy={4}
-          />
-
-          <YAxis
-            tickFormatter={axisFormatPrice}
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-            stroke="var(--muted-foreground)"
-            width={52}
-            domain={yDomain}
-            tickCount={5}
-            dx={-2}
-          />
-
-          <ReTooltip
-            content={tooltipContent}
-            cursor={{ stroke: "hsl(var(--border))", strokeDasharray: "3 3", strokeWidth: 1 }}
-          />
-
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke={color}
-            strokeWidth={2}
-            fill={`url(#${gradientId})`}
-            dot={false}
-            activeDot={{ r: 4, fill: color, stroke: "hsl(var(--background))", strokeWidth: 2 }}
-            isAnimationActive={true}
-            animationDuration={500}
-            animationEasing="ease-out"
-          />
-
-          {lastPoint && (
-            <ReferenceDot
-              x={lastPoint.date}
-              y={lastPoint.value}
-              r={4}
-              fill={color}
-              stroke="hsl(var(--background))"
-              strokeWidth={2}
-            />
-          )}
-        </AreaChart>
-      </ResponsiveContainer>
+      <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
+        <FrostedDialogContent
+          className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]"
+          showCloseButton
+        >
+          <DialogTitle className="text-center text-base font-medium">
+            {item.name ?? item.symbol} · {item.symbol}
+          </DialogTitle>
+          {renderChart("78vh", `${gradientId}-zoom`)}
+        </FrostedDialogContent>
+      </Dialog>
     </div>
   );
 }

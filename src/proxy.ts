@@ -161,6 +161,7 @@ export const config = {
     "/home",
     "/screener/:path*",
     "/exploration/:path*",
+    "/comparaisons/:path*",
     "/items/:path*",
     "/api/me/:path*",
   ],
