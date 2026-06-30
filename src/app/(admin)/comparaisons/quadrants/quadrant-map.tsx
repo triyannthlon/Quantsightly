@@ -5,6 +5,7 @@ import { Info } from "lucide-react";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { REGIME } from "./regime-palette";
 import type { AxisSignal } from "@/lib/coredata/quadrant";
 
 export interface QuadrantPoint {
@@ -50,53 +51,46 @@ interface QInfo {
 }
 const QUADRANT_INFO: Record<"TR" | "BR" | "TL" | "BL", QInfo> = {
   TR: {
-    label: "Boom inflationniste",
+    label: REGIME.TR.label,
     axes: "Croissance ↑ / Inflation ↑",
     desc: "L’économie accélère, mais les prix montent aussi. Les entreprises vendent plus, mais les coûts augmentent. C’est un régime de croissance nominale forte.",
     retenir: "La croissance est forte, mais l’inflation aussi.",
     acheter: "or, matières premières, value",
     reduire: "obligations longues",
-    color: "text-amber-600 dark:text-amber-400",
+    color: REGIME.TR.text,
   },
   BR: {
-    label: "Boom déflationniste",
+    label: REGIME.BR.label,
     axes: "Croissance ↑ / Inflation ↓",
     desc: "C’est le régime naturel du capitalisme productif. Les entreprises produisent plus efficacement, les coûts baissent, l’innovation progresse et les marges peuvent s’améliorer.",
     retenir: "L’économie progresse sans pression inflationniste.",
     acheter: "actions de croissance, obligations longues",
     reduire: "matières premières",
-    color: "text-emerald-600 dark:text-emerald-400",
+    color: REGIME.BR.text,
   },
   TL: {
-    label: "Contraction inflationniste",
+    label: REGIME.TL.label,
     axes: "Croissance ↓ / Inflation ↑",
     desc: "C’est le régime de stagflation. L’économie ralentit, mais les prix continuent de monter. C’est difficile pour les investisseurs, car les actions souffrent du ralentissement et les obligations souffrent de l’inflation.",
     retenir: "Moins de croissance, mais plus d’inflation.",
     acheter: "cash, or",
     reduire: "actions, obligations longues",
-    color: "text-rose-600 dark:text-rose-400",
+    color: REGIME.TL.text,
   },
   BL: {
-    label: "Contraction déflationniste",
+    label: REGIME.BL.label,
     axes: "Croissance ↓ / Inflation ↓",
     desc: "L’économie ralentit et les prix baissent. La dette devient plus lourde à rembourser. Les investisseurs cherchent la sécurité. Les obligations d’État longues deviennent souvent l’actif principal.",
     retenir: "Moins de croissance, moins d’inflation.",
     acheter: "obligations d’État longues, cash",
     reduire: "actions, matières premières",
-    color: "text-blue-600 dark:text-blue-400",
+    color: REGIME.BL.text,
   },
 };
 
 export function isQuadrant(c: Cell): c is "TR" | "TL" | "BR" | "BL" {
   return c === "TR" || c === "TL" || c === "BR" || c === "BL";
 }
-
-const DOT: Record<"TR" | "TL" | "BR" | "BL", string> = {
-  TR: "bg-amber-500",
-  TL: "bg-rose-500",
-  BR: "bg-emerald-500",
-  BL: "bg-blue-500",
-};
 
 export function signalWord(s: AxisSignal): string {
   return s === "ACCELERATING"
@@ -126,7 +120,7 @@ export function countryHover(p: QuadrantPoint): CountryHover {
   if (isQuadrant(cell)) {
     return {
       name: p.name,
-      dot: DOT[cell],
+      dot: REGIME[cell].dot,
       hasData: true,
       regime: QUADRANT_INFO[cell].label,
       growth,
@@ -136,7 +130,7 @@ export function countryHover(p: QuadrantPoint): CountryHover {
   }
   return {
     name: p.name,
-    dot: "bg-muted-foreground/70",
+    dot: REGIME.transition.dot,
     hasData: true,
     regime: "En transition",
     growth,
@@ -233,21 +227,15 @@ function QuadrantLabel({
     bl: "left-3 bottom-3",
     br: "right-3 bottom-3",
   }[corner];
-  const right = corner === "tr" || corner === "br";
   const side = corner === "tl" || corner === "tr" ? "bottom" : "top";
   return (
     <div
       className={cn(
         "absolute z-20 flex max-w-[48%] items-start gap-1 rounded-md border border-border/60 bg-background/80 px-1.5 py-0.5 backdrop-blur-sm",
         pos,
-        right && "flex-row-reverse",
       )}
     >
-      <span
-        className={cn("text-sm font-semibold leading-tight", info.color, right && "text-right")}
-      >
-        {info.label}
-      </span>
+      <span className={cn("text-base font-semibold leading-tight", info.color)}>{info.label}</span>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -286,12 +274,12 @@ interface ZoneStyle {
   bg: string;
 }
 const QUAD: Record<"TL" | "TR" | "BL" | "BR", ZoneStyle> = {
-  TL: { border: "border-rose-500/40", bg: "bg-rose-500/10" },
-  TR: { border: "border-amber-500/40", bg: "bg-amber-500/10" },
-  BL: { border: "border-blue-500/40", bg: "bg-blue-500/10" },
-  BR: { border: "border-emerald-500/40", bg: "bg-emerald-500/10" },
+  TL: { border: REGIME.TL.ring, bg: REGIME.TL.ringBg },
+  TR: { border: REGIME.TR.ring, bg: REGIME.TR.ringBg },
+  BL: { border: REGIME.BL.ring, bg: REGIME.BL.ringBg },
+  BR: { border: REGIME.BR.ring, bg: REGIME.BR.ringBg },
 };
-const NEUTRAL: ZoneStyle = { border: "border-border", bg: "bg-muted/50" };
+const NEUTRAL: ZoneStyle = { border: REGIME.transition.ring, bg: REGIME.transition.ringBg };
 
 // Cercle coloré (caractérise la zone) + marqueurs en anneau à l'intérieur,
 // rayon croissant avec le nombre de pays mais borné par le cercle.

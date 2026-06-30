@@ -44,13 +44,13 @@ export const NAV = [
     items: [
       {
         key: "signaux",
-        label: "Signaux macro",
+        label: "Signaux économiques",
         href: routes.comparisons.signals,
         icon: Activity,
       },
       {
         key: "regimes-pays",
-        label: "Régimes pays",
+        label: "Régimes économiques",
         href: routes.comparisons.quadrants,
         icon: Grid2x2,
       },

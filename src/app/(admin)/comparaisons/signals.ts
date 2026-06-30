@@ -1,4 +1,4 @@
-// Signaux macro canoniques (Gave / Darcet). Chaque signal = ratio de 2 séries
+// Signaux économiques canoniques (Gave / Darcet). Chaque signal = ratio de 2 séries
 // coredata + MM 7 ans + bande de neutralité (zone de transition) + phrases.
 //
 // PRINCIPE PRODUIT : quand le ratio est collé à sa MM7, on ne force pas un

@@ -7,7 +7,7 @@ import { readRegime, type AxisInput } from "./regime-reading";
 import { SynthesisCard } from "./synthesis-card";
 import type { ChartPoint } from "../exploration/exploration-chart";
 
-// Page Comparaisons / Signaux macro. Chaque signal est un ratio canonique
+// Page Comparaisons / Signaux économiques. Chaque signal est un ratio canonique
 // (Gave/Darcet) classé avec une bande de neutralité (zone de transition). Une
 // carte de synthèse agrège les deux axes (énergie × devise) en une lecture de
 // régime, avec niveau de confiance.
@@ -69,7 +69,7 @@ export default async function ComparaisonsPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Signaux macro</h1>
+        <h1 className="text-2xl font-semibold">Signaux économiques</h1>
         <p className="text-sm text-muted-foreground">
           Les grands ratios qui éclairent le régime économique, et ce qu’ils disent aujourd’hui.
         </p>

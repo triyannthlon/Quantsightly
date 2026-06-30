@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { Grid2x2, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuadrantMap, cellOf, type QuadrantPoint } from "./quadrant-map";
-import { WorldMap } from "./world-map";
+import { WorldMap, REGION_LABELS, type Region } from "./world-map";
+import { REGIME, REGIME_ORDER } from "./regime-palette";
 
 type View = "map" | "quadrants";
 
@@ -34,13 +35,11 @@ function Tab({
   );
 }
 
-const COUNTERS: { key: "TR" | "BR" | "TL" | "BL" | "transition"; dot: string; label: string }[] = [
-  { key: "TR", dot: "bg-amber-500", label: "Boom inflationniste" },
-  { key: "BR", dot: "bg-emerald-500", label: "Boom déflationniste" },
-  { key: "TL", dot: "bg-rose-500", label: "Contraction inflationniste" },
-  { key: "BL", dot: "bg-blue-500", label: "Contraction déflationniste" },
-  { key: "transition", dot: "bg-muted-foreground", label: "Transition" },
-];
+const COUNTERS = REGIME_ORDER.map((key) => ({
+  key,
+  dot: REGIME[key].dot,
+  label: REGIME[key].label,
+}));
 
 export function QuadrantsView({
   points,
@@ -50,6 +49,7 @@ export function QuadrantsView({
   asOfLabel: string | null;
 }) {
   const [view, setView] = useState<View>("quadrants");
+  const [region, setRegion] = useState<Region>("monde");
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { TR: 0, BR: 0, TL: 0, BL: 0, transition: 0 };
@@ -84,10 +84,59 @@ export function QuadrantsView({
         </div>
       </div>
 
+      {view === "map" && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs text-muted-foreground">Région :</span>
+          {REGION_LABELS.map((r) => (
+            <button
+              key={r.key}
+              type="button"
+              onClick={() => setRegion(r.key)}
+              className={cn(
+                "cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                region === r.key
+                  ? "border-primary/50 bg-primary/10 text-foreground"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+              )}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {view === "map" ? (
-        <WorldMap points={points} asOfLabel={asOfLabel} />
+        <WorldMap points={points} asOfLabel={asOfLabel} region={region} />
       ) : (
         <QuadrantMap points={points} asOfLabel={asOfLabel} />
+      )}
+
+      {/* Barre de répartition globale (proportion de chaque régime, tous pays). */}
+      {view === "map" && points.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-xs font-medium text-muted-foreground">
+            Répartition des pays couverts · {points.length}
+          </div>
+          <div className="flex h-7 w-full overflow-hidden rounded-lg border">
+            {REGIME_ORDER.filter((k) => counts[k] > 0).map((k) => {
+              const pct = (counts[k] / points.length) * 100;
+              return (
+                <div
+                  key={k}
+                  className={cn("flex items-center justify-center", REGIME[k].dot)}
+                  style={{ width: `${pct}%` }}
+                  title={`${REGIME[k].label} · ${counts[k]} (${Math.round(pct)} %)`}
+                >
+                  {pct >= 8 && (
+                    <span className="text-[11px] font-bold tabular-nums text-black/65">
+                      {Math.round(pct)} %
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );
