@@ -1,0 +1,518 @@
+"use client";
+
+import { useState } from "react";
+import { Info } from "lucide-react";
+import { CountryFlag } from "@/components/ui/CountryFlag";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import type { AxisSignal } from "@/lib/coredata/quadrant";
+
+export interface QuadrantPoint {
+  countryCode: string;
+  name: string;
+  growthSignal: AxisSignal;
+  inflationSignal: AxisSignal;
+}
+
+// Placement CATÉGORIEL (pas par valeur) : 4 quadrants, 4 axes (1 seul signal
+// neutre), centre (les deux neutres = régime indéterminé).
+export type Cell =
+  | "TL"
+  | "TR"
+  | "BL"
+  | "BR"
+  | "axisTop"
+  | "axisBottom"
+  | "axisLeft"
+  | "axisRight"
+  | "center";
+
+export function cellOf(p: QuadrantPoint): Cell {
+  const gN = p.growthSignal === "NEUTRAL";
+  const iN = p.inflationSignal === "NEUTRAL";
+  if (gN && iN) return "center";
+  if (gN) return p.inflationSignal === "ACCELERATING" ? "axisTop" : "axisBottom";
+  if (iN) return p.growthSignal === "ACCELERATING" ? "axisRight" : "axisLeft";
+  const gUp = p.growthSignal === "ACCELERATING";
+  if (p.inflationSignal === "ACCELERATING") return gUp ? "TR" : "TL"; // inflation + = haut
+  return gUp ? "BR" : "BL"; // inflation − = bas
+}
+
+// ─── Contenu pédagogique par quadrant (texte fourni par Yann) ───────────────
+interface QInfo {
+  label: string;
+  axes: string;
+  desc: string;
+  retenir: string;
+  acheter: string;
+  reduire: string;
+  color: string;
+}
+const QUADRANT_INFO: Record<"TR" | "BR" | "TL" | "BL", QInfo> = {
+  TR: {
+    label: "Boom inflationniste",
+    axes: "Croissance ↑ / Inflation ↑",
+    desc: "L’économie accélère, mais les prix montent aussi. Les entreprises vendent plus, mais les coûts augmentent. C’est un régime de croissance nominale forte.",
+    retenir: "La croissance est forte, mais l’inflation aussi.",
+    acheter: "or, matières premières, value",
+    reduire: "obligations longues",
+    color: "text-amber-600 dark:text-amber-400",
+  },
+  BR: {
+    label: "Boom déflationniste",
+    axes: "Croissance ↑ / Inflation ↓",
+    desc: "C’est le régime naturel du capitalisme productif. Les entreprises produisent plus efficacement, les coûts baissent, l’innovation progresse et les marges peuvent s’améliorer.",
+    retenir: "L’économie progresse sans pression inflationniste.",
+    acheter: "actions de croissance, obligations longues",
+    reduire: "matières premières",
+    color: "text-emerald-600 dark:text-emerald-400",
+  },
+  TL: {
+    label: "Contraction inflationniste",
+    axes: "Croissance ↓ / Inflation ↑",
+    desc: "C’est le régime de stagflation. L’économie ralentit, mais les prix continuent de monter. C’est difficile pour les investisseurs, car les actions souffrent du ralentissement et les obligations souffrent de l’inflation.",
+    retenir: "Moins de croissance, mais plus d’inflation.",
+    acheter: "cash, or",
+    reduire: "actions, obligations longues",
+    color: "text-rose-600 dark:text-rose-400",
+  },
+  BL: {
+    label: "Contraction déflationniste",
+    axes: "Croissance ↓ / Inflation ↓",
+    desc: "L’économie ralentit et les prix baissent. La dette devient plus lourde à rembourser. Les investisseurs cherchent la sécurité. Les obligations d’État longues deviennent souvent l’actif principal.",
+    retenir: "Moins de croissance, moins d’inflation.",
+    acheter: "obligations d’État longues, cash",
+    reduire: "actions, matières premières",
+    color: "text-blue-600 dark:text-blue-400",
+  },
+};
+
+export function isQuadrant(c: Cell): c is "TR" | "TL" | "BR" | "BL" {
+  return c === "TR" || c === "TL" || c === "BR" || c === "BL";
+}
+
+const DOT: Record<"TR" | "TL" | "BR" | "BL", string> = {
+  TR: "bg-amber-500",
+  TL: "bg-rose-500",
+  BR: "bg-emerald-500",
+  BL: "bg-blue-500",
+};
+
+export function signalWord(s: AxisSignal): string {
+  return s === "ACCELERATING"
+    ? "en accélération"
+    : s === "DECELERATING"
+      ? "en décélération"
+      : "neutre";
+}
+
+export interface CountryHover {
+  name: string;
+  dot: string;
+  hasData: boolean;
+  regime: string;
+  growth: string;
+  inflation: string;
+  signal: string;
+}
+
+/** Données enrichies du tooltip d'un pays (régime + signaux). */
+export function countryHover(p: QuadrantPoint): CountryHover {
+  const cell = cellOf(p);
+  const growth = signalWord(p.growthSignal);
+  const inflation = signalWord(p.inflationSignal);
+  const signal =
+    p.growthSignal !== "NEUTRAL" && p.inflationSignal !== "NEUTRAL" ? "confirmé" : "en transition";
+  if (isQuadrant(cell)) {
+    return {
+      name: p.name,
+      dot: DOT[cell],
+      hasData: true,
+      regime: QUADRANT_INFO[cell].label,
+      growth,
+      inflation,
+      signal,
+    };
+  }
+  return {
+    name: p.name,
+    dot: "bg-muted-foreground/70",
+    hasData: true,
+    regime: "En transition",
+    growth,
+    inflation,
+    signal,
+  };
+}
+
+/** Infobulle stylée commune (carte + 2×2), suit le curseur. */
+export function CountryTooltip({
+  data,
+  asOfLabel,
+  x,
+  y,
+}: {
+  data: CountryHover;
+  asOfLabel: string | null;
+  x: number;
+  y: number;
+}) {
+  return (
+    <div
+      className="pointer-events-none fixed z-50 min-w-44 rounded-lg border bg-popover px-3 py-2 text-popover-foreground shadow-md"
+      style={{ left: x + 14, top: y + 14 }}
+    >
+      <p className="flex items-center gap-2 text-sm font-semibold">
+        <span className={cn("size-2.5 shrink-0 rounded-full", data.dot)} />
+        {data.name}
+      </p>
+      {data.hasData ? (
+        <div className="mt-1.5 space-y-0.5 text-xs">
+          <p>
+            <span className="text-muted-foreground">Régime :</span> {data.regime}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Croissance :</span> {data.growth}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Inflation :</span> {data.inflation}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Signal :</span> {data.signal}
+          </p>
+          {asOfLabel && (
+            <p className="mt-1.5 border-t pt-1.5 text-[11px] text-muted-foreground">
+              Dernière mise à jour : {asOfLabel}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="mt-0.5 text-xs text-muted-foreground">Sans données</p>
+      )}
+    </div>
+  );
+}
+
+type MarkerHover = { p: QuadrantPoint; x: number; y: number } | null;
+
+function Marker({
+  p,
+  left,
+  top,
+  onHover,
+}: {
+  p: QuadrantPoint;
+  left: number;
+  top: number;
+  onHover: (h: MarkerHover) => void;
+}) {
+  return (
+    <div
+      className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center gap-1 rounded-full border bg-background/90 px-1.5 py-0.5 shadow-sm transition-transform duration-150 hover:z-30 hover:scale-125"
+      style={{ left: `${left}%`, top: `${top}%` }}
+      onMouseMove={(e) => onHover({ p, x: e.clientX, y: e.clientY })}
+      onMouseLeave={() => onHover(null)}
+    >
+      <CountryFlag code={p.countryCode} countryName={p.name} size={16} />
+      <span className="text-[10px] font-semibold tabular-nums">{p.countryCode}</span>
+    </div>
+  );
+}
+
+function QuadrantLabel({
+  cell,
+  corner,
+}: {
+  cell: "TR" | "BR" | "TL" | "BL";
+  corner: "tl" | "tr" | "bl" | "br";
+}) {
+  const info = QUADRANT_INFO[cell];
+  const pos = {
+    tl: "left-3 top-3",
+    tr: "right-3 top-3",
+    bl: "left-3 bottom-3",
+    br: "right-3 bottom-3",
+  }[corner];
+  const right = corner === "tr" || corner === "br";
+  const side = corner === "tl" || corner === "tr" ? "bottom" : "top";
+  return (
+    <div
+      className={cn(
+        "absolute z-20 flex max-w-[48%] items-start gap-1 rounded-md border border-border/60 bg-background/80 px-1.5 py-0.5 backdrop-blur-sm",
+        pos,
+        right && "flex-row-reverse",
+      )}
+    >
+      <span
+        className={cn("text-sm font-semibold leading-tight", info.color, right && "text-right")}
+      >
+        {info.label}
+      </span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="mt-px shrink-0 text-muted-foreground/70 hover:text-foreground"
+          >
+            <Info className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side={side} className="max-w-[280px] space-y-1.5 text-left">
+          <div>
+            <p className="text-sm font-semibold">{info.label}</p>
+            <p className="opacity-70">{info.axes}</p>
+          </div>
+          <p className="leading-relaxed">{info.desc}</p>
+          <p>
+            <span className="opacity-70">À retenir : </span>
+            {info.retenir}
+          </p>
+          <div className="space-y-0.5 border-t border-current/20 pt-1.5">
+            <p>
+              <span className="font-semibold">Acheter :</span> {info.acheter}
+            </p>
+            <p>
+              <span className="font-semibold">Réduire :</span> {info.reduire}
+            </p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
+}
+
+interface ZoneStyle {
+  border: string;
+  bg: string;
+}
+const QUAD: Record<"TL" | "TR" | "BL" | "BR", ZoneStyle> = {
+  TL: { border: "border-rose-500/40", bg: "bg-rose-500/10" },
+  TR: { border: "border-amber-500/40", bg: "bg-amber-500/10" },
+  BL: { border: "border-blue-500/40", bg: "bg-blue-500/10" },
+  BR: { border: "border-emerald-500/40", bg: "bg-emerald-500/10" },
+};
+const NEUTRAL: ZoneStyle = { border: "border-border", bg: "bg-muted/50" };
+
+// Cercle coloré (caractérise la zone) + marqueurs en anneau à l'intérieur,
+// rayon croissant avec le nombre de pays mais borné par le cercle.
+function Zone({
+  points,
+  cx,
+  cy,
+  size,
+  style,
+  alwaysShow = false,
+  onHover,
+}: {
+  points: QuadrantPoint[];
+  cx: number;
+  cy: number;
+  size: number;
+  style: ZoneStyle;
+  alwaysShow?: boolean;
+  onHover: (h: MarkerHover) => void;
+}) {
+  const n = points.length;
+  if (n === 0 && !alwaysShow) return null;
+  const ringR = n <= 1 ? 0 : Math.min(size / 2 - 4, n * 0.95);
+  return (
+    <>
+      <div
+        className={cn(
+          "absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2",
+          style.border,
+          style.bg,
+        )}
+        style={{ left: `${cx}%`, top: `${cy}%`, width: `${size}%`, aspectRatio: "1" }}
+      />
+      {n === 1 ? (
+        <Marker p={points[0]} left={cx} top={cy} onHover={onHover} />
+      ) : (
+        points.map((p, k) => {
+          const a = -Math.PI / 2 + (2 * Math.PI * k) / n;
+          return (
+            <Marker
+              key={p.countryCode}
+              p={p}
+              left={cx + ringR * Math.cos(a)}
+              top={cy + ringR * Math.sin(a)}
+              onHover={onHover}
+            />
+          );
+        })
+      )}
+    </>
+  );
+}
+
+export function QuadrantMap({
+  points,
+  asOfLabel,
+}: {
+  points: QuadrantPoint[];
+  asOfLabel: string | null;
+}) {
+  const [hover, setHover] = useState<MarkerHover>(null);
+  const onHover = (h: MarkerHover) => setHover(h);
+
+  const groups: Record<Cell, QuadrantPoint[]> = {
+    TL: [],
+    TR: [],
+    BL: [],
+    BR: [],
+    axisTop: [],
+    axisBottom: [],
+    axisLeft: [],
+    axisRight: [],
+    center: [],
+  };
+  for (const p of points) groups[cellOf(p)].push(p);
+
+  const dirClass =
+    "absolute z-[15] rounded bg-background/60 px-1 py-0.5 text-xs font-medium text-muted-foreground backdrop-blur-sm whitespace-nowrap";
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <div className="grid w-full grid-cols-[1.75rem_1fr] gap-x-2 gap-y-1.5">
+        {/* Titre de l'axe vertical */}
+        <div className="relative">
+          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-sm font-semibold text-foreground/80">
+            Pression inflationniste
+          </span>
+        </div>
+
+        <div
+          className="relative aspect-square w-full overflow-hidden rounded-xl border bg-card"
+          onMouseLeave={() => setHover(null)}
+        >
+          {/* Teintes de quadrant (couleurs conservées) */}
+          <div className="absolute left-0 top-0 h-1/2 w-1/2 bg-rose-500/[0.05]" />
+          <div className="absolute right-0 top-0 h-1/2 w-1/2 bg-amber-500/[0.05]" />
+          <div className="absolute bottom-0 left-0 h-1/2 w-1/2 bg-blue-500/[0.05]" />
+          <div className="absolute bottom-0 right-0 h-1/2 w-1/2 bg-emerald-500/[0.05]" />
+
+          {/* Axes */}
+          <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-foreground/30" />
+          <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/30" />
+
+          {/* Étiquettes de direction des axes (à l'intérieur, aux extrémités) */}
+          <span className={cn(dirClass, "left-1/2 top-3 -translate-x-1/2")}>
+            Inflation accélère ↑
+          </span>
+          <span className={cn(dirClass, "bottom-3 left-1/2 -translate-x-1/2")}>
+            Inflation décélère ↓
+          </span>
+          <span className={cn(dirClass, "left-3 top-1/2 -translate-y-1/2")}>
+            ← Activité ralentit
+          </span>
+          <span className={cn(dirClass, "right-3 top-1/2 -translate-y-1/2")}>
+            Activité accélère →
+          </span>
+
+          {/* Titres des quadrants (cartouches + tooltip « i ») */}
+          <QuadrantLabel cell="TL" corner="tl" />
+          <QuadrantLabel cell="TR" corner="tr" />
+          <QuadrantLabel cell="BL" corner="bl" />
+          <QuadrantLabel cell="BR" corner="br" />
+
+          {/* 4 quadrants (cercles toujours affichés) */}
+          <Zone
+            points={groups.TL}
+            cx={27}
+            cy={27}
+            size={42}
+            style={QUAD.TL}
+            alwaysShow
+            onHover={onHover}
+          />
+          <Zone
+            points={groups.TR}
+            cx={73}
+            cy={27}
+            size={42}
+            style={QUAD.TR}
+            alwaysShow
+            onHover={onHover}
+          />
+          <Zone
+            points={groups.BL}
+            cx={27}
+            cy={73}
+            size={42}
+            style={QUAD.BL}
+            alwaysShow
+            onHover={onHover}
+          />
+          <Zone
+            points={groups.BR}
+            cx={73}
+            cy={73}
+            size={42}
+            style={QUAD.BR}
+            alwaysShow
+            onHover={onHover}
+          />
+
+          {/* Transitions sur un axe */}
+          <Zone
+            points={groups.axisTop}
+            cx={50}
+            cy={15}
+            size={18}
+            style={NEUTRAL}
+            onHover={onHover}
+          />
+          <Zone
+            points={groups.axisBottom}
+            cx={50}
+            cy={85}
+            size={18}
+            style={NEUTRAL}
+            onHover={onHover}
+          />
+          <Zone
+            points={groups.axisRight}
+            cx={85}
+            cy={50}
+            size={18}
+            style={NEUTRAL}
+            onHover={onHover}
+          />
+          <Zone
+            points={groups.axisLeft}
+            cx={15}
+            cy={50}
+            size={18}
+            style={NEUTRAL}
+            onHover={onHover}
+          />
+
+          {/* Centre : régime indéterminé */}
+          <Zone
+            points={groups.center}
+            cx={50}
+            cy={50}
+            size={15}
+            style={NEUTRAL}
+            onHover={onHover}
+          />
+        </div>
+
+        {/* Titre de l'axe horizontal */}
+        <div aria-hidden />
+        <div className="text-center text-sm font-semibold text-foreground/80">
+          Activité économique
+        </div>
+      </div>
+
+      {hover && (
+        <CountryTooltip
+          data={countryHover(hover.p)}
+          asOfLabel={asOfLabel}
+          x={hover.x}
+          y={hover.y}
+        />
+      )}
+    </TooltipProvider>
+  );
+}

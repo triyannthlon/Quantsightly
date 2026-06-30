@@ -31,7 +31,7 @@ function quadrant(energyAbove: boolean, currencyAbove: boolean): { name: string;
   if (energyAbove && currencyAbove) return { name: "Boom déflationniste", note: "régime de bonne devise" };
   if (energyAbove) return { name: "Boom inflationniste", note: "régime de mauvaise devise" };
   if (currencyAbove) return { name: "Contraction déflationniste", note: "régime de bonne devise" };
-  return { name: "Stagflation", note: "régime de mauvaise devise" };
+  return { name: "Contraction inflationniste", note: "régime de mauvaise devise" };
 }
 
 function score(s: DisplayState | null): number {

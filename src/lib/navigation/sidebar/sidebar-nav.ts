@@ -1,5 +1,5 @@
 // sidebar-nav.ts
-import { Eye, ScanSearch, LineChart, Activity, Bookmark } from "lucide-react";
+import { Eye, ScanSearch, LineChart, Activity, Bookmark, Grid2x2 } from "lucide-react";
 import React from "react";
 import { routes } from "@/lib/navigation/sidebar/route";
 
@@ -47,6 +47,12 @@ export const NAV = [
         label: "Signaux macro",
         href: routes.comparisons.signals,
         icon: Activity,
+      },
+      {
+        key: "regimes-pays",
+        label: "Régimes pays",
+        href: routes.comparisons.quadrants,
+        icon: Grid2x2,
       },
       {
         key: "mes-comparaisons",

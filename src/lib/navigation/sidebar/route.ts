@@ -6,6 +6,7 @@ export const routes = {
   comparisons: {
     signals: "/comparaisons",
     saved: "/comparaisons/mes",
+    quadrants: "/comparaisons/quadrants",
   },
 
   screener: {
