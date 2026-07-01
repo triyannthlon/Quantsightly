@@ -69,9 +69,10 @@ export default async function ComparaisonsPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Signaux économiques</h1>
+        <h1 className="text-2xl font-semibold">Signaux macroéconomiques</h1>
         <p className="text-sm text-muted-foreground">
-          Les grands ratios qui éclairent le régime économique, et ce qu’ils disent aujourd’hui.
+          Suivi des ratios clés entre actions, obligations, or et énergie pour comprendre le régime
+          économique actuel.
         </p>
       </header>
       <SynthesisCard reading={reading} />

@@ -101,7 +101,7 @@ function SignalCard({ view }: { view: SignalView }) {
             <p className="truncate text-xs text-muted-foreground">{view.meaning}</p>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="text-muted-foreground/70 hover:text-foreground">
+                <button type="button" className="cursor-help text-muted-foreground/70 hover:text-foreground">
                   <Info className="size-3.5" />
                 </button>
               </TooltipTrigger>
@@ -150,7 +150,7 @@ function SignalCard({ view }: { view: SignalView }) {
             {view.valueNote && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" className="text-muted-foreground/70 hover:text-foreground">
+                  <button type="button" className="cursor-help text-muted-foreground/70 hover:text-foreground">
                     <Info className="size-3" />
                   </button>
                 </TooltipTrigger>

@@ -14,9 +14,11 @@ import type { EconomicSeries, EconomicDataPoint, FxRate, CoredataCountry } from 
 import { usdPerUnitMap, convertCurrency } from "./compute";
 import {
   computeQuadrant,
+  computeQuadrantHistory,
   DEFAULT_THRESHOLD,
   DEFAULT_LOOKBACK_MONTHS,
   type QuadrantResult,
+  type QuadrantHistoryResult,
 } from "./quadrant";
 
 // Séries globales (cotées en USD), communes à tous les pays.
@@ -140,6 +142,51 @@ async function computeWithContext(
     oil: convert(ctx.oil, config.oilCurrency, target),
     gold: convert(ctx.gold, config.goldCurrency, target),
   });
+}
+
+/** Comme `computeWithContext`, mais renvoie l'historique mensuel des régimes. */
+async function computeHistoryWithContext(
+  countryCode: string,
+  ctx: QuadrantContext,
+): Promise<QuadrantHistoryResult> {
+  const config = deriveCountryConfig(countryCode, ctx.series, ctx.countries);
+  if (!config) {
+    return {
+      status: "MISSING_SERIES",
+      countryCode,
+      threshold: DEFAULT_THRESHOLD,
+      lookbackMonths: DEFAULT_LOOKBACK_MONTHS,
+      points: [],
+    };
+  }
+
+  const [equityRaw, bondRaw] = await Promise.all([
+    getSeriesData(config.equityId),
+    getSeriesData(config.bondId),
+  ]);
+
+  const convert = buildConverter(ctx.usdPerUnit);
+  const target = config.currency;
+  return computeQuadrantHistory({
+    countryCode,
+    equity: convert(equityRaw, config.equityCurrency, target),
+    bond: convert(bondRaw, config.bondCurrency, target),
+    oil: convert(ctx.oil, config.oilCurrency, target),
+    gold: convert(ctx.gold, config.goldCurrency, target),
+  });
+}
+
+/** Historique mensuel des régimes de tous les vrais pays (mêmes règles/filtre que `computeAllCountryQuadrants`). */
+export async function computeAllCountryQuadrantHistory(): Promise<QuadrantHistoryResult[]> {
+  const ctx = await loadContext();
+  const countryCodes = [
+    ...new Set(
+      ctx.series
+        .filter((s) => s.class === 1 && s.type === 1 && s.countryIso !== "XX")
+        .map((s) => s.countryIso),
+    ),
+  ].sort();
+  return Promise.all(countryCodes.map((iso) => computeHistoryWithContext(iso, ctx)));
 }
 
 /** Config d'un pays (chargée à la demande). */

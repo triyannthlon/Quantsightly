@@ -240,7 +240,7 @@ function QuadrantLabel({
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="mt-px shrink-0 text-muted-foreground/70 hover:text-foreground"
+            className="mt-px shrink-0 cursor-help text-muted-foreground/70 hover:text-foreground"
           >
             <Info className="size-3.5" />
           </button>

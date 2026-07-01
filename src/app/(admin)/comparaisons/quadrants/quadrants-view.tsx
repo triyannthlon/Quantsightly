@@ -1,13 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Grid2x2, Map } from "lucide-react";
+import { Grid2x2, Map, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuadrantMap, cellOf, type QuadrantPoint } from "./quadrant-map";
 import { WorldMap, REGION_LABELS, type Region } from "./world-map";
+import { HistoryMatrix } from "./history-matrix";
 import { REGIME, REGIME_ORDER } from "./regime-palette";
+import type { HistoryMatrixData } from "./history";
 
-type View = "map" | "quadrants";
+type View = "map" | "quadrants" | "history";
 
 function Tab({
   active,
@@ -44,9 +46,11 @@ const COUNTERS = REGIME_ORDER.map((key) => ({
 export function QuadrantsView({
   points,
   asOfLabel,
+  history,
 }: {
   points: QuadrantPoint[];
   asOfLabel: string | null;
+  history: HistoryMatrixData;
 }) {
   const [view, setView] = useState<View>("quadrants");
   const [region, setRegion] = useState<Region>("monde");
@@ -71,6 +75,12 @@ export function QuadrantsView({
             onClick={() => setView("quadrants")}
           />
           <Tab active={view === "map"} icon={Map} label="Carte" onClick={() => setView("map")} />
+          <Tab
+            active={view === "history"}
+            icon={History}
+            label="Historique"
+            onClick={() => setView("history")}
+          />
         </div>
 
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -84,7 +94,7 @@ export function QuadrantsView({
         </div>
       </div>
 
-      {view === "map" && (
+      {(view === "map" || view === "history") && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-xs text-muted-foreground">Région :</span>
           {REGION_LABELS.map((r) => (
@@ -107,6 +117,8 @@ export function QuadrantsView({
 
       {view === "map" ? (
         <WorldMap points={points} asOfLabel={asOfLabel} region={region} />
+      ) : view === "history" ? (
+        <HistoryMatrix data={history} region={region} />
       ) : (
         <QuadrantMap points={points} asOfLabel={asOfLabel} />
       )}

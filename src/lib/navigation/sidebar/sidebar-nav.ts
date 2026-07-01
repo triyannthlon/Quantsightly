@@ -27,7 +27,7 @@ export type NavSection = {
 // surveiller → chercher. On n'expose que les pages réelles ; les espaces à venir
 // (Cockpit, Portefeuille, Comparaisons) s'insèreront à leur place réservée, au-
 // dessus, sans re-architecturer.
-export const NAV = [
+export const NAV: NavSection[] = [
   {
     title: "Exploration",
     items: [
@@ -44,13 +44,13 @@ export const NAV = [
     items: [
       {
         key: "signaux",
-        label: "Signaux économiques",
+        label: "Signaux macro",
         href: routes.comparisons.signals,
         icon: Activity,
       },
       {
         key: "regimes-pays",
-        label: "Régimes économiques",
+        label: "Régimes macro",
         href: routes.comparisons.quadrants,
         icon: Grid2x2,
       },

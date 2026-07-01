@@ -258,3 +258,93 @@ export function computeQuadrant(input: ComputeQuadrantInput): QuadrantResult {
     convictionLevel: getConvictionLevel(growthGap, inflationGap),
   };
 }
+
+// ─── Historique mensuel des régimes ─────────────────────────────────────────
+
+export interface QuadrantHistoryPoint {
+  /** Fin de mois `YYYY-MM-DD`. */
+  date: string;
+  growthSignal: AxisSignal;
+  inflationSignal: AxisSignal;
+  quadrant: Quadrant;
+}
+
+export type QuadrantHistoryResult =
+  | {
+      status: "OK";
+      countryCode: string;
+      threshold: number;
+      lookbackMonths: number;
+      points: QuadrantHistoryPoint[];
+    }
+  | {
+      status: Exclude<QuadrantStatus, "OK">;
+      countryCode: string;
+      threshold: number;
+      lookbackMonths: number;
+      points: [];
+    };
+
+/**
+ * Régime de chaque mois pour lequel on dispose d'au moins `lookbackMonths` mois
+ * d'antériorité. Même règle que `computeQuadrant` appliquée glissante : pour le
+ * mois i, la MM7Y porte sur les 84 mois AVANT i. Moyenne mobile en somme
+ * glissante (O(n)). Le dernier point est identique à `computeQuadrant`.
+ */
+export function computeQuadrantHistory(input: ComputeQuadrantInput): QuadrantHistoryResult {
+  const { countryCode } = input;
+  const threshold = input.threshold ?? DEFAULT_THRESHOLD;
+  const lookbackMonths = input.lookbackMonths ?? DEFAULT_LOOKBACK_MONTHS;
+  const fail = (status: Exclude<QuadrantStatus, "OK">): QuadrantHistoryResult => ({
+    status,
+    countryCode,
+    threshold,
+    lookbackMonths,
+    points: [],
+  });
+
+  if (!input.equity.length || !input.oil.length || !input.gold.length || !input.bond.length) {
+    return fail("MISSING_SERIES");
+  }
+
+  const aligned = align4(
+    toMonthly(input.equity),
+    toMonthly(input.oil),
+    toMonthly(input.gold),
+    toMonthly(input.bond),
+  );
+  const valid = aligned.filter((p) => p.equity > 0 && p.oil > 0 && p.gold > 0 && p.bond > 0);
+  if (valid.length === 0) return fail("INVALID_VALUE");
+  if (valid.length < lookbackMonths + 1) return fail("INSUFFICIENT_HISTORY");
+
+  const ratios = valid.map((p) => ({
+    date: p.date,
+    growth: Math.log(p.equity / p.oil),
+    inflation: Math.log(p.gold / p.bond),
+  }));
+
+  const points: QuadrantHistoryPoint[] = [];
+  let growthSum = 0;
+  let inflationSum = 0;
+  for (let j = 0; j < lookbackMonths; j++) {
+    growthSum += ratios[j].growth;
+    inflationSum += ratios[j].inflation;
+  }
+  for (let i = lookbackMonths; i < ratios.length; i++) {
+    const growthGap = ratios[i].growth - growthSum / lookbackMonths;
+    const inflationGap = ratios[i].inflation - inflationSum / lookbackMonths;
+    const growthSignal = getAxisSignal(growthGap, threshold);
+    const inflationSignal = getAxisSignal(inflationGap, threshold);
+    points.push({
+      date: ratios[i].date,
+      growthSignal,
+      inflationSignal,
+      quadrant: getQuadrant(growthSignal, inflationSignal),
+    });
+    // Fait glisser la fenêtre [i-lookback, i-1] → [i-lookback+1, i] pour i+1.
+    growthSum += ratios[i].growth - ratios[i - lookbackMonths].growth;
+    inflationSum += ratios[i].inflation - ratios[i - lookbackMonths].inflation;
+  }
+
+  return { status: "OK", countryCode, threshold, lookbackMonths, points };
+}
