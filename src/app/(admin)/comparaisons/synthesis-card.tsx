@@ -83,16 +83,16 @@ export function SynthesisCard({ reading }: { reading: RegimeReading }) {
           <p className="text-sm font-medium">
             S&amp;P 500 / WTI ·{" "}
             <span className="text-muted-foreground">
-              {axisState(reading.energyState, "efficace", "peu efficace")}
+              {axisState(reading.energyState, "efficace", "moins efficace")}
             </span>
           </p>
         </div>
         <div className="space-y-0.5">
           <p className="text-xs text-muted-foreground">Axe 2 — qualité de la devise</p>
           <p className="text-sm font-medium">
-            Oblig. longues / Or ·{" "}
+            Obligations longues / Or ·{" "}
             <span className="text-muted-foreground">
-              {axisState(reading.currencyState, "solide", "fragile")}
+              {axisState(reading.currencyState, "protectrice", "moins protectrice")}
             </span>
           </p>
         </div>

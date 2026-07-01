@@ -40,20 +40,20 @@ export const MACRO_SIGNALS: MacroSignal[] = [
     title: "S&P 500 / WTI",
     meaning: "Efficacité énergétique",
     tooltip:
-      "Ce ratio mesure si le marché actions crée plus de valeur que le coût de l'énergie. Quand le ratio S&P 500 / WTI monte, les actions surperforment le pétrole.",
+      "Ce ratio mesure si le marché actions crée plus de valeur que le coût de l'énergie. Quand le ratio S&P 500 / WTI monte, les actions surperforment le pétrole : l'économie transforme l'énergie en valeur de manière plus efficace. Quand il baisse, le coût de l'énergie pèse davantage sur le marché actions.",
     numerator: "SPX Index-US-1-1",
     denominator: "CL1 comdty-XX-5-1",
     maYears: 7,
     threshold: 0.05,
     economic: {
-      positive: { label: "Efficacité +", tone: "positive" },
-      negative: { label: "Efficacité −", tone: "negative" },
+      positive: { label: "Énergie efficace", tone: "positive" },
+      negative: { label: "Énergie moins efficace", tone: "negative" },
     },
     interpretation: {
       positive:
-        "L'efficacité énergétique reste favorable : le marché crée plus de valeur par baril de pétrole que sa tendance longue. Le régime reste porteur pour les actifs de croissance.",
+        "L'efficacité énergétique reste favorable : le marché actions crée plus de valeur par baril de pétrole que sa tendance longue. Le régime reste porteur pour les actifs de croissance.",
       negative:
-        "L'efficacité énergétique se dégrade : il faut plus d'énergie pour soutenir le marché que sur sa tendance longue. Le modèle lit un ralentissement.",
+        "L'efficacité énergétique se dégrade : le coût de l'énergie pèse davantage sur le marché actions que sa tendance longue. Le modèle lit un risque de ralentissement.",
       transition:
         "Le ratio est proche de sa moyenne mobile 7 ans : l'efficacité énergétique n'envoie pas de signal net. Le modèle attend une confirmation avant de modifier la lecture du régime.",
     },
@@ -63,23 +63,24 @@ export const MACRO_SIGNALS: MacroSignal[] = [
     title: "Obligations 10 ans US / Or",
     meaning: "Qualité de la devise",
     tooltip:
-      "Ce ratio compare les obligations longues à l'or. Si l'or surperforme les obligations, les contrats jouent moins bien leur rôle de réserve de valeur.",
-    valueNote: "Le signal utilise le rendement total des obligations longues, pas le taux 10 ans seul.",
+      "Ce ratio mesure si les obligations longues protègent mieux que l'or. Il permet de savoir si les contrats financiers jouent encore leur rôle de réserve de valeur. Quand le ratio monte, les obligations protègent mieux que l'or. Quand il baisse, l'or devient plus protecteur que les obligations.",
+    valueNote:
+      "Le signal utilise le rendement total des obligations longues, coupons réinvestis, et non le taux 10 ans seul.",
     numerator: "GT10 Govt-US-4-2",
     denominator: "XAU Comdty-XX-5-1",
     maYears: 7,
     threshold: 0.03,
     economic: {
-      positive: { label: "Devise +", tone: "positive" },
-      negative: { label: "Devise −", tone: "negative" },
+      positive: { label: "Devise protectrice", tone: "positive" },
+      negative: { label: "Devise moins protectrice", tone: "negative" },
     },
     interpretation: {
       positive:
-        "Les obligations battent l'or sur la tendance longue : les contrats jouent encore leur rôle de réserve de valeur. La qualité de la devise tient.",
+        "Les obligations longues surperforment l'or : les contrats jouent encore leur rôle de réserve de valeur. La devise reste protectrice.",
       negative:
-        "L'or surperforme les obligations : les contrats protègent moins bien que l'actif de rareté. La qualité de la devise se dégrade.",
+        "L'or surperforme les obligations longues : les contrats protègent moins bien que l'actif de rareté. La devise devient moins protectrice.",
       transition:
-        "Le ratio obligations / or est proche de sa moyenne 7 ans : la qualité de la devise est en zone de transition. Les contrats ne confirment ni une protection nette ni une détérioration franche.",
+        "Le ratio obligations longues / or est proche de sa moyenne mobile 7 ans : la qualité de la devise est en zone de transition. Les contrats ne confirment ni une protection nette ni une détérioration franche.",
     },
   },
   {
@@ -87,18 +88,18 @@ export const MACRO_SIGNALS: MacroSignal[] = [
     title: "S&P 500 / Or",
     meaning: "Marché haussier réel",
     tooltip:
-      "Ce ratio mesure les actions en termes d'or. Un vrai marché haussier suppose que les actions progressent aussi face à l'or, pas seulement en monnaie nominale.",
+      "Ce ratio mesure si les actions progressent réellement par rapport à l'or. Il permet d'éviter l'illusion monétaire : un marché peut monter en dollars sans forcément gagner en pouvoir d'achat. Pour confirmer un vrai marché haussier, les actions doivent aussi progresser face à l'or.",
     numerator: "SPX Index-US-1-1",
     denominator: "XAU Comdty-XX-5-1",
     maYears: 7,
     threshold: 0.03,
     economic: {
-      positive: { label: "Actions / Or +", tone: "positive" },
-      negative: { label: "Actions / Or −", tone: "negative" },
+      positive: { label: "Actions devant l'or", tone: "positive" },
+      negative: { label: "Actions en retrait face à l'or", tone: "negative" },
     },
     interpretation: {
       positive:
-        "Les actions progressent aussi face à l'or : le marché haussier réel est confirmé, pas seulement nominal.",
+        "Les actions progressent face à l'or : le marché haussier réel est confirmé, et pas seulement nominal.",
       negative:
         "Les actions perdent du terrain face à l'or : le marché haussier réel manque de confirmation.",
       transition:
@@ -110,7 +111,7 @@ export const MACRO_SIGNALS: MacroSignal[] = [
     title: "Or / WTI",
     meaning: "Prix relatif de l'énergie",
     tooltip:
-      "Ce ratio mesure combien de pétrole une once d'or permet d'acheter. Il indique si l'énergie est chère ou bon marché par rapport à l'or.",
+      "Ce ratio mesure combien de pétrole une once d'or permet d'acheter. Quand le ratio monte, l'énergie devient moins chère en termes d'or. Quand il baisse, l'énergie devient plus chère en termes d'or. Ce signal aide à détecter une tension énergétique relative.",
     numerator: "XAU Comdty-XX-5-1",
     denominator: "CL1 comdty-XX-5-1",
     maYears: 7,
@@ -123,9 +124,9 @@ export const MACRO_SIGNALS: MacroSignal[] = [
       positive:
         "L'énergie reste bon marché en termes d'or : le modèle ne détecte pas encore de choc pétrolier relatif. Attention toutefois : la hausse du ratio peut aussi refléter une forte demande d'or.",
       negative:
-        "L'énergie devient chère en termes d'or : le modèle détecte une tension pétrolière relative, souvent associée aux pressions inflationnistes.",
+        "L'énergie devient chère en termes d'or : le modèle détecte une tension pétrolière relative, souvent associée à des pressions inflationnistes.",
       transition:
-        "Le prix relatif de l'énergie est proche de sa tendance longue : le signal ne confirme pas encore de choc énergétique ni d'énergie clairement bon marché.",
+        "Le prix relatif de l'énergie est proche de sa tendance longue : le signal ne confirme ni choc énergétique, ni énergie clairement bon marché.",
     },
   },
 ];

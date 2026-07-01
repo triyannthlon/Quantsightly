@@ -69,11 +69,11 @@ function subText(view: SignalView): string {
   if (view.displayState === "transition") {
     return view.ecart !== null
       ? `À ${(Math.abs(view.ecart) * 100).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} % de la MM7`
-      : "Proche MM7";
+      : "Proche de la MM7";
   }
-  if (view.technicalState === "above") return "Au-dessus MM7";
+  if (view.technicalState === "above") return "Au-dessus de la MM7";
   if (view.technicalState === "below") return "Sous la MM7";
-  return "Proche MM7";
+  return "Proche de la MM7";
 }
 
 function Perf({ label, value }: { label: string; value: number | null }) {

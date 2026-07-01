@@ -28,10 +28,12 @@ export interface RegimeReading {
 }
 
 function quadrant(energyAbove: boolean, currencyAbove: boolean): { name: string; note: string } {
-  if (energyAbove && currencyAbove) return { name: "Boom déflationniste", note: "régime de bonne devise" };
-  if (energyAbove) return { name: "Boom inflationniste", note: "régime de mauvaise devise" };
-  if (currencyAbove) return { name: "Contraction déflationniste", note: "régime de bonne devise" };
-  return { name: "Contraction inflationniste", note: "régime de mauvaise devise" };
+  if (energyAbove && currencyAbove)
+    return { name: "Boom déflationniste", note: "actifs de croissance favorisés" };
+  if (energyAbove) return { name: "Boom inflationniste", note: "actifs réels favorisés" };
+  if (currencyAbove)
+    return { name: "Contraction déflationniste", note: "contrats protecteurs favorisés" };
+  return { name: "Contraction inflationniste", note: "régime défensif" };
 }
 
 function score(s: DisplayState | null): number {
@@ -59,8 +61,13 @@ export function readRegime(
   const c = score(currency.displayState);
 
   const chips = [
-    chip(energy.displayState, "Énergie efficace", "Énergie peu efficace", "Énergie en transition"),
-    chip(currency.displayState, "Devise solide", "Devise fragile", "Devise en transition"),
+    chip(energy.displayState, "Énergie efficace", "Énergie moins efficace", "Énergie en transition"),
+    chip(
+      currency.displayState,
+      "Devise protectrice",
+      "Devise moins protectrice",
+      "Devise en transition",
+    ),
     chip(actionsOr, "Actions devant l'or", "Actions en retrait face à l'or", "Actions proches de l'or"),
   ].filter((x): x is RegimeChip => x !== null);
 
@@ -80,13 +87,17 @@ export function readRegime(
     regimeLabel = q.name;
     regimeNote = q.note;
     confidence = "forte";
-    const energyPart = e > 0 ? "efficace en énergie" : "peu efficace en énergie";
-    const currencyPart = c > 0 ? "une devise solide" : "une devise moins protectrice";
-    const dominance =
-      c < 0
-        ? "Les actifs réels dominent les contrats."
-        : "Les contrats jouent encore leur rôle de protection.";
-    synthesis = `Le modèle lit aujourd'hui une économie ${energyPart}, avec ${currencyPart}. ${dominance}`;
+    const energyPart = e > 0 ? "efficace en énergie" : "moins efficace en énergie";
+    const currencyPart = c > 0 ? "une devise protectrice" : "une devise moins protectrice";
+    const allocation =
+      e > 0 && c > 0
+        ? "Les actifs de croissance et les contrats longs restent favorisés."
+        : e > 0
+          ? "Les actifs réels tendent à mieux se comporter que les contrats."
+          : c > 0
+            ? "Les contrats protecteurs, comme les obligations d'État longues et le cash, sont favorisés."
+            : "Le régime devient défensif : cash, or et énergie sont généralement plus protecteurs.";
+    synthesis = `Le modèle détecte aujourd'hui une économie ${energyPart}, avec ${currencyPart}. ${allocation}`;
   } else if (e !== 0 || c !== 0) {
     // Exactement un des deux axes est en zone de transition.
     if (c === 0) {

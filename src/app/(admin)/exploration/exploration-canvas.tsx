@@ -63,6 +63,22 @@ import { ExplorationChart, type ChartLine, type ChartPoint } from "./exploration
 import { ExplorationKpis } from "./exploration-kpis";
 import { buildGraphTitle, buildStatsTitle, secondSectionTitle } from "./titles";
 import { loadSeriesData } from "./actions";
+import { Lexique } from "@/components/custom/lexique/lexique";
+
+// Mots-clés du Lexique de la page Comparateur (Classes de données, puis Mesures).
+const LEXIQUE_TERMS = [
+  "data-croissance-reelle",
+  "data-indice-boursier",
+  "data-inflation",
+  "data-liquidite",
+  "data-obligation-10a",
+  "data-taux-change",
+  "mesure-prix",
+  "mesure-prix-coupons",
+  "mesure-per",
+  "mesure-taux",
+  "mesure-taux-reel",
+];
 
 const COLOR_PRIMARY = "var(--foreground)";
 const COLOR_A = "#E5689E"; // rose vif (superposition, série A)
@@ -599,11 +615,14 @@ export function ExplorationCanvas({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Comparateur d’indicateurs</h1>
-        <p className="text-sm text-muted-foreground">
-          Comparer, mettre en ratio ou suivre un indicateur économique ou de marché.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">Comparateur d’indicateurs</h1>
+          <p className="text-sm text-muted-foreground">
+            Comparer, mettre en ratio ou suivre un indicateur économique ou de marché.
+          </p>
+        </div>
+        <Lexique terms={LEXIQUE_TERMS} />
       </header>
 
       {/* Séries A et B dans une seule carte */}

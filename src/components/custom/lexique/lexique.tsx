@@ -64,11 +64,17 @@ export function Lexique({ terms, label = "Lexique" }: { terms: string[]; label?:
                       {isOpen && (
                         <div className="space-y-1.5 px-4 pb-2.5 text-xs text-muted-foreground/80">
                           {e.technique && <p className="leading-relaxed">{e.technique}</p>}
+                          {e.formule && (
+                            <p>
+                              <span className="font-medium text-foreground/70">Formule : </span>
+                              {e.formule}
+                            </p>
+                          )}
                           {(e.privilegier || e.reduire) && (
                             <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-0.5">
                               {e.privilegier && (
                                 <>
-                                  <span className="whitespace-nowrap font-medium text-foreground/70">
+                                  <span className="whitespace-nowrap text-right font-medium text-foreground/70">
                                     À privilégier :
                                   </span>
                                   <span>{e.privilegier}</span>
@@ -76,7 +82,7 @@ export function Lexique({ terms, label = "Lexique" }: { terms: string[]; label?:
                               )}
                               {e.reduire && (
                                 <>
-                                  <span className="whitespace-nowrap font-medium text-foreground/70">
+                                  <span className="whitespace-nowrap text-right font-medium text-foreground/70">
                                     À réduire :
                                   </span>
                                   <span>{e.reduire}</span>
@@ -85,6 +91,12 @@ export function Lexique({ terms, label = "Lexique" }: { terms: string[]; label?:
                             </div>
                           )}
                           {e.exemple && <p className="italic">Exemples : {e.exemple}</p>}
+                          {e.retenir && (
+                            <p className="rounded bg-muted/60 px-2 py-1">
+                              <span className="font-medium text-foreground/70">À retenir : </span>
+                              {e.retenir}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
