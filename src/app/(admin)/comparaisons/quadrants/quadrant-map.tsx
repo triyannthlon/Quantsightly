@@ -361,7 +361,7 @@ export function QuadrantMap({
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="grid w-full grid-cols-[1.75rem_1fr] gap-x-2 gap-y-1.5">
+      <div className="grid w-full max-w-4xl grid-cols-[1.75rem_1fr] gap-x-2 gap-y-1.5">
         {/* Titre de l'axe vertical */}
         <div className="relative">
           <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-sm font-semibold text-foreground/80">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { CountryFlag } from "@/components/ui/CountryFlag";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { WORLD_COUNTRIES } from "./world-geo";
 import { REGIME, REGIME_ORDER, type RegimeKey } from "./regime-palette";
 import {
@@ -105,6 +106,9 @@ const POINT_COUNTRIES: Record<string, { cx: number; cy: number }> = {
 // sombre que --card → invisible). foreground à faible opacité marche en thème
 // clair comme sombre. Pas de contour → landmass uniforme sans frontières.
 const NODATA_CLASS = "fill-foreground/10";
+
+// Nb max de chips pays affichés par régime dans la liste ; au-delà → « +N ».
+const MAX_CHIPS = 10;
 
 const NODATA_HOVER: CountryHover = {
   name: "",
@@ -283,8 +287,11 @@ export function WorldMap({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-xl border bg-card p-2">
-        <div className="relative">
+      <div className="rounded-xl border bg-card p-3">
+        <div className="mb-2 text-xs font-medium text-muted-foreground">
+          Carte des régimes par pays
+        </div>
+        <div className="relative overflow-hidden rounded-lg">
           <svg
             viewBox={vb.map((n) => n.toFixed(2)).join(" ")}
             className="h-auto w-full"
@@ -302,39 +309,69 @@ export function WorldMap({
         </div>
       </div>
 
-      {/* Liste des pays couverts dans le cadre, groupés par régime. */}
+      {/* Pays couverts dans le cadre : une ligne compacte par régime. */}
       <div className="rounded-xl border bg-card p-3">
-        <div className="mb-2 text-xs font-medium text-muted-foreground">
+        <div className="mb-4 text-xs font-medium text-muted-foreground">
           Pays couverts par régime
           {framedTotal > 0 && <span className="text-muted-foreground/70"> · {framedTotal}</span>}
         </div>
         {framedTotal === 0 ? (
           <p className="text-xs text-muted-foreground">Aucun pays couvert dans cette zone.</p>
         ) : (
-          <div className="flex flex-wrap gap-x-6 gap-y-3">
-            {REGIME_ORDER.filter((k) => framedGroups[k].length > 0).map((k) => (
-              <div key={k} className="min-w-0">
-                <div className="mb-1.5 flex items-center gap-1.5">
-                  <span className={cn("size-2.5 rounded-full", REGIME[k].dot)} />
-                  <span className="text-xs font-medium">{REGIME[k].label}</span>
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {framedGroups[k].length}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {framedGroups[k].map((p) => (
-                    <span
-                      key={p.countryCode}
-                      className="inline-flex items-center gap-1 rounded-md border bg-background/60 px-1.5 py-0.5 text-[11px]"
-                    >
-                      <CountryFlag code={p.countryCode} countryName={p.name} size={14} />
-                      <span className="font-medium tabular-nums">{p.countryCode}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <TooltipProvider delayDuration={150}>
+            <div className="space-y-2">
+              {REGIME_ORDER.filter((k) => framedGroups[k].length > 0).map((k) => {
+                const list = framedGroups[k];
+                const shown = list.slice(0, MAX_CHIPS);
+                const overflow = list.slice(MAX_CHIPS);
+                return (
+                  <div key={k} className="flex items-center gap-3">
+                    <div className="flex w-56 shrink-0 items-center gap-1.5">
+                      <span className={cn("size-2.5 shrink-0 rounded-full", REGIME[k].dot)} />
+                      <span className="truncate text-xs font-medium">{REGIME[k].label}</span>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {list.length}
+                      </span>
+                    </div>
+                    <div className="flex flex-1 flex-wrap items-center gap-1.5">
+                      {shown.map((p) => (
+                        <span
+                          key={p.countryCode}
+                          className="inline-flex items-center gap-1 rounded-md border bg-background/60 px-1.5 py-0.5 text-[11px]"
+                        >
+                          <CountryFlag code={p.countryCode} countryName={p.name} size={14} />
+                          <span className="font-medium tabular-nums">{p.countryCode}</span>
+                        </span>
+                      ))}
+                      {overflow.length > 0 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="inline-flex cursor-pointer items-center rounded-md border bg-background/60 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              +{overflow.length}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="flex max-w-[240px] flex-wrap gap-1.5">
+                            {overflow.map((p) => (
+                              <span
+                                key={p.countryCode}
+                                className="inline-flex items-center gap-1 text-[11px] text-background"
+                              >
+                                <CountryFlag code={p.countryCode} countryName={p.name} size={14} />
+                                <span className="font-medium tabular-nums">{p.countryCode}</span>
+                              </span>
+                            ))}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </TooltipProvider>
         )}
       </div>
 

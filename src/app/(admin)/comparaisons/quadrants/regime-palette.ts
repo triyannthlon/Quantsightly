@@ -2,27 +2,34 @@
 // Carte, légende, anneaux du 2×2, pastilles et titres de coin importent d'ici :
 // changer une teinte = modifier UNE ligne, tout suit.
 //
-// ⚠️ Tailwind ne génère que les classes écrites EN TOUTES LETTRES dans le code
-// source. Les chaînes ci-dessous sont littérales (pas de `bg-${hex}`) → elles
-// sont bien détectées par le JIT. Pour changer une couleur, remplacer le hex
-// dans TOUTES les chaînes de l'entrée concernée.
+// STRATÉGIE (saturation ∝ 1/surface, 2 niveaux) :
+//   - `area` = APLAT de la carte (grande surface) → teinte PASTEL douce (`hex`),
+//              sinon un continent plein saturé est agressif.
+//   - `dot` / `ring` / `ringBg` / `text` = PETITS éléments (pastilles, badges,
+//              anneaux, barre, titres) → teinte INTERMÉDIAIRE (mélange 50/50 du
+//              pastel et du vif Tailwind 500). Plus vive que la carte pour se
+//              distinguer, mais assez proche pour rester harmonieuse.
+//
+// ⚠️ Tailwind ne génère que les classes écrites EN TOUTES LETTRES ici (pas de
+// `bg-${x}`). Aplats + éléments = hex arbitraires ; texte = named (clair) +
+// hex (sombre) pour la lisibilité sur cartouche clair.
 
 export type RegimeKey = "TR" | "BR" | "TL" | "BL" | "transition";
 
 export interface RegimeStyle {
   /** Libellé FR du régime. */
   label: string;
-  /** Couleur de référence (hex). */
+  /** Teinte pastel de l'aplat carte (hex de référence). */
   hex: string;
-  /** Carte : aplat plein (fond + contour même couleur → fusion des voisins). */
+  /** Carte : aplat plein (fond + contour même couleur → fusion des voisins), PASTEL. */
   area: string;
-  /** Pastille pleine (légende, liste, tooltip). */
+  /** Pastille pleine (légende, liste, tooltip, barre, point carte), INTERMÉDIAIRE. */
   dot: string;
-  /** Anneau du 2×2 : bordure douce. */
+  /** Anneau du 2×2 : bordure, INTERMÉDIAIRE. */
   ring: string;
-  /** Anneau du 2×2 : fond intérieur léger. */
+  /** Anneau du 2×2 : fond intérieur léger, INTERMÉDIAIRE. */
   ringBg: string;
-  /** Titre de coin : soutenu en clair, pastel en sombre. */
+  /** Titre de coin : soutenu en clair (named 600), intermédiaire en sombre. */
   text: string;
 }
 
@@ -33,46 +40,46 @@ export const REGIME: Record<RegimeKey, RegimeStyle> = {
   TR: {
     label: "Boom inflationniste",
     hex: "#dcc08a",
-    area: "fill-[#dcc08a] stroke-[#dcc08a]",
-    dot: "bg-[#dcc08a]",
-    ring: "border-[#dcc08a]/40",
-    ringBg: "bg-[#dcc08a]/10",
-    text: "text-amber-600 dark:text-[#dcc08a]",
+    area: "fill-[#e9af4b] stroke-[#e9af4b]",
+    dot: "bg-[#e9af4b]",
+    ring: "border-[#e9af4b]/40",
+    ringBg: "bg-[#e9af4b]/10",
+    text: "text-amber-600 dark:text-[#e9af4b]",
   },
   BR: {
     label: "Boom déflationniste",
     hex: "#9ec9ae",
-    area: "fill-[#9ec9ae] stroke-[#9ec9ae]",
-    dot: "bg-[#9ec9ae]",
-    ring: "border-[#9ec9ae]/40",
-    ringBg: "bg-[#9ec9ae]/10",
-    text: "text-emerald-600 dark:text-[#9ec9ae]",
+    area: "fill-[#57c198] stroke-[#57c198]",
+    dot: "bg-[#57c198]",
+    ring: "border-[#57c198]/40",
+    ringBg: "bg-[#57c198]/10",
+    text: "text-emerald-600 dark:text-[#57c198]",
   },
   TL: {
     label: "Contraction inflationniste",
     hex: "#dba7ad",
-    area: "fill-[#dba7ad] stroke-[#dba7ad]",
-    dot: "bg-[#dba7ad]",
-    ring: "border-[#dba7ad]/40",
-    ringBg: "bg-[#dba7ad]/10",
-    text: "text-rose-600 dark:text-[#dba7ad]",
+    area: "fill-[#e87386] stroke-[#e87386]",
+    dot: "bg-[#e87386]",
+    ring: "border-[#e87386]/40",
+    ringBg: "bg-[#e87386]/10",
+    text: "text-rose-600 dark:text-[#e87386]",
   },
   BL: {
     label: "Contraction déflationniste",
     hex: "#a7c0dd",
-    area: "fill-[#a7c0dd] stroke-[#a7c0dd]",
-    dot: "bg-[#a7c0dd]",
-    ring: "border-[#a7c0dd]/40",
-    ringBg: "bg-[#a7c0dd]/10",
-    text: "text-blue-600 dark:text-[#a7c0dd]",
+    area: "fill-[#71a1ea] stroke-[#71a1ea]",
+    dot: "bg-[#71a1ea]",
+    ring: "border-[#71a1ea]/40",
+    ringBg: "bg-[#71a1ea]/10",
+    text: "text-blue-600 dark:text-[#71a1ea]",
   },
   transition: {
     label: "Transition",
     hex: "#aab3c0",
-    area: "fill-[#aab3c0] stroke-[#aab3c0]",
-    dot: "bg-[#aab3c0]",
-    ring: "border-[#aab3c0]/40",
-    ringBg: "bg-[#aab3c0]/10",
-    text: "text-slate-600 dark:text-[#aab3c0]",
+    area: "fill-[#8794a6] stroke-[#8794a6]",
+    dot: "bg-[#8794a6]",
+    ring: "border-[#8794a6]/40",
+    ringBg: "bg-[#8794a6]/10",
+    text: "text-slate-600 dark:text-[#8794a6]",
   },
 };

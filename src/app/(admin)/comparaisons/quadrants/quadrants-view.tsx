@@ -67,10 +67,10 @@ export function QuadrantsView({
           <Tab
             active={view === "quadrants"}
             icon={Grid2x2}
-            label="Vue Quadrant"
+            label="Quadrant"
             onClick={() => setView("quadrants")}
           />
-          <Tab active={view === "map"} icon={Map} label="Vue carte" onClick={() => setView("map")} />
+          <Tab active={view === "map"} icon={Map} label="Carte" onClick={() => setView("map")} />
         </div>
 
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -113,9 +113,9 @@ export function QuadrantsView({
 
       {/* Barre de répartition globale (proportion de chaque régime, tous pays). */}
       {view === "map" && points.length > 0 && (
-        <div className="space-y-1.5">
-          <div className="text-xs font-medium text-muted-foreground">
-            Répartition des pays couverts · {points.length}
+        <div className="rounded-xl border bg-card p-3">
+          <div className="mb-2 text-xs font-medium text-muted-foreground">
+            Répartition des régimes · {points.length} pays couverts
           </div>
           <div className="flex h-7 w-full overflow-hidden rounded-lg border">
             {REGIME_ORDER.filter((k) => counts[k] > 0).map((k) => {
