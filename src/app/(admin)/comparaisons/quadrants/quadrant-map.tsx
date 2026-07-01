@@ -47,43 +47,52 @@ interface QInfo {
   retenir: string;
   acheter: string;
   reduire: string;
+  notionCle?: string;
   color: string;
 }
 const QUADRANT_INFO: Record<"TR" | "BR" | "TL" | "BL", QInfo> = {
   TR: {
     label: REGIME.TR.label,
     axes: "Croissance ↑ / Inflation ↑",
-    desc: "L’économie accélère, mais les prix montent aussi. Les entreprises vendent plus, mais les coûts augmentent. C’est un régime de croissance nominale forte.",
-    retenir: "La croissance est forte, mais l’inflation aussi.",
-    acheter: "or, matières premières, value",
-    reduire: "obligations longues",
+    desc: "L’économie accélère, mais les prix montent aussi. Les entreprises vendent plus, mais leurs coûts augmentent. C’est un régime de croissance nominale forte.",
+    retenir: "La croissance est bonne, mais l’inflation devient un risque.",
+    acheter: "Or, matières premières, énergie, actions value, actifs réels.",
+    reduire: "Obligations longues, actifs très sensibles à la hausse des taux.",
+    notionCle:
+      "Une action value est une entreprise déjà rentable, souvent moins chère, parfois cyclique, qui peut profiter de la hausse des prix.",
     color: REGIME.TR.text,
   },
   BR: {
     label: REGIME.BR.label,
     axes: "Croissance ↑ / Inflation ↓",
-    desc: "C’est le régime naturel du capitalisme productif. Les entreprises produisent plus efficacement, les coûts baissent, l’innovation progresse et les marges peuvent s’améliorer.",
-    retenir: "L’économie progresse sans pression inflationniste.",
-    acheter: "actions de croissance, obligations longues",
-    reduire: "matières premières",
+    desc: "L’économie progresse sans pression forte sur les prix. Les entreprises produisent plus efficacement, souvent grâce à l’innovation, à la technologie ou à une meilleure organisation.",
+    retenir: "C’est le régime le plus favorable au capitalisme productif.",
+    acheter: "Actions de croissance, entreprises innovantes, obligations longues, actifs de qualité.",
+    reduire: "Matières premières, entreprises peu innovantes ou sans avantage compétitif.",
+    notionCle:
+      "Une action de croissance est une entreprise que le marché valorise surtout pour ses profits futurs : technologie, logiciels, innovation, qualité.",
     color: REGIME.BR.text,
   },
   TL: {
     label: REGIME.TL.label,
     axes: "Croissance ↓ / Inflation ↑",
-    desc: "C’est le régime de stagflation. L’économie ralentit, mais les prix continuent de monter. C’est difficile pour les investisseurs, car les actions souffrent du ralentissement et les obligations souffrent de l’inflation.",
-    retenir: "Moins de croissance, mais plus d’inflation.",
-    acheter: "cash, or",
-    reduire: "actions, obligations longues",
+    desc: "L’économie ralentit, mais les prix continuent de monter. C’est la stagflation : les revenus ralentissent, les coûts augmentent et les marchés deviennent plus difficiles.",
+    retenir: "C’est souvent le régime le plus dangereux pour les portefeuilles classiques.",
+    acheter: "Cash, or, énergie, actifs défensifs.",
+    reduire: "Actions de croissance, obligations longues, entreprises très endettées.",
+    notionCle:
+      "Le cash protège la flexibilité : il ne cherche pas à gagner beaucoup, mais permet d’attendre et d’éviter les actifs fragiles.",
     color: REGIME.TL.text,
   },
   BL: {
     label: REGIME.BL.label,
     axes: "Croissance ↓ / Inflation ↓",
-    desc: "L’économie ralentit et les prix baissent. La dette devient plus lourde à rembourser. Les investisseurs cherchent la sécurité. Les obligations d’État longues deviennent souvent l’actif principal.",
-    retenir: "Moins de croissance, moins d’inflation.",
-    acheter: "obligations d’État longues, cash",
-    reduire: "actions, matières premières",
+    desc: "L’économie ralentit et les prix baissent. La dette devient plus lourde à rembourser. Les investisseurs recherchent la sécurité plutôt que la performance.",
+    retenir: "Le risque principal n’est plus l’inflation, mais la contraction de l’activité.",
+    acheter: "Obligations d’État longues, cash, actifs très sûrs.",
+    reduire: "Actions, matières premières, actifs risqués.",
+    notionCle:
+      "Une obligation longue peut monter lorsque les taux baissent, mais elle souffre fortement si l’inflation ou les taux remontent.",
     color: REGIME.BL.text,
   },
 };
@@ -227,7 +236,9 @@ function QuadrantLabel({
     bl: "left-3 bottom-3",
     br: "right-3 bottom-3",
   }[corner];
-  const side = corner === "tl" || corner === "tr" ? "bottom" : "top";
+  // Coins gauches → tooltip à droite ; coins droits → à gauche (ouvre vers le
+  // centre de la carte, pointe vers le « i »).
+  const side = corner === "tl" || corner === "bl" ? "right" : "left";
   return (
     <div
       className={cn(
@@ -245,24 +256,48 @@ function QuadrantLabel({
             <Info className="size-3.5" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side={side} className="max-w-[280px] space-y-1.5 text-left">
+        <TooltipContent
+          side={side}
+          sideOffset={8}
+          collisionPadding={12}
+          className="w-80 space-y-2 text-left leading-relaxed"
+        >
+          <p className="text-sm font-semibold">{info.label}</p>
+
           <div>
-            <p className="text-sm font-semibold">{info.label}</p>
-            <p className="opacity-70">{info.axes}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60">Signal</p>
+            <p>{info.axes}</p>
           </div>
-          <p className="leading-relaxed">{info.desc}</p>
-          <p>
-            <span className="opacity-70">À retenir : </span>
-            {info.retenir}
-          </p>
-          <div className="space-y-0.5 border-t border-current/20 pt-1.5">
-            <p>
-              <span className="font-semibold">Acheter :</span> {info.acheter}
+
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
+              Comprendre
             </p>
-            <p>
-              <span className="font-semibold">Réduire :</span> {info.reduire}
-            </p>
+            <p className="text-justify text-wrap">{info.desc}</p>
           </div>
+
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
+              À retenir
+            </p>
+            <p className="text-wrap">{info.retenir}</p>
+          </div>
+
+          <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-0.5 border-t border-current/20 pt-2">
+            <span className="whitespace-nowrap text-right font-semibold">À privilégier :</span>
+            <span className="text-wrap">{info.acheter}</span>
+            <span className="whitespace-nowrap text-right font-semibold">À réduire :</span>
+            <span className="text-wrap">{info.reduire}</span>
+          </div>
+
+          {info.notionCle && (
+            <div className="border-t border-current/20 pt-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
+                Notion clé
+              </p>
+              <p className="text-justify text-wrap">{info.notionCle}</p>
+            </div>
+          )}
         </TooltipContent>
       </Tooltip>
     </div>

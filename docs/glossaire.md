@@ -32,6 +32,26 @@ Catégorie Gave désignant les actifs dont la valeur dérive de cash-flows futur
 
 *Mots liés : Rareté, Contrat, Actif financier, Fragile*
 
+### 1a. Action de croissance
+
+*Entreprise valorisée surtout pour ses profits futurs.*
+
+Elle réinvestit beaucoup, verse souvent peu de dividendes et dépend fortement de la confiance des investisseurs. Sous-type d'Outil.
+
+*Exemples : technologie, logiciels, santé innovante, entreprises très qualitatives.*
+
+*Mots liés : Outil, Action value, Boom déflationniste, Fragile*
+
+### 1b. Action value
+
+*Entreprise déjà rentable, souvent moins chère que le marché, parfois mature ou cyclique.*
+
+Elle peut verser des dividendes et profiter d'un retour de l'inflation ou du cycle économique. Sous-type d'Outil.
+
+*Exemples : banques, énergie, industrie, assurance, matières premières.*
+
+*Mots liés : Outil, Action de croissance, Boom inflationniste, Secteur (énergie)*
+
 ### 2. Rareté
 
 *Un actif qui vaut parce qu'il en existe peu.*
@@ -44,11 +64,11 @@ Catégorie Gave désignant les actifs sans cash-flow dont la valeur tient à une
 
 ### 3. Contrat
 
-*Un actif qui est une promesse qu'on me doit.*
+*Actif financier qui repose sur une promesse : remboursement, coupon, dépôt ou créance.*
 
-Catégorie Gave désignant les engagements avec contrepartie : remboursement futur, parité monétaire, livraison. La valeur dépend de la solidité de l'émetteur — risque de défaut toujours présent.
+Sa valeur dépend de la solidité de l'émetteur et de la monnaie utilisée. Catégorie Gave désignant les engagements avec contrepartie (remboursement futur, parité monétaire, livraison) — risque de défaut toujours présent.
 
-*Exemples : obligations d'État et d'entreprise, cash et dépôts, fonds monétaires, stablecoins (USDC, USDT).*
+*Exemples : cash, obligations, dépôts bancaires, produits de taux, fonds monétaires, stablecoins (USDC, USDT).*
 
 *Mots liés : Outil, Rareté, Réserve de valeur, Robuste*
 
@@ -58,11 +78,11 @@ Catégorie Gave désignant les engagements avec contrepartie : remboursement fut
 
 ### 4. Actif réel
 
-*Un actif qui existe physiquement ou produit quelque chose de tangible.*
+*Actif qui possède une valeur économique directe : entreprise, or, immobilier, matière première.*
 
-Désigne les actifs adossés à une réalité économique productive ou matérielle, par opposition aux engagements financiers. Englobe à la fois les Outils (actions = parts d'entreprises réelles) et la Rareté (or, matières premières).
+Il ne dépend pas uniquement de la promesse de remboursement d'un tiers. Englobe à la fois les Outils (actions = parts d'entreprises réelles) et la Rareté (or, matières premières).
 
-*Exemples : actions, or, immobilier coté (REITs), matières premières.*
+*Exemples : actions, or, immobilier coté (REITs), énergie, matières premières.*
 
 *Mots liés : Actif financier, Outil, Rareté*
 
@@ -114,7 +134,7 @@ Combinaison du couple croissance × inflation qui détermine quelles classes d'a
 
 *Une des quatre cases dans lesquelles peut se trouver l'économie.*
 
-Cadre Gavekal (depuis 1978) qui croise deux axes : croissance forte/faible et inflation haute/basse. Les quatre quadrants sont Boom déflationniste, Boom inflationniste, Stagflation, Contraction déflationniste.
+Cadre Gavekal (depuis 1978) qui croise deux axes : croissance qui accélère/ralentit et inflation qui accélère/décélère. Les quatre quadrants sont Boom déflationniste, Boom inflationniste, Stagflation, Contraction déflationniste.
 
 *Exemple : 2020-2021 = Boom déflationniste (croissance forte, inflation basse) ; 2022 = Boom inflationniste puis Stagflation.*
 
@@ -342,7 +362,7 @@ Identification des expositions concentrées et des manques de protection. La vul
 
 | Groupe | Termes | Plage |
 |---|---|---|
-| A — Nature des actifs | Outil, Rareté, Contrat | 1-3 |
+| A — Nature des actifs | Outil (+ Action de croissance, Action value), Rareté, Contrat | 1-3 (+1a, 1b) |
 | B — Classifications complémentaires | Actif réel, Actif financier, Secteur, Cash/Monnaie | 4-7 |
 | C — Régime macro | Régime, Quadrant + 4 quadrants | 8-13 |
 | D — Rôle de l'actif | Fragile, Robuste, Protecteur | 14-16 |
@@ -350,4 +370,4 @@ Identification des expositions concentrées et des manques de protection. La vul
 | F — Portefeuilles de référence | Portefeuille Permanent, Browne amélioré, Browne dynamique, Réserve de valeur | 23-26 |
 | G — Diagnostic Quantsightly | Diagnostic, Cohérence, Vulnérabilité | 27-29 |
 
-**Total : 29 entrées.**
+**Total : 31 entrées** (29 + 2 sous-types d'actions : Action de croissance, Action value).
