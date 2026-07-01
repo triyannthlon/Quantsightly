@@ -170,19 +170,17 @@ export function CountryTooltip({
         {data.name}
       </p>
       {data.hasData ? (
-        <div className="mt-1.5 space-y-0.5 text-xs">
-          <p>
-            <span className="text-muted-foreground">Régime :</span> {data.regime}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Croissance :</span> {data.growth}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Inflation :</span> {data.inflation}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Signal :</span> {data.signal}
-          </p>
+        <div className="mt-1.5 text-xs">
+          <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-0.5">
+            <span className="whitespace-nowrap text-right text-muted-foreground">Régime :</span>
+            <span>{data.regime}</span>
+            <span className="whitespace-nowrap text-right text-muted-foreground">Croissance :</span>
+            <span>{data.growth}</span>
+            <span className="whitespace-nowrap text-right text-muted-foreground">Inflation :</span>
+            <span>{data.inflation}</span>
+            <span className="whitespace-nowrap text-right text-muted-foreground">Signal :</span>
+            <span>{data.signal}</span>
+          </div>
           {asOfLabel && (
             <p className="mt-1.5 border-t pt-1.5 text-[11px] text-muted-foreground">
               Dernière mise à jour : {asOfLabel}

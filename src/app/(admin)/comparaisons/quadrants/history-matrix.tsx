@@ -249,19 +249,17 @@ export function HistoryMatrix({ data, region }: { data: HistoryMatrixData; regio
             <span className={cn("size-2.5 rounded-full", REGIME[tip.key].dot)} />
             {tip.name}
           </p>
-          <div className="mt-1 space-y-0.5 text-[11px]">
-            <p>
-              <span className="text-muted-foreground">Régime :</span> {REGIME[tip.key].label}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Croissance :</span> {tip.growth}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Inflation :</span> {tip.inflation}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Signal :</span> {tip.signal}
-            </p>
+          <div className="mt-1 text-[11px]">
+            <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-0.5">
+              <span className="whitespace-nowrap text-right text-muted-foreground">Régime :</span>
+              <span>{REGIME[tip.key].label}</span>
+              <span className="whitespace-nowrap text-right text-muted-foreground">Croissance :</span>
+              <span>{tip.growth}</span>
+              <span className="whitespace-nowrap text-right text-muted-foreground">Inflation :</span>
+              <span>{tip.inflation}</span>
+              <span className="whitespace-nowrap text-right text-muted-foreground">Signal :</span>
+              <span>{tip.signal}</span>
+            </div>
             <p className="mt-1 border-t pt-1 text-muted-foreground">{tip.month}</p>
           </div>
         </div>

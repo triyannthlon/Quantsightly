@@ -28,7 +28,7 @@ export const REGION_LABELS: { key: Region; label: string }[] = [
   { key: "monde", label: "Monde" },
   { key: "amerique", label: "Amérique" },
   { key: "europe", label: "Europe" },
-  { key: "asie", label: "Asie" },
+  { key: "asie", label: "Asie-Pacifique" },
 ];
 
 type ViewBox = [number, number, number, number];
@@ -57,7 +57,7 @@ const REGION_VB: Record<Region, ViewBox> = {
   monde: MONDE_VB,
   amerique: fitViewBox(-168, -32, -56, 72),
   europe: fitViewBox(-26, 46, 34, 71),
-  asie: fitViewBox(40, 150, -10, 72),
+  asie: fitViewBox(60, 155, -44, 55), // Asie-Pacifique : inclut l'Australie (sud) et le Japon
 };
 
 const TWEEN_MS = 400;
@@ -326,13 +326,13 @@ export function WorldMap({
                 const overflow = list.slice(MAX_CHIPS);
                 return (
                   <div key={k} className="flex items-center gap-3">
-                    <div className="flex w-56 shrink-0 items-center gap-1.5">
+                    <div className="flex w-48 shrink-0 items-center gap-1.5">
                       <span className={cn("size-2.5 shrink-0 rounded-full", REGIME[k].dot)} />
                       <span className="truncate text-xs font-medium">{REGIME[k].label}</span>
-                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                        {list.length}
-                      </span>
                     </div>
+                    <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                      {list.length}
+                    </span>
                     <div className="flex flex-1 flex-wrap items-center gap-1.5">
                       {shown.map((p) => (
                         <span
