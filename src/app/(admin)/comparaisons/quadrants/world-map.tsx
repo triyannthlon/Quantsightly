@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LoaderCircleIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { WORLD_COUNTRIES } from "./world-geo";
+import type { WorldCountry } from "./world-geo-50m";
 import { REGIME, REGIME_ORDER, type RegimeKey } from "./regime-palette";
 import {
   cellOf,
@@ -155,10 +156,23 @@ export function WorldMap({
     };
   }, [region]);
 
+  // Géométrie 50m chargée à la demande (≈250 Ko compressés) : hors du chunk de la
+  // page, récupérée seulement à l'ouverture de la Carte, puis mise en cache.
+  const [worldCountries, setWorldCountries] = useState<WorldCountry[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void import("./world-geo-50m").then((m) => {
+      if (alive) setWorldCountries(m.WORLD_COUNTRIES);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   // Tracés memoïsés (indépendants du survol) → seule l'infobulle se redessine.
   const paths = useMemo(() => {
     const byId = new Map(points.map((p) => [p.countryCode, p]));
-    return WORLD_COUNTRIES.map((c, i) => {
+    return worldCountries.map((c, i) => {
       const p = c.id ? byId.get(c.id) : undefined;
       let className = NODATA_CLASS;
       let data: CountryHover = { ...NODATA_HOVER, name: c.name };
@@ -183,13 +197,13 @@ export function WorldMap({
         />
       );
     });
-  }, [points]);
+  }, [points, worldCountries]);
 
   // Position de chaque pays avec donnée : centroïde du tracé, ou coordonnée
   // « point » (HK/SG, sans géométrie). `isPoint` distingue les deux.
   const placed = useMemo(() => {
     const geoById = new Map(
-      WORLD_COUNTRIES.filter((c) => c.id).map((c) => [c.id, c.d] as const),
+      worldCountries.filter((c) => c.id).map((c) => [c.id, c.d] as const),
     );
     return points
       .map((p) => {
@@ -203,7 +217,7 @@ export function WorldMap({
         (e): e is { p: QuadrantPoint; c: { cx: number; cy: number }; isPoint: boolean } =>
           e !== null,
       );
-  }, [points]);
+  }, [points, worldCountries]);
 
   const project = (c: { cx: number; cy: number }) => ({
     left: ((c.cx - vb[0]) / vb[2]) * 100,
@@ -292,6 +306,12 @@ export function WorldMap({
           Carte des régimes par pays
         </div>
         <div className="relative overflow-hidden rounded-lg">
+          {worldCountries.length === 0 && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <LoaderCircleIcon className="size-4 animate-spin" />
+              Chargement de la carte…
+            </div>
+          )}
           <svg
             viewBox={vb.map((n) => n.toFixed(2)).join(" ")}
             className="h-auto w-full"
