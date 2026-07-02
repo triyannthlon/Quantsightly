@@ -423,7 +423,7 @@ const ENTRIES: Record<string, GlossaryEntry> = {
   },
   "sig-energie-inefficace": {
     key: "sig-energie-inefficace",
-    term: "Énergie inefficace",
+    term: "Énergie moins efficace",
     group: G_SIG_REGIME,
     base: "Situation où le prix de l’énergie progresse mieux que le marché actions.",
     technique:
@@ -432,7 +432,7 @@ const ENTRIES: Record<string, GlossaryEntry> = {
   },
   "sig-devise-solide": {
     key: "sig-devise-solide",
-    term: "Devise solide",
+    term: "Devise protectrice",
     group: G_SIG_REGIME,
     base: "Situation où les obligations protègent mieux que l’or.",
     technique:
@@ -441,7 +441,7 @@ const ENTRIES: Record<string, GlossaryEntry> = {
   },
   "sig-devise-fragile": {
     key: "sig-devise-fragile",
-    term: "Devise fragile",
+    term: "Devise moins protectrice",
     group: G_SIG_REGIME,
     base: "Situation où l’or protège mieux que les obligations.",
     technique:
