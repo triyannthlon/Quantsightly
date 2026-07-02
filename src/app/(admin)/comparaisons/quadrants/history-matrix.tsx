@@ -100,9 +100,20 @@ export function HistoryMatrix({ data, region }: { data: HistoryMatrixData; regio
     const el = scrollRef.current;
     if (el) el.scrollLeft = drag.current.startLeft - (e.clientX - drag.current.startX);
   };
+  // Aligne le bord gauche du cadre sur un début de colonne (mois) : après un
+  // glissement libre, la matrice « clique » proprement sur la grille mensuelle.
+  const snapToColumn = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const aligned = GUTTER + Math.round((el.scrollLeft - GUTTER) / CELL) * CELL;
+    el.scrollTo({ left: Math.max(0, Math.min(aligned, max)), behavior: "smooth" });
+  };
   const onPointerUp = (e: React.PointerEvent) => {
+    const wasDragging = drag.current.active;
     drag.current.active = false;
     scrollRef.current?.releasePointerCapture?.(e.pointerId);
+    if (wasDragging) snapToColumn();
   };
 
   const januaries = months
