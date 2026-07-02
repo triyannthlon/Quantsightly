@@ -1,5 +1,6 @@
 // Tracés SVG du monde — générés depuis Natural Earth 50m (DOMAINE PUBLIC).
-// NE PAS ÉDITER À LA MAIN. Projection équirectangulaire (x = longitude, y = -latitude).
+// NE PAS ÉDITER À LA MAIN — régénérer via scripts/gen-world-geo-50m.mjs.
+// Projection équirectangulaire (x = longitude, y = -latitude).
 // Antarctique exclu (hors viewBox). Précision 0,1°.
 
 export const WORLD_VIEWBOX = "-180 -84 360 145";
