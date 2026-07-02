@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { format } from "date-fns";
-import { LoaderCircleIcon, XIcon, Pin, Sparkles, TriangleAlert } from "lucide-react";
+import { LoaderCircleIcon, XIcon, Pin, Link2, Sparkles, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,7 @@ import { buildGraphTitle, buildStatsTitle, secondSectionTitle } from "./titles";
 import { loadSeriesData } from "./actions";
 import { Lexique } from "@/components/custom/lexique/lexique";
 import { explainGraph } from "./explain";
+import { comparatorHref } from "./deep-link";
 
 // Mots-clés du Lexique de la page Comparateur (Classes de données, puis Mesures).
 const LEXIQUE_TERMS = [
@@ -122,6 +123,34 @@ function currencyItem(code: string): SelectItem {
   };
 }
 
+// Copie du texte dans le presse-papier, avec repli pour les contextes non
+// sécurisés (dev en http sur une IP LAN, où `navigator.clipboard` est absent).
+async function copyToClipboard(text: string): Promise<boolean> {
+  if (typeof navigator !== "undefined" && navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // bascule sur le repli ci-dessous
+    }
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 // Champ étiqueté de la section Analyse (libellé + contrôle).
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -140,10 +169,16 @@ interface Props {
   series: EconomicSeries[];
   reference: ReferenceData;
   fxRates: FxRate[];
-  /** Pré-remplissage via deep-link (cartes Signaux → « ouvrir dans le comparateur »). */
+  /** Pré-remplissage via deep-link (Mes comparaisons, cartes Signaux, « Copier le lien »). */
   initialA?: EconomicSeries;
   initialB?: EconomicSeries;
   initialOperation?: OperationKind;
+  initialCurrencyA?: string;
+  initialCurrencyB?: string;
+  initialShowMA?: boolean;
+  initialMaYears?: number;
+  initialFrom?: Date;
+  initialTo?: Date;
 }
 
 interface Draft {
@@ -162,6 +197,12 @@ export function ExplorationCanvas({
   initialA,
   initialB,
   initialOperation,
+  initialCurrencyA,
+  initialCurrencyB,
+  initialShowMA,
+  initialMaYears,
+  initialFrom,
+  initialTo,
 }: Props) {
   const [a, setA] = useState<Draft>(EMPTY_DRAFT);
   const [b, setB] = useState<Draft>(EMPTY_DRAFT);
@@ -252,7 +293,7 @@ export function ExplorationCanvas({
         typeRef: initialA.type,
         serie: initialA,
       });
-      setCurrencyA(defaultCurrency(initialA));
+      setCurrencyA(initialCurrencyA ?? defaultCurrency(initialA));
     }
     if (initialB) {
       setB({
@@ -261,9 +302,12 @@ export function ExplorationCanvas({
         typeRef: initialB.type,
         serie: initialB,
       });
-      setCurrencyB(defaultCurrency(initialB));
+      setCurrencyB(initialCurrencyB ?? defaultCurrency(initialB));
     }
     if (initialOperation) setOperation(initialOperation);
+    if (initialShowMA !== undefined) setShowMA(initialShowMA);
+    if (initialMaYears !== undefined) setMaYears(initialMaYears);
+    if (initialFrom || initialTo) setDateRange({ from: initialFrom, to: initialTo });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -610,6 +654,27 @@ export function ExplorationCanvas({
     else toast.error("Échec de l'épinglage");
   }
 
+  // Copie un lien restaurant la vue courante à l'identique (séries, devise, MM,
+  // plage). La devise n'est portée que si la mesure est convertible — cohérent
+  // avec l'affichage du sélecteur de devise et des titres.
+  async function copyLink() {
+    if (!a.serie) return;
+    const href = comparatorHref({
+      serieAId: a.serie.id,
+      serieBId: b.serie?.id,
+      operation,
+      currencyA: convertibleA ? (currencyA ?? undefined) : undefined,
+      currencyB: convertibleB ? (currencyB ?? undefined) : undefined,
+      showMA,
+      maYears,
+      from: fromIso,
+      to: toIso,
+    });
+    const ok = await copyToClipboard(`${window.location.origin}${href}`);
+    if (ok) toast.success("Lien copié", { description: "Il restaure la vue à l'identique." });
+    else toast.error("Impossible de copier le lien");
+  }
+
   // Pré-remplit un exemple parlant (actions USA vs France — S&P 500 vs CAC 40,
   // superposition base 100) pour montrer d'emblée ce que produit l'outil. Lookup
   // par classe/type (indice boursier · prix) plutôt que par id, robuste au catalogue.
@@ -752,17 +817,30 @@ export function ExplorationCanvas({
         <>
         <div className="grid gap-4 lg:grid-cols-[1fr_minmax(280px,340px)]">
           <div className="rounded-lg border bg-card p-4">
-            <div className="relative mb-3 flex min-h-8 items-center justify-center">
-              {title && <h2 className="px-24 text-center text-base font-medium">{title}</h2>}
-              <Button
-                variant="outline"
-                size="sm"
-                className="absolute right-0 cursor-pointer"
-                onClick={openPinDialog}
-              >
-                <Pin className="size-3.5" />
-                Épingler
-              </Button>
+            <div className="mb-3 flex flex-col gap-2">
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="cursor-pointer"
+                  onClick={copyLink}
+                >
+                  <Link2 className="size-3.5" />
+                  Copier le lien
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="cursor-pointer"
+                  onClick={openPinDialog}
+                >
+                  <Pin className="size-3.5" />
+                  Épingler
+                </Button>
+              </div>
+              {title && (
+                <h2 className="min-h-6 text-center text-base font-medium">{title}</h2>
+              )}
             </div>
             <button
               type="button"

@@ -5,6 +5,7 @@ import { listSeries, getFxRates, getSeriesData, type EconomicDataPoint } from "@
 import { buildComparison } from "../build-comparison";
 import { MesComparaisonsGrid, type SavedView } from "./mes-grid";
 import type { ComparisonConfig } from "../comparison";
+import { comparatorHref } from "../../exploration/deep-link";
 
 // « Mes comparaisons » : reconstruit chaque graphique épinglé depuis sa config.
 export default async function MesComparaisonsPage() {
@@ -53,9 +54,9 @@ export default async function MesComparaisonsPage() {
           fxRates,
         });
 
-        const href = `/exploration?a=${encodeURIComponent(config.serieAId)}${
-          config.serieBId ? `&b=${encodeURIComponent(config.serieBId)}` : ""
-        }&op=${config.operation}`;
+        // « Ouvrir dans le comparateur » : le lien porte toute la config
+        // (devises, MM, plage) pour restaurer la vue à l'identique.
+        const href = comparatorHref(config);
 
         return { id: row.id, title: row.title, exploreHref: href, ...result };
       }),
