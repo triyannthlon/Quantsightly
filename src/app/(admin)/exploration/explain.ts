@@ -230,7 +230,13 @@ function warningsFor(op: Op, i: ExplainInput): string[] {
     w.push(
       "La différence entre deux prix ou deux indices est rarement pertinente si les unités diffèrent. Un ratio est généralement plus adapté.",
     );
-  if ((i.typeA === 1 && i.typeB === 2) || (i.typeA === 2 && i.typeB === 1))
+  // L'inflation (classe 7) est stockée en type 2 mais reste un prix : pas de
+  // vrai écart prix / rendement total quand elle est en jeu.
+  if (
+    ((i.typeA === 1 && i.typeB === 2) || (i.typeA === 2 && i.typeB === 1)) &&
+    i.classA !== 7 &&
+    i.classB !== 7
+  )
     w.push(
       "Les deux séries ne mesurent pas exactement la même chose : le rendement total inclut les revenus réinvestis, contrairement au prix simple.",
     );

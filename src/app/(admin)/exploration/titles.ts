@@ -95,6 +95,15 @@ export function sameSeries(a: TitledSeries, b: TitledSeries): boolean {
   return a.serie.id === b.serie.id && a.currency === b.currency;
 }
 
+/**
+ * Type de mesure « effectif » pour la présentation. L'inflation (classe 7) est
+ * stockée en type 2, mais ses séries sont des niveaux de prix (IPC) : on les
+ * présente comme un prix (type 1). Décision Yann 2026-07-02 (« c'est un prix »).
+ */
+function displayType(cls: ClassRef, type: TypeRef): TypeRef {
+  return cls === 7 ? 1 : type;
+}
+
 /** Titre du graphique selon l'opération. */
 export function buildGraphTitle(
   operation: OperationKind,
@@ -102,7 +111,7 @@ export function buildGraphTitle(
   b: TitledSeries | null,
 ): string {
   const A = a.serie;
-  const measure = READABLE_MEASURE[A.type];
+  const measure = READABLE_MEASURE[displayType(A.class, A.type)];
 
   // Une seule série (ou B strictement identique à A).
   if (operation === "single" || !b || sameSeries(a, b)) {
@@ -163,5 +172,5 @@ export function buildStatsTitle(
 ): string {
   // Si B est identique à A, on retombe sur la nature « une série ».
   const op = operation === "overlay" && b && sameSeries(a, b) ? "single" : operation;
-  return STATS_TITLE[op][a.serie.type];
+  return STATS_TITLE[op][displayType(a.serie.class, a.serie.type)];
 }
