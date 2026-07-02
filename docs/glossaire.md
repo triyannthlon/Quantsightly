@@ -1,6 +1,7 @@
 # Glossaire Quantsightly
 
 > **Document conceptuel verrouillé — Phase 0, Chantier 2 (2026-06-24).**
+> *Étendu le 2026-07-02 : groupes H (actifs de référence) et I (lecture des signaux), pour aligner le doc sur le vocabulaire déjà présent dans l'application.*
 > Vocabulaire produit officiel. Toute formulation dans l'app (tooltips, verdicts, libellés, mode débutant et mode avancé) doit s'appuyer sur ces définitions.
 >
 > Persona cible : **débutant niveau 2** (connaît actions/obligations, ne connaît pas Sharpe).
@@ -358,6 +359,108 @@ Identification des expositions concentrées et des manques de protection. La vul
 
 ---
 
+## Groupe H — Actifs de référence
+
+*Les actifs concrets suivis par l'application. Le Cash / Monnaie est déjà défini en 7 (groupe B).*
+
+### 30. Or
+
+*Un actif réel rare, sans risque de faillite, qui ne verse aucun revenu.*
+
+L'or ne produit rien et ne promet rien : sa valeur tient à sa rareté. Il peut protéger le pouvoir d'achat quand la monnaie se déprécie ou quand la confiance dans les contrats financiers s'effrite. Archétype de la Rareté et actif Protecteur en régime inflationniste.
+
+*Exemple : en boom inflationniste (1970-1980, partiellement 2022), l'or surperforme les actions et les obligations.*
+
+*Mots liés : Rareté, Protecteur, Réserve de valeur, Boom inflationniste*
+
+### 31. Obligation longue
+
+*Un prêt à long terme à un État ou une entreprise, remboursé avec intérêts.*
+
+Son prix évolue à l'inverse des taux : il monte quand les taux baissent, il chute quand l'inflation ou les taux remontent. C'est un Contrat, Protecteur en contraction déflationniste mais Fragile en régime inflationniste.
+
+*Exemple : en 2008-2009, les obligations d'État longues montent pendant que les actions s'effondrent ; en 2022, elles chutent avec le retour de l'inflation.*
+
+*Mots liés : Contrat, Protecteur, Fragile, Contraction déflationniste, Taux réel*
+
+### 32. Matières premières
+
+*Des ressources physiques utilisées dans l'économie, dont la valeur tient à leur rareté.*
+
+Sans cash-flow, elles relèvent de la Rareté. Elles se comportent souvent bien quand l'inflation accélère ou quand l'énergie devient rare et chère. L'énergie (pétrole) y joue un rôle central dans la lecture Gave.
+
+*Exemples : pétrole, gaz, cuivre, blé.*
+
+*Mots liés : Rareté, Secteur (énergie), Boom inflationniste*
+
+---
+
+## Groupe I — Lecture des signaux (méthode)
+
+*Comment le moteur lit les marchés pour en déduire le régime. Ces termes sont des concepts de méthode, pas des statistiques officielles.*
+
+### 33. Proxy
+
+*Un indicateur indirect utilisé pour mesurer une réalité difficile à observer.*
+
+Le modèle n'utilise ni le PIB ni l'inflation officielle (publiés tard, souvent révisés). Il lit des prix de marché, plus réactifs, pour estimer la croissance et l'inflation en temps réel.
+
+*Exemple : la croissance est approchée par le rapport actions / pétrole plutôt que par le PIB.*
+
+*Mots liés : Axe croissance, Axe inflation, Régime*
+
+### 34. Axe croissance
+
+*Mesure si l'activité économique accélère ou ralentit, à partir des prix de marché.*
+
+Proxy : actions / pétrole. Si les actions surperforment le pétrole, l'économie transforme efficacement l'énergie en valeur — la croissance est jugée solide. Si le pétrole domine, la croissance se fragilise. Ce n'est pas le PIB officiel.
+
+*Mots liés : Proxy, Régime, Quadrant, Énergie efficace*
+
+### 35. Axe inflation
+
+*Mesure si la pression sur les prix accélère ou décélère, à partir des prix de marché.*
+
+Proxy : or / obligations 10 ans. Si l'or surperforme les obligations, le marché signale une perte de pouvoir d'achat de la monnaie. Sur la page Signaux, le même couple est présenté à l'envers (obligations / or), sous l'angle de la solidité de la devise — même information, sens inversé.
+
+*Mots liés : Proxy, Régime, Devise protectrice, Réserve de valeur*
+
+### 36. Moyenne mobile 7 ans
+
+*La tendance longue d'un ratio, utilisée comme point de comparaison.*
+
+Le modèle compare chaque ratio à sa moyenne sur 7 ans (84 mois) pour éviter de réagir à un simple bruit de court terme. Le franchissement de cette moyenne fait basculer le signal.
+
+*Exemple : un ratio S&P 500 / WTI au-dessus de sa moyenne 7 ans indique une énergie plus productive pour l'économie.*
+
+*Mots liés : Signal positif, Signal négatif, Zone neutre*
+
+### 37. Signal positif / négatif
+
+*Le ratio est au-dessus (positif) ou en-dessous (négatif) de sa tendance longue.*
+
+Un signal positif indique que l'axe concerné accélère (croissance ou inflation plus forte selon le ratio observé) ; un signal négatif, qu'il décélère. Le caractère favorable dépend de l'actif considéré, pas du signe seul.
+
+*Mots liés : Moyenne mobile 7 ans, Zone neutre, Régime*
+
+### 38. Zone neutre / Transition
+
+*Quand le signal est trop proche de sa tendance longue pour trancher.*
+
+Au moins un des deux axes est trop près de sa moyenne : le régime est instable ou en bascule. Le modèle affiche « Transition » plutôt qu'une fausse précision, et exige une confirmation sur deux observations avant de changer de régime.
+
+*Mots liés : Conviction, Régime, Signal positif*
+
+### 39. Conviction
+
+*La force du signal calculé par le modèle.*
+
+Plus les deux axes sont éloignés de leur moyenne longue, plus le régime est jugé robuste et la conviction élevée. Une conviction faible signale un régime proche d'une zone de bascule.
+
+*Mots liés : Zone neutre, Régime, Quadrant*
+
+---
+
 ## Récapitulatif
 
 | Groupe | Termes | Plage |
@@ -369,5 +472,7 @@ Identification des expositions concentrées et des manques de protection. La vul
 | E — Métriques | Performance réelle, Volatilité, Drawdown, Sharpe, Ursus magnus, Marché baissier (Gave) | 17-22 |
 | F — Portefeuilles de référence | Portefeuille Permanent, Browne amélioré, Browne dynamique, Réserve de valeur | 23-26 |
 | G — Diagnostic Quantsightly | Diagnostic, Cohérence, Vulnérabilité | 27-29 |
+| H — Actifs de référence | Or, Obligation longue, Matières premières | 30-32 |
+| I — Lecture des signaux (méthode) | Proxy, Axe croissance, Axe inflation, Moyenne mobile 7 ans, Signal positif/négatif, Zone neutre/Transition, Conviction | 33-39 |
 
-**Total : 31 entrées** (29 + 2 sous-types d'actions : Action de croissance, Action value).
+**Total : 41 entrées** (39 numérotées + 2 sous-types d'actions : Action de croissance, Action value).
