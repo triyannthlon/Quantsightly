@@ -137,8 +137,7 @@ export function SeriesSelector({
   const ACCENT = "ring-2 ring-primary/40";
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-wrap items-center gap-3">
         <span
           className={cn(
             "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold",
@@ -147,20 +146,6 @@ export function SeriesSelector({
         >
           {label}
         </span>
-        {isReady ? (
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600">
-            <CheckCircle2Icon className="size-3.5" />
-            Prête
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            <CircleDashedIcon className="size-3.5" />
-            Incomplète
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
         <SelectDropdown
           items={countryItems}
           value={country ?? undefined}
@@ -212,7 +197,17 @@ export function SeriesSelector({
             width="w-32"
           />
         )}
+        {isReady ? (
+          <span className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600">
+            <CheckCircle2Icon className="size-3.5" />
+            Prête
+          </span>
+        ) : (
+          <span className="ml-auto inline-flex items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            <CircleDashedIcon className="size-3.5" />
+            Incomplète
+          </span>
+        )}
       </div>
-    </div>
   );
 }

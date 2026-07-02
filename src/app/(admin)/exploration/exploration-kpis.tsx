@@ -69,7 +69,7 @@ export function ExplorationKpis({
   const sectionLabel = "text-xs font-medium uppercase tracking-wide text-muted-foreground";
 
   return (
-    <div className="space-y-4 rounded-lg border bg-muted/50 p-5">
+    <div className="space-y-4 rounded-lg border bg-card p-5">
       {title && <h3 className="text-base font-semibold">{title}</h3>}
 
       {hasTitles && (

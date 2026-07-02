@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { format } from "date-fns";
-import { LoaderCircleIcon, XIcon, Pin, Sparkles } from "lucide-react";
+import { LoaderCircleIcon, XIcon, Pin, Sparkles, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,7 @@ import { ExplorationKpis } from "./exploration-kpis";
 import { buildGraphTitle, buildStatsTitle, secondSectionTitle } from "./titles";
 import { loadSeriesData } from "./actions";
 import { Lexique } from "@/components/custom/lexique/lexique";
+import { explainGraph } from "./explain";
 
 // Mots-clés du Lexique de la page Comparateur (Classes de données, puis Mesures).
 const LEXIQUE_TERMS = [
@@ -567,6 +568,20 @@ export function ExplorationCanvas({
 
   const statsSecondTitle = a.serie ? secondSectionTitle(operation, a.serie.type) : undefined;
 
+  // Bloc pédagogique « Comprendre ce graphique » (ratio / différence seulement).
+  const explanation =
+    a.serie && b.serie
+      ? explainGraph({
+          operation,
+          classA: a.serie.class,
+          typeA: a.serie.type,
+          countryA: a.serie.countryIso,
+          classB: b.serie.class,
+          typeB: b.serie.type,
+          countryB: b.serie.countryIso,
+        })
+      : null;
+
   // ─── Épinglage (« Mes comparaisons ») ────────────────────────────────────────
 
   function openPinDialog() {
@@ -673,10 +688,7 @@ export function ExplorationCanvas({
 
       {/* Analyse — masquée tant que Série A n'est pas prête (rien à analyser) */}
       {a.serie && (
-        <div className="space-y-3 rounded-lg border bg-muted/50 p-4">
-          <span className="inline-flex items-center rounded-md border bg-muted px-2 py-0.5 text-xs font-semibold">
-            Analyse
-          </span>
+        <div className="rounded-lg border bg-muted/50 p-4">
           <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
             <div className="flex items-end gap-2">
               <MonthRangePicker value={dateRange} onChange={setDateRange} />
@@ -737,6 +749,7 @@ export function ExplorationCanvas({
       )}
 
       {!isPending && hasResult && (
+        <>
         <div className="grid gap-4 lg:grid-cols-[1fr_minmax(280px,340px)]">
           <div className="rounded-lg border bg-card p-4">
             <div className="relative mb-3 flex min-h-8 items-center justify-center">
@@ -766,6 +779,32 @@ export function ExplorationCanvas({
             secondTitle={statsSecondTitle}
           />
         </div>
+        {explanation && (
+          <div className="rounded-lg border bg-card p-4">
+            <p className="mb-1.5 text-sm font-semibold">Comprendre ce graphique</p>
+            <p className="text-sm text-muted-foreground">
+              {explanation.definition}{" "}
+              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+                {explanation.formule}
+              </span>
+            </p>
+            <p className="mt-2 text-sm leading-relaxed">{explanation.phrase}</p>
+            {explanation.warnings.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {explanation.warnings.map((w, i) => (
+                  <p
+                    key={i}
+                    className="flex gap-1.5 rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-700 dark:text-amber-300"
+                  >
+                    <TriangleAlert className="mt-px size-3.5 shrink-0" />
+                    <span>{w}</span>
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        </>
       )}
 
       {!isPending && !hasResult && (
