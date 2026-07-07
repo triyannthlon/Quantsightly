@@ -66,9 +66,9 @@ export default async function MesComparaisonsPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Mes comparaisons</h1>
+        <h1 className="text-2xl font-semibold">Mon cockpit</h1>
         <p className="text-sm text-muted-foreground">
-          Les graphiques que vous avez épinglés depuis le comparateur.
+          Votre espace personnel : les graphiques que vous avez épinglés depuis le comparateur.
         </p>
       </header>
       <MesComparaisonsGrid initial={views} />

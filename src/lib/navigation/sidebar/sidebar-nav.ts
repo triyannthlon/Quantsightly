@@ -4,9 +4,9 @@ import {
   SlidersHorizontal,
   LineChart,
   Activity,
-  Bookmark,
   Shield,
   Grid2x2,
+  Layers,
   PieChart,
   Stethoscope,
   Scale,
@@ -54,7 +54,14 @@ export const NAV: NavSection[] = [
     title: "Cockpit",
     items: [
       { key: "vue-quantsightly", label: "Vue Quantsightly", icon: LayoutDashboard, disabled: true },
-      { key: "mon-cockpit", label: "Mon cockpit", icon: SlidersHorizontal, disabled: true },
+      // Point sur la page ex-« Mes comparaisons » (route inchangée), devenue
+      // l'amorce de l'espace personnalisable. S'étoffera (actifs suivis, ratios…).
+      {
+        key: "mon-cockpit",
+        label: "Mon cockpit",
+        href: routes.comparisons.saved,
+        icon: SlidersHorizontal,
+      },
     ],
   },
   {
@@ -62,14 +69,12 @@ export const NAV: NavSection[] = [
     items: [
       { key: "comparateur", label: "Comparateur", href: routes.exploration, icon: LineChart },
       { key: "signaux", label: "Signaux macro", href: routes.comparisons.signals, icon: Activity },
-      // Temporaire : « Mes comparaisons » rejoindra « Mon cockpit » (espace
-      // personnalisable) une fois celui-ci construit. Gardé cliquable ici pour
-      // ne pas masquer une fonctionnalité déjà livrée.
+      // Diagnostic live du régime (page existante `/comparaisons/quadrants`).
       {
-        key: "mes-comparaisons",
-        label: "Mes comparaisons",
-        href: routes.comparisons.saved,
-        icon: Bookmark,
+        key: "regime-macro",
+        label: "Régime macro",
+        href: routes.comparisons.quadrants,
+        icon: Grid2x2,
       },
     ],
   },
@@ -77,9 +82,9 @@ export const NAV: NavSection[] = [
     title: "Modèles",
     items: [
       { key: "browne", label: "Browne", icon: Shield, disabled: true },
-      // Même page que l'ancien « Régimes macro » (route `/comparaisons/quadrants`
-      // inchangée), déplacée ici et renommée « 4 Quadrants ».
-      { key: "quadrants", label: "4 Quadrants", href: routes.comparisons.quadrants, icon: Grid2x2 },
+      // Futur portefeuille MODÈLE : allocation de référence dérivée des régimes
+      // macro (≠ la page de diagnostic « Régime macro » sous Exploration).
+      { key: "quadrants-modele", label: "4 Quadrants", icon: Layers, disabled: true },
     ],
   },
   {

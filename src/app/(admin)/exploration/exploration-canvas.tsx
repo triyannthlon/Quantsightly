@@ -650,7 +650,7 @@ export function ExplorationCanvas({
     const saved = await saveComparison(pinTitle.trim(), config);
     setIsPinning(false);
     setPinOpen(false);
-    if (saved) toast.success("Épinglé dans Mes comparaisons", { description: saved.title });
+    if (saved) toast.success("Épinglé dans Mon cockpit", { description: saved.title });
     else toast.error("Échec de l'épinglage");
   }
 
@@ -815,73 +815,66 @@ export function ExplorationCanvas({
 
       {!isPending && hasResult && (
         <>
-        <div className="grid gap-4 lg:grid-cols-[1fr_minmax(280px,340px)]">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="mb-3 flex flex-col gap-2">
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer"
-                  onClick={copyLink}
-                >
-                  <Link2 className="size-3.5" />
-                  Copier le lien
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer"
-                  onClick={openPinDialog}
-                >
-                  <Pin className="size-3.5" />
-                  Épingler
-                </Button>
+          <div className="grid gap-4 lg:grid-cols-[1fr_minmax(280px,340px)]">
+            <div className="rounded-lg border bg-card p-4">
+              <div className="mb-3 flex flex-col gap-2">
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" size="sm" className="cursor-pointer" onClick={copyLink}>
+                    <Link2 className="size-3.5" />
+                    Copier le lien
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={openPinDialog}
+                  >
+                    <Pin className="size-3.5" />
+                    Épingler
+                  </Button>
+                </div>
+                {title && <h2 className="min-h-6 text-center text-base font-medium">{title}</h2>}
               </div>
-              {title && (
-                <h2 className="min-h-6 text-center text-base font-medium">{title}</h2>
+              <button
+                type="button"
+                onClick={() => setChartZoomOpen(true)}
+                className="cursor-zoom-img block w-full text-left"
+                aria-label="Agrandir le graphique"
+              >
+                <ExplorationChart data={chartData} lines={lines} height={460} />
+              </button>
+            </div>
+            <ExplorationKpis
+              columns={kpiBlocks}
+              title={statsTitle ?? undefined}
+              secondTitle={statsSecondTitle}
+            />
+          </div>
+          {explanation && (
+            <div className="rounded-lg border bg-card p-4">
+              <p className="mb-1.5 text-sm font-semibold">Comprendre ce graphique</p>
+              <p className="text-sm text-muted-foreground">
+                {explanation.definition}{" "}
+                <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+                  {explanation.formule}
+                </span>
+              </p>
+              <p className="mt-2 text-sm leading-relaxed">{explanation.phrase}</p>
+              {explanation.warnings.length > 0 && (
+                <div className="mt-3 space-y-1.5">
+                  {explanation.warnings.map((w, i) => (
+                    <p
+                      key={i}
+                      className="flex gap-1.5 rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-700 dark:text-amber-300"
+                    >
+                      <TriangleAlert className="mt-px size-3.5 shrink-0" />
+                      <span>{w}</span>
+                    </p>
+                  ))}
+                </div>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => setChartZoomOpen(true)}
-              className="cursor-zoom-img block w-full text-left"
-              aria-label="Agrandir le graphique"
-            >
-              <ExplorationChart data={chartData} lines={lines} height={460} />
-            </button>
-          </div>
-          <ExplorationKpis
-            columns={kpiBlocks}
-            title={statsTitle ?? undefined}
-            secondTitle={statsSecondTitle}
-          />
-        </div>
-        {explanation && (
-          <div className="rounded-lg border bg-card p-4">
-            <p className="mb-1.5 text-sm font-semibold">Comprendre ce graphique</p>
-            <p className="text-sm text-muted-foreground">
-              {explanation.definition}{" "}
-              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
-                {explanation.formule}
-              </span>
-            </p>
-            <p className="mt-2 text-sm leading-relaxed">{explanation.phrase}</p>
-            {explanation.warnings.length > 0 && (
-              <div className="mt-3 space-y-1.5">
-                {explanation.warnings.map((w, i) => (
-                  <p
-                    key={i}
-                    className="flex gap-1.5 rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-700 dark:text-amber-300"
-                  >
-                    <TriangleAlert className="mt-px size-3.5 shrink-0" />
-                    <span>{w}</span>
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          )}
         </>
       )}
 
