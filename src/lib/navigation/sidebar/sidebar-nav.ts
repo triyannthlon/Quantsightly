@@ -72,7 +72,7 @@ export const NAV: NavSection[] = [
       // Diagnostic live du régime (page existante `/comparaisons/quadrants`).
       {
         key: "regime-macro",
-        label: "Régime macro",
+        label: "Régimes macro",
         href: routes.comparisons.quadrants,
         icon: Grid2x2,
       },
