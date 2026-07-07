@@ -253,6 +253,14 @@ body {
   --text-theme-xs: 12px;
   --text-theme-xs--line-height: 18px;
 
+  /* Plancher typographique relevé pour le confort de lecture (produit premium) :
+     on remonte les petits crans standard d'1px + interligne plus généreux. Ils
+     portent tout le texte secondaire (sous-titres, légendes, colonnes KPI…). */
+  --text-xs: 0.8125rem; /* 13px (défaut Tailwind : 12px) */
+  --text-xs--line-height: 1.125rem; /* 18px */
+  --text-sm: 0.9375rem; /* 15px (défaut Tailwind : 14px) */
+  --text-sm--line-height: 1.375rem; /* 22px */
+
   --color-current: currentColor;
   --color-transparent: transparent;
   --color-white: #ffffff;
