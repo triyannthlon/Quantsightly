@@ -15,6 +15,9 @@ export default function SidebarItem({
   pathname: string;
   density?: "compact" | "normal";
 }) {
-  if (item.href) return <SidebarLinkItem item={item} pathname={pathname} density={density} />;
-  return <SidebarSubmenuItem item={item} pathname={pathname} density={density} />;
+  // Un item avec enfants = sous-menu ; sinon feuille (lien cliquable ou nœud
+  // désactivé « Bientôt », géré dans SidebarLinkItem).
+  if (item.children)
+    return <SidebarSubmenuItem item={item} pathname={pathname} density={density} />;
+  return <SidebarLinkItem item={item} pathname={pathname} density={density} />;
 }

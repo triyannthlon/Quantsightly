@@ -17,7 +17,8 @@ export default function AppSidebar() {
     <TooltipProvider delayDuration={150}>
       <aside
         className={cn(
-          "flex h-screen flex-col border-r bg-background no-scrollbar",
+          "flex h-screen flex-col border-r border-sidebar-border no-scrollbar",
+          "app-sidebar-surface text-sidebar-foreground",
           showLabels ? "w-64" : "w-16 sidebar-collapsed",
           "transition-all duration-300 ease-in-out",
         )}

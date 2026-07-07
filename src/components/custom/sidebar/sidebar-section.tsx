@@ -30,11 +30,11 @@ export default function SidebarSection({
           <div className="flex w-full justify-center">
             <div className="h-px w-8 rounded-full bg-border" /> {/* séparateur visuel */}
           </div>
-        ) : (
+        ) : section.title ? (
           <div className={cn(sidebarSectionTitleVariants({ collapsed: false }))}>
             {section.title}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Items */}

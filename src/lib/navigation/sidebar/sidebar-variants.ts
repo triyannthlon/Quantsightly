@@ -29,7 +29,7 @@ export const sidebarItemVariants = cva(
 
 /*********** sidebarSectionTitleVariants *****/
 export const sidebarSectionTitleVariants = cva(
-  "px-2 pb-2 text-xs font-semibold uppercase text-muted-foreground",
+  "px-2 pb-2 text-xs font-semibold uppercase text-sidebar-section-title",
   {
     variants: {
       collapsed: {

@@ -1,5 +1,20 @@
 // sidebar-nav.ts
-import { Eye, ScanSearch, LineChart, Activity, Bookmark, Grid2x2 } from "lucide-react";
+import {
+  LayoutDashboard,
+  SlidersHorizontal,
+  LineChart,
+  Activity,
+  Bookmark,
+  Shield,
+  Grid2x2,
+  PieChart,
+  Stethoscope,
+  Scale,
+  Wallet,
+  Eye,
+  ScanSearch,
+  Settings,
+} from "lucide-react";
 import React from "react";
 import { routes } from "@/lib/navigation/sidebar/route";
 
@@ -7,6 +22,7 @@ export type NavChild = {
   label: string;
   href: string;
   tone?: "default" | "danger";
+  disabled?: boolean;
 };
 
 export type NavItem = {
@@ -16,6 +32,7 @@ export type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
   children?: NavChild[];
   tone?: "default" | "danger";
+  disabled?: boolean;
 };
 
 export type NavSection = {
@@ -23,37 +40,31 @@ export type NavSection = {
   items: NavItem[];
 };
 
-// Sidebar = parcours mental Quantsightly : comprendre → gérer → analyser →
-// surveiller → chercher. On n'expose que les pages réelles ; les espaces à venir
-// (Cockpit, Portefeuille, Comparaisons) s'insèreront à leur place réservée, au-
-// dessus, sans re-architecturer.
+// Sidebar = parcours mental Quantsightly : comprendre la situation (Cockpit) →
+// explorer les signaux (Exploration) → étudier les modèles de référence
+// (Modèles) → analyser son portefeuille (Portefeuille) → suivre/chercher des
+// actifs (Marchés) → configurer (Paramètres).
+//
+// Nav « hybride » : la structure cible est affichée en entier pour raconter le
+// parcours dès maintenant ; les nœuds pas encore codés sont `disabled` (grisés,
+// non-cliquables, badge « Bientôt »). On n'allume que le réel — la structure
+// grandit vers le haut au fil des briques.
 export const NAV: NavSection[] = [
   {
-    title: "Exploration",
+    title: "Cockpit",
     items: [
-      {
-        key: "comparateur",
-        label: "Comparateur",
-        href: routes.exploration,
-        icon: LineChart,
-      },
+      { key: "vue-quantsightly", label: "Vue Quantsightly", icon: LayoutDashboard, disabled: true },
+      { key: "mon-cockpit", label: "Mon cockpit", icon: SlidersHorizontal, disabled: true },
     ],
   },
   {
-    title: "Comparaisons",
+    title: "Exploration",
     items: [
-      {
-        key: "signaux",
-        label: "Signaux macro",
-        href: routes.comparisons.signals,
-        icon: Activity,
-      },
-      {
-        key: "regimes-pays",
-        label: "Régimes macro",
-        href: routes.comparisons.quadrants,
-        icon: Grid2x2,
-      },
+      { key: "comparateur", label: "Comparateur", href: routes.exploration, icon: LineChart },
+      { key: "signaux", label: "Signaux macro", href: routes.comparisons.signals, icon: Activity },
+      // Temporaire : « Mes comparaisons » rejoindra « Mon cockpit » (espace
+      // personnalisable) une fois celui-ci construit. Gardé cliquable ici pour
+      // ne pas masquer une fonctionnalité déjà livrée.
       {
         key: "mes-comparaisons",
         label: "Mes comparaisons",
@@ -63,14 +74,28 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    title: "Modèles",
+    items: [
+      { key: "browne", label: "Browne", icon: Shield, disabled: true },
+      // Même page que l'ancien « Régimes macro » (route `/comparaisons/quadrants`
+      // inchangée), déplacée ici et renommée « 4 Quadrants ».
+      { key: "quadrants", label: "4 Quadrants", href: routes.comparisons.quadrants, icon: Grid2x2 },
+    ],
+  },
+  {
+    title: "Portefeuille",
+    items: [
+      { key: "pf-vue", label: "Vue d'ensemble", icon: PieChart, disabled: true },
+      { key: "pf-diagnostic", label: "Diagnostic", icon: Stethoscope, disabled: true },
+      { key: "pf-comparaison", label: "Comparaison", icon: Scale, disabled: true },
+      // Prochaine brique produit (entrée obligatoire du parcours portefeuille).
+      { key: "pf-positions", label: "Positions", icon: Wallet, disabled: true },
+    ],
+  },
+  {
     title: "Marchés",
     items: [
-      {
-        key: "watchlist",
-        label: "Actifs suivis",
-        href: routes.dashboard,
-        icon: Eye,
-      },
+      { key: "watchlist", label: "Actifs suivis", href: routes.dashboard, icon: Eye },
       {
         key: "screener",
         label: "Screener",
@@ -85,5 +110,10 @@ export const NAV: NavSection[] = [
         ],
       },
     ],
+  },
+  {
+    // Section sans titre : Paramètres est un accès de bas de barre, pas encore codé.
+    title: "",
+    items: [{ key: "parametres", label: "Paramètres", icon: Settings, disabled: true }],
   },
 ];
