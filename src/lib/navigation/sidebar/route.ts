@@ -9,6 +9,10 @@ export const routes = {
     quadrants: "/comparaisons/quadrants",
   },
 
+  models: {
+    browne: "/modeles/browne",
+  },
+
   screener: {
     root: `/screener`,
     stock: `/screener/asset-stock`,

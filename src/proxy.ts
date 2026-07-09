@@ -162,6 +162,7 @@ export const config = {
     "/screener/:path*",
     "/exploration/:path*",
     "/comparaisons/:path*",
+    "/modeles/:path*",
     "/items/:path*",
     "/api/me/:path*",
   ],

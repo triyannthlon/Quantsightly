@@ -251,6 +251,16 @@ function missing(countryCode: string, rebalance: RebalanceFrequency): CountryBro
 
 // ─── API publique ───────────────────────────────────────────────────────────
 
+/** Liste des pays éligibles au Browne (indice actions, hors `XX`), triée par nom. */
+export async function listBrowneCountries(): Promise<{ iso: string; nameFr: string }[]> {
+  const [series, ref] = await Promise.all([listSeries(), getReferenceData()]);
+  const isos = [...new Set(series.filter((s) => s.class === 1 && s.countryIso !== "XX").map((s) => s.countryIso))];
+  const nameByIso = new Map(ref.countries.map((c) => [c.iso, c.nameFr]));
+  return isos
+    .map((iso) => ({ iso, nameFr: nameByIso.get(iso) ?? iso }))
+    .sort((a, b) => a.nameFr.localeCompare(b.nameFr, "fr"));
+}
+
 /**
  * Portefeuille de Browne d'un pays, avec ses séries locales (`input`) pour un
  * recalcul côté client sur changement de rééquilibrage.
