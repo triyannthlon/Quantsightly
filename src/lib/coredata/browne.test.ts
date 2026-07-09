@@ -220,3 +220,111 @@ describe("computeBrowne — alignement", () => {
     expect(r.start).toBe(dEq[1]);
   });
 });
+
+// ─── Métriques avancées ──────────────────────────────────────────────────────
+
+describe("computeBrowne — Sortino / Calmar / pire année / sous l'eau", () => {
+  it("pire année et temps sous l'eau sur un profil par paliers annuels", () => {
+    const d = months(36, 2000, 1); // 2000-01 → 2002-12
+    // 2000 = 100, 2001 = 80 (−20 %), 2002 = 88 (+10 %) ; 4 poches identiques.
+    const path = d.map((date) => {
+      const y = Number(date.slice(0, 4));
+      return y === 2000 ? 100 : y === 2001 ? 80 : 88;
+    });
+    const s = () => rawSeries(d, path);
+    const r = ok(
+      computeBrowne({ countryCode: "XX", equity: s(), bond: s(), cash: s(), gold: s(), rebalance: "monthly" }),
+    );
+    expect(r.metrics.nominal.worstYear).toBeCloseTo(-20, 6); // 80/100 − 1
+    expect(r.metrics.nominal.maxUnderwaterMonths).toBe(24); // jan 2001 → déc 2002, jamais revenu à 100
+  });
+
+  it("Sortino et Calmar null sur une courbe monotone (pas de baisse, pas de drawdown)", () => {
+    const d = months(24);
+    const r = ok(
+      computeBrowne({
+        countryCode: "XX",
+        equity: growSeries(d, 100, 0.01),
+        bond: growSeries(d, 100, 0.01),
+        cash: growSeries(d, 100, 0.01),
+        gold: growSeries(d, 100, 0.01),
+      }),
+    );
+    expect(r.metrics.nominal.sortino).toBeNull();
+    expect(r.metrics.nominal.calmar).toBeNull();
+  });
+
+  it("Sortino et Calmar définis et positifs quand il y a des baisses", () => {
+    const d = months(14);
+    const path = [100, 120, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145];
+    const s = () => rawSeries(d, path);
+    const r = ok(
+      computeBrowne({ countryCode: "XX", equity: s(), bond: s(), cash: s(), gold: s(), rebalance: "monthly" }),
+    );
+    expect(r.metrics.nominal.sortino).not.toBeNull();
+    expect(r.metrics.nominal.sortino!).toBeGreaterThan(0);
+    // Calmar = annualisé / |MDD| ; MDD = −25 % ⇒ Calmar = annualisé / 25.
+    expect(r.metrics.nominal.calmar).toBeCloseTo(r.metrics.nominal.annualized! / 25, 6);
+  });
+});
+
+// ─── Séries par poche & contributions ────────────────────────────────────────
+
+describe("computeBrowne — poches", () => {
+  it("expose chaque poche rebasée 100 et attribue la contribution au bon actif", () => {
+    const d = months(25);
+    const r = ok(
+      computeBrowne({
+        countryCode: "XX",
+        equity: growSeries(d, 100, 0.02), // seule poche qui bouge : +2 %/mois
+        bond: flat(d),
+        cash: flat(d),
+        gold: flat(d),
+        rebalance: "monthly",
+      }),
+    );
+    // Séries par poche, base 100.
+    expect(r.series.sleeves.equity[0].value).toBe(100);
+    expect(r.series.sleeves.equity[24].value).toBeCloseTo(100 * 1.02 ** 24, 6);
+    expect(r.series.sleeves.bond.every((pt) => pt.value === 100)).toBe(true);
+
+    // Contribution (Σ w·r) : mensuel ⇒ 24 mois × 0,25 × 2 % = 12 %.
+    expect(r.metrics.sleeves.equity.contribution).toBeCloseTo(12, 6);
+    expect(r.metrics.sleeves.bond.contribution).toBeCloseTo(0, 6);
+    expect(r.metrics.sleeves.cash.contribution).toBeCloseTo(0, 6);
+    expect(r.metrics.sleeves.gold.contribution).toBeCloseTo(0, 6);
+
+    // Meilleur/pire mois de la poche actions = +2 % (croissance constante).
+    expect(r.metrics.sleeves.equity.bestMonth).toBeCloseTo(2, 6);
+    expect(r.metrics.sleeves.equity.worstMonth).toBeCloseTo(2, 6);
+    expect(r.metrics.sleeves.bond.maxDrawdown).toBe(0);
+  });
+});
+
+// ─── Inflation cumulée ───────────────────────────────────────────────────────
+
+describe("computeBrowne — inflation cumulée", () => {
+  it("null sans inflation, sinon base 100 suivant le CPI", () => {
+    const d = months(24);
+    const sansCpi = ok(
+      computeBrowne({ countryCode: "XX", equity: flat(d), bond: flat(d), cash: flat(d), gold: flat(d) }),
+    );
+    expect(sansCpi.series.inflationIndex).toBeNull();
+
+    const avecCpi = ok(
+      computeBrowne({
+        countryCode: "XX",
+        equity: flat(d),
+        bond: flat(d),
+        cash: flat(d),
+        gold: flat(d),
+        inflation: growSeries(d, 100, 0.01), // CPI +1 %/mois
+      }),
+    );
+    expect(avecCpi.series.inflationIndex).not.toBeNull();
+    expect(avecCpi.series.inflationIndex![0].value).toBe(100);
+    for (let k = 0; k < d.length; k++) {
+      expect(avecCpi.series.inflationIndex![k].value).toBeCloseTo(100 * 1.01 ** k, 6);
+    }
+  });
+});
