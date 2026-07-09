@@ -11,6 +11,12 @@ import { REBALANCE_LABELS, type BrowneResult } from "@/lib/coredata/browne";
 import type { CountryBrowneConfig, BrowneDataQuality } from "@/lib/coredata/browne-service";
 import { ExplorationChart, type ChartLine } from "../../exploration/exploration-chart";
 import { deflate, mergeChart, fmtPct, fmtRatio, type BrowneDisplayMode } from "./helpers";
+import {
+  DrawdownCard,
+  CompositionCard,
+  ContributionCard,
+  DataQualityCard,
+} from "./browne-detail-cards";
 
 const COLOR = {
   browne: "#E8833A",
@@ -314,6 +320,18 @@ export function BrowneCountryView({
 
         {/* Performance */}
         <PerformanceChart result={result} displayMode={displayMode} />
+
+        {/* Drawdown */}
+        <DrawdownCard result={result} />
+
+        {/* Composition */}
+        <CompositionCard config={config} />
+
+        {/* Sources de performance + Qualité des données */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ContributionCard result={result} />
+          <DataQualityCard config={config} />
+        </div>
       </div>
     </TooltipProvider>
   );

@@ -85,6 +85,15 @@ export function mergeChart(series: { key: string; data: EconomicDataPoint[] }[])
   return [...byDate.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
+/** Série de drawdown roulant (en %, ≤ 0) d'une courbe d'index. */
+export function drawdownSeries(index: EconomicDataPoint[]): EconomicDataPoint[] {
+  let peak = -Infinity;
+  return index.map((p) => {
+    if (p.value > peak) peak = p.value;
+    return { date: p.date, value: peak > 0 ? (p.value / peak - 1) * 100 : 0 };
+  });
+}
+
 // ─── Formatage ───────────────────────────────────────────────────────────────
 
 export const fmtPct = (v: number | null | undefined, signed = false): string =>
