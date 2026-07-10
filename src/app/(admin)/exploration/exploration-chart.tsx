@@ -17,6 +17,8 @@ export interface ChartLine {
   label: string;
   color: string;
   dashed?: boolean;
+  /** Épaisseur de trait (px) — défaut selon `compact`. Sert à emphaser une courbe. */
+  width?: number;
 }
 
 export type ChartPoint = { date: string; [key: string]: number | string | undefined };
@@ -28,6 +30,16 @@ interface Props {
   height?: number | string;
   /** Mode carte : sans légende, axes allégés, lignes plus fines. */
   compact?: boolean;
+  /** Axe Y en échelle logarithmique (valeurs strictement positives requises). */
+  logScale?: boolean;
+  /** Afficher la légende du bas (défaut : true, hors mode compact). */
+  showLegend?: boolean;
+  /** Domaine Y explicite (ex. `[-60, 0]` pour un drawdown). */
+  yDomain?: [number, number];
+  /** Marquer d'un point la dernière valeur de chaque courbe. */
+  markLast?: boolean;
+  /** Opacité de la grille (défaut 0.4 ; plus bas = plus discret). */
+  gridOpacity?: number;
 }
 
 function formatAxisDate(iso: string): string {
@@ -54,7 +66,17 @@ function pickTicks(data: ChartPoint[], count: number): string[] {
   return ticks;
 }
 
-export function ExplorationChart({ data, lines, height = 380, compact = false }: Props) {
+export function ExplorationChart({
+  data,
+  lines,
+  height = 380,
+  compact = false,
+  logScale = false,
+  showLegend = true,
+  yDomain,
+  markLast = false,
+  gridOpacity = 0.4,
+}: Props) {
   const ticks = useMemo(() => pickTicks(data, compact ? 4 : 10), [data, compact]);
 
   // Hauteur CSS (ex. "78vh") → wrapper à hauteur définie + container en 100 %.
@@ -68,7 +90,7 @@ export function ExplorationChart({ data, lines, height = 380, compact = false }:
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="var(--border)"
-            opacity={0.4}
+            opacity={gridOpacity}
             vertical={false}
           />
           <XAxis
@@ -87,7 +109,9 @@ export function ExplorationChart({ data, lines, height = 380, compact = false }:
             tick={{ fontSize: compact ? 10 : 11, fill: "var(--muted-foreground)" }}
             width={compact ? 40 : 64}
             tickCount={compact ? 4 : 6}
-            domain={["auto", "auto"]}
+            scale={logScale ? "log" : "linear"}
+            domain={yDomain ?? ["auto", "auto"]}
+            allowDataOverflow={yDomain !== undefined}
           />
           <ReTooltip
             contentStyle={{
@@ -107,7 +131,7 @@ export function ExplorationChart({ data, lines, height = 380, compact = false }:
               return [formatValue(shown), name];
             }}
           />
-          {!compact && (
+          {!compact && showLegend && (
             <Legend
               verticalAlign="bottom"
               height={32}
@@ -122,9 +146,29 @@ export function ExplorationChart({ data, lines, height = 380, compact = false }:
               dataKey={ln.key}
               name={ln.label}
               stroke={ln.color}
-              strokeWidth={compact ? 1.5 : 2}
+              strokeWidth={ln.width ?? (compact ? 1.5 : 2)}
               strokeDasharray={ln.dashed ? "5 4" : undefined}
-              dot={false}
+              dot={
+                markLast
+                  ? (props: { cx?: number; cy?: number; index?: number }) => {
+                      const isLast = props.index === data.length - 1;
+                      if (!isLast || props.cx == null || props.cy == null) {
+                        return <g key={`dot-${ln.key}-${props.index}`} />;
+                      }
+                      return (
+                        <circle
+                          key={`dot-${ln.key}-${props.index}`}
+                          cx={props.cx}
+                          cy={props.cy}
+                          r={3}
+                          fill={ln.color}
+                          stroke="var(--background)"
+                          strokeWidth={1.5}
+                        />
+                      );
+                    }
+                  : false
+              }
               activeDot={{ r: 3 }}
               isAnimationActive={false}
               connectNulls

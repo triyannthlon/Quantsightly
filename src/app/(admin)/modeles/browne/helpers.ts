@@ -104,3 +104,9 @@ export const fmtRatio = (v: number | null | undefined): string =>
 
 export const fmtMonths = (v: number | null | undefined): string =>
   v === null || v === undefined ? "—" : `${v} mois`;
+
+export const fmtMultiple = (v: number | null | undefined): string =>
+  v === null || v === undefined ? "—" : `${v.toFixed(1)}×`;
+
+export const fmtPts = (v: number | null | undefined): string =>
+  v === null || v === undefined ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)} pts`;

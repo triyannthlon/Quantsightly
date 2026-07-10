@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +14,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import type { EconomicDataPoint } from "@/lib/coredata/types";
 import { SLEEVE_KEYS, type BrowneResult, type SleeveKey } from "@/lib/coredata/browne";
 import type { CountryBrowneConfig, SleeveConfig, SleeveQuality } from "@/lib/coredata/browne-service";
 import { ExplorationChart, type ChartLine } from "../../exploration/exploration-chart";
-import { drawdownSeries, mergeChart, fmtPct, fmtMonths } from "./helpers";
+import { drawdownSeries, mergeChart, fmtPct, fmtMonths, type BrowneDisplayMode } from "./helpers";
 
 type OkResult = Extract<BrowneResult, { status: "OK" }>;
 
@@ -36,33 +37,107 @@ const SLEEVE_LABEL: Record<SleeveKey, string> = {
 
 // ─── Graphique de drawdown ───────────────────────────────────────────────────
 
-export function DrawdownCard({ result }: { result: OkResult }) {
-  const chart = useMemo(() => {
-    const data = mergeChart([
-      { key: "browne", data: drawdownSeries(result.series.nominal) },
-      { key: "equity", data: drawdownSeries(result.series.equityBenchmark) },
-    ]);
-    const lines: ChartLine[] = [
-      { key: "browne", label: "Browne", color: "#E8833A" },
-      { key: "equity", label: "Actions", color: "#5B9BF5" },
-    ];
-    return { data, lines };
-  }, [result]);
+const DD_COLOR = { browne: "#E8833A", equity: "#5B9BF5" };
 
-  const nom = result.metrics.nominal.maxDrawdown;
-  const eq = result.metrics.equity.maxDrawdown;
-  const reduction = nom !== null && eq !== null ? nom - eq : null; // > 0 = creux plus faible
+export function DrawdownCard({
+  result,
+  displayMode,
+}: {
+  result: OkResult;
+  displayMode: BrowneDisplayMode;
+}) {
+  // Drawdown réel en mode Réel (si dispo) ; nominal sinon (y compris « Nominal vs
+  // Inflation », l'inflation n'ayant pas de drawdown comparable).
+  const useReal = displayMode === "real" && !!result.series.real && !!result.series.equityReal;
+  const bSeries = useReal ? result.series.real! : result.series.nominal;
+  const aSeries = useReal ? result.series.equityReal! : result.series.equityBenchmark;
+  const bMetrics = useReal ? result.metrics.real! : result.metrics.nominal;
+  const aMetrics = useReal ? result.metrics.equityReal! : result.metrics.equity;
+
+  const [shown, setShown] = useState({ browne: true, equity: true });
+
+  const dd = useMemo(() => {
+    const bDD = drawdownSeries(bSeries);
+    const aDD = drawdownSeries(aSeries);
+    let worst = 0;
+    for (const p of [...bDD, ...aDD]) if (p.value < worst) worst = p.value;
+    const floor = Math.min(-5, Math.floor(worst / 10) * 10); // palier arrondi sous le pire creux
+    const active: { key: string; data: EconomicDataPoint[] }[] = [];
+    const lines: ChartLine[] = [];
+    if (shown.equity) {
+      active.push({ key: "equity", data: aDD });
+      lines.push({ key: "equity", label: "Actions", color: DD_COLOR.equity, width: 1.4 });
+    }
+    if (shown.browne) {
+      active.push({ key: "browne", data: bDD });
+      lines.push({ key: "browne", label: "Browne", color: DD_COLOR.browne, width: 2.6 });
+    }
+    return { data: mergeChart(active), lines, yDomain: [floor, 0] as [number, number] };
+  }, [bSeries, aSeries, shown]);
+
+  const reduction =
+    bMetrics.maxDrawdown !== null && aMetrics.maxDrawdown !== null
+      ? bMetrics.maxDrawdown - aMetrics.maxDrawdown
+      : null;
+
+  const toggles = [
+    { key: "browne" as const, label: "Browne", color: DD_COLOR.browne },
+    { key: "equity" as const, label: "Actions", color: DD_COLOR.equity },
+  ];
 
   return (
-    <Card className="p-4">
-      <h3 className="mb-3 text-sm font-semibold">Drawdown (perte depuis le sommet)</h3>
-      <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Max DD Browne" value={fmtPct(nom)} />
-        <Stat label="Max DD actions" value={fmtPct(eq)} />
-        <Stat label="Réduction" value={reduction === null ? "—" : `+${reduction.toFixed(1)} pts`} />
-        <Stat label="Temps max sous l’eau" value={fmtMonths(result.metrics.nominal.maxUnderwaterMonths)} />
+    <Card className="gap-0 bg-gradient-to-b from-foreground/[0.015] to-transparent p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm font-semibold">Drawdown</h3>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" className="text-muted-foreground/60 hover:text-foreground">
+                <Info className="size-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-64">
+              Perte depuis le dernier plus haut historique.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {toggles.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setShown((s) => ({ ...s, [t.key]: !s[t.key] }))}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
+                shown[t.key]
+                  ? "border-foreground/20 text-foreground"
+                  : "border-transparent text-muted-foreground/50 hover:text-foreground",
+              )}
+            >
+              <span
+                className="size-2 rounded-full transition-opacity"
+                style={{ backgroundColor: t.color, opacity: shown[t.key] ? 1 : 0.35 }}
+              />
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
-      <ExplorationChart data={chart.data} lines={chart.lines} height={240} />
+      <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="Max DD Browne" value={fmtPct(bMetrics.maxDrawdown)} />
+        <Stat label="Max DD actions" value={fmtPct(aMetrics.maxDrawdown)} />
+        <Stat label="Réduction" value={reduction === null ? "—" : `+${reduction.toFixed(1)} pts`} />
+        <Stat label="Durée max sous l’eau" value={fmtMonths(bMetrics.maxUnderwaterMonths)} />
+      </div>
+      <ExplorationChart
+        data={dd.data}
+        lines={dd.lines}
+        height={240}
+        showLegend={false}
+        markLast
+        gridOpacity={0.22}
+        yDomain={dd.yDomain}
+      />
     </Card>
   );
 }

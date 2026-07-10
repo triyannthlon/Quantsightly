@@ -94,22 +94,22 @@ export function BrowneView({
     <div className="space-y-4">
       {/* Barre de paramètres globale */}
       <Card className="p-3">
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <Control label="Pays">
-            <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-52" />
+            <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
           </Control>
           <Control label="Période">
-            <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as BrownePeriod)} width="w-32" />
+            <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as BrownePeriod)} width="w-full" />
           </Control>
           <Control label="Devise d’analyse">
-            <SelectDropdown items={[{ value: "local", label: "Locale" }]} value="local" width="w-32" />
+            <SelectDropdown items={[{ value: "local", label: "Locale" }]} value="local" width="w-full" />
           </Control>
-          <Control label="Affichage">
+          <Control label="Mode d’analyse">
             <SelectDropdown
               items={DISPLAY_ITEMS}
               value={displayMode}
               onChange={(i) => setDisplayMode(i.value as BrowneDisplayMode)}
-              width="w-48"
+              width="w-full"
             />
           </Control>
           <Control label="Rééquilibrage">
@@ -117,7 +117,7 @@ export function BrowneView({
               items={REBALANCE_ITEMS}
               value={rebalance}
               onChange={(i) => setRebalance(i.value as RebalanceFrequency)}
-              width="w-36"
+              width="w-full"
             />
           </Control>
         </div>
