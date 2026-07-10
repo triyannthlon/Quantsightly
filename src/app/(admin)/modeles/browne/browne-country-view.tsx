@@ -638,20 +638,20 @@ export function BrowneCountryView({
                 />
               </span>
               <div>
-                <h2 className="text-lg font-semibold">{config.countryFr ?? config.countryCode}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold">{config.countryFr ?? config.countryCode}</h2>
+                  <RobustnessPill robustness={robustness} />
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Portefeuille Browne local en {config.currency}
                 </p>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <RobustnessPill robustness={robustness} />
-              <div className="flex flex-wrap justify-end gap-1.5">
-                <Badge variant="secondary">Mensuel</Badge>
-                <Badge variant="secondary">Devise locale</Badge>
-                <Badge variant="secondary">Rééquilibrage {REBALANCE_LABELS[result.rebalance]}</Badge>
-                <QualityBadge quality={dataQuality} />
-              </div>
+            <div className="flex flex-wrap justify-end gap-1.5">
+              <Badge variant="secondary">Mensuel</Badge>
+              <Badge variant="secondary">Devise locale</Badge>
+              <Badge variant="secondary">Rééquilibrage {REBALANCE_LABELS[result.rebalance]}</Badge>
+              <QualityBadge quality={dataQuality} />
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
