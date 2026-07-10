@@ -226,26 +226,23 @@ export function WorldMap({
   const inFrame = (left: number, top: number) =>
     left >= -4 && left <= 104 && top >= -4 && top <= 104;
 
-  // Badges (drapeau + ISO) des pays tracés — seulement en zoom.
-  const badges =
-    region === "monde"
-      ? null
-      : placed
-          .filter((e) => !e.isPoint)
-          .map(({ p, c }) => {
-            const { left, top } = project(c);
-            if (!inFrame(left, top)) return null;
-            return (
-              <div
-                key={p.countryCode}
-                className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border bg-background/90 px-1.5 py-0.5 shadow-sm"
-                style={{ left: `${left}%`, top: `${top}%` }}
-              >
-                <CountryFlag code={p.countryCode} countryName={p.name} size={14} />
-                <span className="text-[10px] font-semibold tabular-nums">{p.countryCode}</span>
-              </div>
-            );
-          });
+  // Badges (drapeau + ISO) des pays tracés — à tous les niveaux, Monde inclus.
+  const badges = placed
+    .filter((e) => !e.isPoint)
+    .map(({ p, c }) => {
+      const { left, top } = project(c);
+      if (!inFrame(left, top)) return null;
+      return (
+        <div
+          key={p.countryCode}
+          className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border bg-background/90 px-1.5 py-0.5 shadow-sm"
+          style={{ left: `${left}%`, top: `${top}%` }}
+        >
+          <CountryFlag code={p.countryCode} countryName={p.name} size={14} />
+          <span className="text-[10px] font-semibold tabular-nums">{p.countryCode}</span>
+        </div>
+      );
+    });
 
   // Marqueurs des pays-points (HK/SG) : TOUJOURS visibles (un point coloré au
   // niveau Monde, le badge complet en zoom). Interactifs → même tooltip.
