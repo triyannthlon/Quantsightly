@@ -18,26 +18,28 @@ import type { EconomicDataPoint } from "@/lib/coredata/types";
 import { SLEEVE_KEYS, type BrowneResult, type SleeveKey } from "@/lib/coredata/browne";
 import type { CountryBrowneConfig, SleeveConfig, SleeveQuality } from "@/lib/coredata/browne-service";
 import { ExplorationChart, type ChartLine } from "../../exploration/exploration-chart";
-import { drawdownSeries, mergeChart, fmtPct, fmtMonths, type BrowneDisplayMode } from "./helpers";
+import {
+  drawdownSeries,
+  mergeChart,
+  fmtPct,
+  fmtMonths,
+  SLEEVE_PALETTE,
+  type BrowneDisplayMode,
+} from "./helpers";
 
 type OkResult = Extract<BrowneResult, { status: "OK" }>;
 
-const SLEEVE_COLOR: Record<SleeveKey, string> = {
-  equity: "#5B9BF5",
-  bond: "#57C198",
-  cash: "#8794A6",
-  gold: "#E9AF4B",
-};
+const SLEEVE_COLOR: Record<SleeveKey, string> = SLEEVE_PALETTE;
 const SLEEVE_LABEL: Record<SleeveKey, string> = {
   equity: "Actions",
-  bond: "Obligations 10 ans",
+  bond: "Obligations",
   cash: "Cash",
   gold: "Or",
 };
 
 // ─── Graphique de drawdown ───────────────────────────────────────────────────
 
-const DD_COLOR = { browne: "#E8833A", equity: "#5B9BF5" };
+const DD_COLOR = { browne: "#E8833A", equity: SLEEVE_PALETTE.equity };
 
 export function DrawdownCard({
   result,
@@ -230,21 +232,18 @@ export function ContributionCard({ result }: { result: OkResult }) {
         </Tooltip>
       </div>
       <p className="mb-3 text-xs text-muted-foreground">
-        Répartition des contributions cumulées des quatre poches
-        {allPositive ? " (normalisée à 100 %)." : " (contributions brutes, une poche négative)."}
+        Répartition relative des contributions cumulées des quatre poches.
       </p>
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {rows.map((r) => {
           const share = allPositive && r.raw !== null && total > 0 ? (r.raw / total) * 100 : null;
-          const width = allPositive
-            ? (share ?? 0)
-            : (Math.abs(r.raw ?? 0) / maxAbs) * 100;
+          const width = allPositive ? (share ?? 0) : (Math.abs(r.raw ?? 0) / maxAbs) * 100;
           return (
-            <div key={r.key} className="grid grid-cols-[7rem_1fr_4rem] items-center gap-2 text-sm">
+            <div key={r.key} className="grid grid-cols-[6rem_1fr_5rem] items-center gap-2.5 text-sm">
               <span className="text-muted-foreground">{r.label}</span>
-              <span className="h-2 rounded-full bg-muted">
+              <span className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <span
-                  className="block h-2 rounded-full"
+                  className="block h-full rounded-full"
                   style={{ width: `${Math.max(0, Math.min(100, width))}%`, backgroundColor: r.color }}
                 />
               </span>

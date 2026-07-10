@@ -19,6 +19,7 @@ import {
   fmtMonths,
   fmtMultiple,
   fmtPts,
+  SLEEVE_PALETTE,
   type BrowneDisplayMode,
 } from "./helpers";
 import {
@@ -30,11 +31,11 @@ import {
 
 const COLOR = {
   browne: "#E8833A",
-  equity: "#5B9BF5",
-  bond: "#57C198",
-  cash: "#8794A6",
-  gold: "#E9AF4B",
   inflation: "#E87386",
+  equity: SLEEVE_PALETTE.equity,
+  bond: SLEEVE_PALETTE.bond,
+  cash: SLEEVE_PALETTE.cash,
+  gold: SLEEVE_PALETTE.gold,
 } as const;
 
 const DISPLAY_LABEL: Record<BrowneDisplayMode, string> = {

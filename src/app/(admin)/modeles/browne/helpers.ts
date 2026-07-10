@@ -5,6 +5,14 @@ import type { ChartPoint } from "../../exploration/exploration-chart";
 export type BrownePeriod = "MAX" | "20A" | "10A" | "5A";
 export type BrowneDisplayMode = "nominal" | "real" | "nominal_vs_inflation";
 
+/** Palette STABLE des 4 poches — partagée par les graphes, boutons de séries et « Sources de performance ». */
+export const SLEEVE_PALETTE: Record<"equity" | "bond" | "cash" | "gold", string> = {
+  equity: "#6C93C7", // Actions — bleu désaturé
+  bond: "#4FB6A0", // Obligations — teal / vert doux
+  cash: "#94A3B8", // Cash — slate / ardoise
+  gold: "#E0A93F", // Or — ambre / or
+};
+
 export const PERIOD_ITEMS = [
   { value: "MAX", label: "Max" },
   { value: "20A", label: "20 ans" },
