@@ -593,7 +593,7 @@ export function BrowneCountryView({
       row("Volatilité annualisée", "Ampleur des variations mensuelles, annualisée.", mm.volatility, cmp?.volatility ?? null, fmtPct, "pts", "risque", volRedux ? "Risque réduit" : undefined),
       row("Max drawdown", "Perte maximale entre un sommet et un point bas.", mm.maxDrawdown, cmp?.maxDrawdown ?? null, fmtPct, "pts", "risque", mddRedux !== null && mddRedux >= 20 ? "Protection élevée" : undefined),
       row("Drawdown courant", "Recul actuel depuis le dernier sommet.", mm.currentDrawdown, cmp?.currentDrawdown ?? null, fmtPct, "pts", "risque", underwater ? "Sous le sommet" : undefined, "info"),
-      row("Sharpe", "Rendement annualisé rapporté à la volatilité (taux sans risque = 0).", mm.sharpe, cmp?.sharpe ?? null, fmtRatio, "ratio", "rendement-risque", betterRR ? "Meilleur rendement/risque" : undefined),
+      row("Sharpe", "Excédent de rendement sur le cash (taux sans risque), rapporté à la volatilité.", mm.sharpe, cmp?.sharpe ?? null, fmtRatio, "ratio", "rendement-risque", betterRR ? "Meilleur rendement/risque" : undefined),
       row("Meilleure année", "Meilleure performance sur une année civile.", mm.bestYear, cmp?.bestYear ?? null, fmtPct, "pts", "performance"),
       row("Pire année", "Pire performance sur une année civile.", mm.worstYear, cmp?.worstYear ?? null, fmtPct, "pts", "risque"),
       row("Durée max sous l’eau", "Plus longue durée passée sous le dernier sommet.", mm.maxUnderwaterMonths, cmp?.maxUnderwaterMonths ?? null, fmtMonths, "mois", "resilience"),

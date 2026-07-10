@@ -176,12 +176,14 @@ describe("computeBrowne — courbe réelle", () => {
 describe("computeBrowne — métriques", () => {
   it("MDD nul sur une courbe monotone croissante", () => {
     const d = months(24);
+    // Cash plat → taux sans risque ≈ 0, poches risquées en hausse ⇒ excédent
+    // positif ⇒ Sharpe > 0 (portefeuille toujours croissant : MDD nul).
     const r = ok(
       computeBrowne({
         countryCode: "XX",
         equity: growSeries(d, 100, 0.01),
         bond: growSeries(d, 100, 0.01),
-        cash: growSeries(d, 100, 0.01),
+        cash: flat(d),
         gold: growSeries(d, 100, 0.01),
       }),
     );
@@ -189,6 +191,16 @@ describe("computeBrowne — métriques", () => {
     expect(r.metrics.nominal.currentDrawdown).toBe(0); // toujours au sommet
     expect(r.metrics.nominal.sharpe).not.toBeNull();
     expect(r.metrics.nominal.sharpe!).toBeGreaterThan(0);
+  });
+
+  it("Sharpe = 0 quand les 4 poches suivent le cash (excédent nul)", () => {
+    const d = months(24);
+    const grow = () => growSeries(d, 100, 0.01);
+    const r = ok(
+      computeBrowne({ countryCode: "XX", equity: grow(), bond: grow(), cash: grow(), gold: grow() }),
+    );
+    // Portefeuille = cash ⇒ rendement − cash = 0 ⇒ Sharpe nul.
+    expect(r.metrics.nominal.sharpe).toBeCloseTo(0, 6);
   });
 
   it("MDD et cumulé sur une courbe avec creux connu (4 poches identiques)", () => {

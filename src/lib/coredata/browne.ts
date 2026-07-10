@@ -54,7 +54,7 @@ export interface BrowneMetrics {
   maxDrawdown: number | null;
   /** Recul depuis le pic historique à la dernière date, en % (≤ 0). */
   currentDrawdown: number | null;
-  /** Ratio de Sharpe (rf = 0) = annualisé / volatilité. */
+  /** Ratio de Sharpe = (annualisé − rendement du cash) / volatilité. */
   sharpe: number | null;
   /** Ratio de Sortino = annualisé / volatilité baissière (MAR = 0). */
   sortino: number | null;
@@ -279,8 +279,12 @@ function cumulativeInflation(
   return pts.map((x) => ({ date: x.date, value: (100 * x.c) / c0 }));
 }
 
-/** Métriques complètes d'une courbe d'index (réutilise `computeKpis` + drawdown). */
-function indexMetrics(index: EconomicDataPoint[]): BrowneMetrics {
+/**
+ * Métriques complètes d'une courbe d'index (réutilise `computeKpis` + drawdown).
+ * `riskFree` = rendement annualisé du taux sans risque (rendement de la poche
+ * cash sur la fenêtre) → Sharpe = (rendement − cash) / volatilité.
+ */
+function indexMetrics(index: EconomicDataPoint[], riskFree = 0): BrowneMetrics {
   const k = computeKpis(index);
   const first = index[0]?.value;
   const last = index[index.length - 1]?.value;
@@ -292,7 +296,7 @@ function indexMetrics(index: EconomicDataPoint[]): BrowneMetrics {
     index.length >= 2 && peak > 0 && last > 0 ? (last / peak - 1) * 100 : null;
   const sharpe =
     k.annualized !== null && k.volatility !== null && k.volatility > 0
-      ? k.annualized / k.volatility
+      ? (k.annualized - riskFree) / k.volatility
       : null;
 
   // Sortino : volatilité baissière annualisée (rendements < MAR = 0).
@@ -415,15 +419,23 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
   // Benchmark actions : indice actions rebasé 100 sur la même fenêtre.
   const equityBenchmark = sleeves.equity;
 
+  // Taux sans risque = rendement annualisé de la poche cash (nominal) sur la
+  // fenêtre. La poche cash est déjà en devise locale.
+  const rfNominal = computeKpis(sleeves.cash).annualized ?? 0;
+
   // Courbes réelles (Browne + actions) + inflation cumulée : déflate par le CPI.
+  // Cash réel = cash déflaté → taux sans risque réel (pour le Sharpe réel).
   let real: EconomicDataPoint[] | null = null;
   let equityReal: EconomicDataPoint[] | null = null;
   let inflationIndex: EconomicDataPoint[] | null = null;
+  let rfReal = 0;
   if (input.inflation?.length) {
     const cpiByMonth = new Map(toMonthly(input.inflation).map((pt) => [pt.date.slice(0, 7), pt.value]));
     real = deflateByCpi(nominal, cpiByMonth);
     equityReal = deflateByCpi(equityBenchmark, cpiByMonth);
     inflationIndex = cumulativeInflation(nominal, cpiByMonth);
+    const cashReal = deflateByCpi(sleeves.cash, cpiByMonth);
+    rfReal = cashReal ? (computeKpis(cashReal).annualized ?? 0) : 0;
   }
 
   return {
@@ -435,10 +447,10 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
     months: valid.length,
     series: { nominal, real, equityBenchmark, equityReal, inflationIndex, sleeves },
     metrics: {
-      nominal: indexMetrics(nominal),
-      real: real ? indexMetrics(real) : null,
-      equity: indexMetrics(equityBenchmark),
-      equityReal: equityReal ? indexMetrics(equityReal) : null,
+      nominal: indexMetrics(nominal, rfNominal),
+      real: real ? indexMetrics(real, rfReal) : null,
+      equity: indexMetrics(equityBenchmark, rfNominal),
+      equityReal: equityReal ? indexMetrics(equityReal, rfReal) : null,
       sleeves: {
         equity: sleeveMetrics(sleeves.equity, contrib[0] * 100),
         bond: sleeveMetrics(sleeves.bond, contrib[1] * 100),

@@ -785,8 +785,9 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     key: "br-sharpe",
     term: "Ratio de Sharpe",
     group: G_BR_RR,
-    base: "Rapport entre la performance excédentaire et la volatilité.",
-    technique: "Plus il est élevé, meilleur est le rendement obtenu par unité de risque.",
+    base: "Rapport entre le rendement excédentaire (au-delà du cash) et la volatilité.",
+    technique:
+      "Le rendement de la poche cash sert de taux sans risque. Plus le ratio est élevé, meilleur est le rendement obtenu par unité de risque.",
     source: "glossaire",
   },
   "br-robustesse": {
