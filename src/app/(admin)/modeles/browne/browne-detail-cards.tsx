@@ -150,6 +150,7 @@ export function DrawdownCard({
           yDomain={dd.yDomain}
           areaFill
           percentTooltip
+          axisLine
         />
       </button>
       <Dialog open={zoom} onOpenChange={setZoom}>
@@ -168,6 +169,7 @@ export function DrawdownCard({
             yDomain={dd.yDomain}
             areaFill
             percentTooltip
+            axisLine
           />
         </FrostedDialogContent>
       </Dialog>

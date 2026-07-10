@@ -51,6 +51,8 @@ interface Props {
   areaFill?: boolean;
   /** Tooltip : valeurs formatées en pourcentage à 1 décimale (ex. drawdown). */
   percentTooltip?: boolean;
+  /** Dessiner les lignes d'axes X/Y (défaut : false — axes masqués). */
+  axisLine?: boolean;
 }
 
 interface CumulTooltipProps {
@@ -159,7 +161,9 @@ export function ExplorationChart({
   extraTooltipRows,
   areaFill = false,
   percentTooltip = false,
+  axisLine = false,
 }: Props) {
+  const axisStroke = axisLine ? { stroke: "var(--border)" } : (false as const);
   const ticks = useMemo(() => pickTicks(data, compact ? 4 : 10), [data, compact]);
 
   // Hauteur CSS (ex. "78vh") → wrapper à hauteur définie + container en 100 %.
@@ -180,14 +184,14 @@ export function ExplorationChart({
             dataKey="date"
             ticks={ticks}
             tickFormatter={formatAxisDate}
-            axisLine={false}
+            axisLine={axisStroke}
             tickLine={false}
             tick={{ fontSize: compact ? 10 : 11, fill: "var(--muted-foreground)" }}
             dy={4}
           />
           <YAxis
             tickFormatter={formatValue}
-            axisLine={false}
+            axisLine={axisStroke}
             tickLine={false}
             tick={{ fontSize: compact ? 10 : 11, fill: "var(--muted-foreground)" }}
             width={compact ? 40 : 64}

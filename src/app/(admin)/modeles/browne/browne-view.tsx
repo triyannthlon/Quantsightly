@@ -25,8 +25,10 @@ import {
   filterInput,
   PERIOD_ITEMS,
   DISPLAY_ITEMS,
+  BROWNE_REGION_ITEMS,
   type BrownePeriod,
   type BrowneDisplayMode,
+  type BrowneRegion,
 } from "./helpers";
 
 /** Preset de période → nombre d'années (null = MAX). */
@@ -79,6 +81,7 @@ export function BrowneView({
   const [rebalance, setRebalance] = useState<RebalanceFrequency>("annual");
   const [displayMode, setDisplayMode] = useState<BrowneDisplayMode>("real");
   const [period, setPeriod] = useState<BrownePeriod>("MAX");
+  const [region, setRegion] = useState<BrowneRegion>("monde");
   const [tab, setTab] = useState<Tab>("country");
   const [pending, startTransition] = useTransition();
 
@@ -134,9 +137,20 @@ export function BrowneView({
       {/* Barre de paramètres globale */}
       <Card className="p-3">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <Control label="Pays">
-            <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
-          </Control>
+          {tab === "comparison" ? (
+            <Control label="Région">
+              <SelectDropdown
+                items={BROWNE_REGION_ITEMS}
+                value={region}
+                onChange={(i) => setRegion(i.value as BrowneRegion)}
+                width="w-full"
+              />
+            </Control>
+          ) : (
+            <Control label="Pays">
+              <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
+            </Control>
+          )}
           <Control label="Période">
             <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as BrownePeriod)} width="w-full" />
           </Control>
@@ -204,7 +218,13 @@ export function BrowneView({
           )}
         </div>
       ) : tab === "comparison" ? (
-        <BrowneComparisonView rows={comparison} loading={comparisonLoading} onPick={onPickCountry} />
+        <BrowneComparisonView
+          rows={comparison}
+          loading={comparisonLoading}
+          onPick={onPickCountry}
+          displayMode={displayMode}
+          region={region}
+        />
       ) : (
         <Card className="p-10 text-center text-sm text-muted-foreground">
           Onglet « {TABS.find((t) => t.key === tab)?.label} » — bientôt disponible.

@@ -2,13 +2,58 @@ import type { EconomicDataPoint } from "@/lib/coredata/types";
 import type { ComputeBrowneInput, RobustnessBadge } from "@/lib/coredata/browne";
 import type { ChartPoint } from "../../exploration/exploration-chart";
 
-/** Teinte par palier du score de robustesse (partagée Vue pays / Comparaison). */
+/** Teinte par palier du score de robustesse (partagée Vue pays / Comparaison).
+ *  Sobre : fond teinté transparent + bordure discrète + texte coloré. */
 export const ROBUSTNESS_TONE: Record<RobustnessBadge, string> = {
   "Très robuste": "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  Robuste: "border-teal-500/30 bg-teal-500/10 text-teal-600 dark:text-teal-400",
+  Robuste: "border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
   Moyen: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
   Fragile: "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400",
-  "Très fragile": "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  "Très fragile": "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
+};
+
+/** Hex par palier pour les tracés SVG (nuage risque-rendement) — teintes 400, lisibles sur fond sombre. */
+export const ROBUSTNESS_HEX: Record<RobustnessBadge, string> = {
+  "Très robuste": "#34d399", // emerald-400
+  Robuste: "#22d3ee", // cyan-400
+  Moyen: "#fbbf24", // amber-400
+  Fragile: "#fb923c", // orange-400
+  "Très fragile": "#f87171", // red-400
+};
+
+// ─── Régions (miroir éditorial de la page Régimes macro, redéfini localement
+// pour éviter d'importer le lourd module de carte dans le bundle Browne) ───────
+
+export type BrowneRegion = "monde" | "amerique" | "europe" | "asie";
+export type GeoRegion = Exclude<BrowneRegion, "monde">;
+
+export const BROWNE_REGION_ITEMS = [
+  { value: "monde", label: "Monde" },
+  { value: "amerique", label: "Amérique" },
+  { value: "europe", label: "Europe" },
+  { value: "asie", label: "Asie-Pacifique" },
+];
+
+/** Assignation région par pays (choix éditorial, aligné sur la page Régimes). */
+export const COUNTRY_REGION: Record<string, GeoRegion> = {
+  US: "amerique", CA: "amerique", MX: "amerique", BR: "amerique",
+  DE: "europe", FR: "europe", IT: "europe", ES: "europe",
+  GB: "europe", CH: "europe", NO: "europe", SE: "europe", DK: "europe",
+  JP: "asie", CN: "asie", KR: "asie", IN: "asie", TW: "asie",
+  ID: "asie", AU: "asie", HK: "asie", SG: "asie",
+};
+
+/** Teinte par région (couleur alternative des points du nuage). */
+export const REGION_HEX: Record<GeoRegion, string> = {
+  amerique: "#60a5fa", // blue-400
+  europe: "#a78bfa", // violet-400
+  asie: "#f472b6", // pink-400
+};
+
+export const REGION_LABEL: Record<GeoRegion, string> = {
+  amerique: "Amérique",
+  europe: "Europe",
+  asie: "Asie-Pacifique",
 };
 
 export type BrownePeriod = "MAX" | "20A" | "10A" | "5A";

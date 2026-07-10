@@ -8,7 +8,7 @@
 
 import { listSeries, getReferenceData, getFxRates, getSeriesData } from "./db";
 import type { EconomicSeries, EconomicDataPoint, FxRate, CoredataCountry } from "./types";
-import { usdPerUnitMap, convertCurrency } from "./compute";
+import { usdPerUnitMap, convertCurrency, computeKpis } from "./compute";
 import {
   computeBrowne,
   computeRobustness,
@@ -318,6 +318,13 @@ export interface BrowneComparisonRow {
   end: string | null;
   /** Score de robustesse (réel) + composantes, ou raison d'indisponibilité. */
   robustness: Robustness;
+  /** Métriques NOMINALES du portefeuille (mode Nominal). */
+  nominal: {
+    annualized: number | null;
+    volatility: number | null;
+    maxDrawdown: number | null;
+    sharpe: number | null;
+  } | null;
   /** Métriques RÉELLES du portefeuille (base de comparaison), `null` sans CPI. */
   real: {
     annualized: number | null;
@@ -326,6 +333,10 @@ export interface BrowneComparisonRow {
     maxUnderwaterMonths: number | null;
     sharpe: number | null;
   } | null;
+  /** Inflation locale annualisée sur la fenêtre (mode Nominal vs Inflation). */
+  inflationAnnualized: number | null;
+  /** Multiple réel cumulé (pouvoir d'achat final / initial), `null` sans CPI. */
+  realMultiple: number | null;
   /** Métriques RÉELLES de l'indice actions national (comparaison Browne vs actions). */
   equityReal: { annualized: number | null; maxDrawdown: number | null } | null;
 }
@@ -378,7 +389,10 @@ export async function computeBrowneComparison(
           start: null,
           end: null,
           robustness: { available: false, reason: "insufficient_history" },
+          nominal: null,
           real: null,
+          inflationAnnualized: null,
+          realMultiple: null,
           equityReal: null,
         };
       }
@@ -387,8 +401,14 @@ export async function computeBrowneComparison(
       const dataQuality = deriveDataQuality(config, result);
       const robustness = computeRobustness(result);
       const ok = result.status === "OK" ? result : null;
+      const nm = ok?.metrics.nominal ?? null;
       const rm = ok?.metrics.real ?? null;
       const em = ok?.metrics.equityReal ?? null;
+      const realSeries = ok?.series.real ?? null;
+      const realMultiple =
+        realSeries && realSeries.length >= 2 && realSeries[0].value > 0
+          ? realSeries[realSeries.length - 1].value / realSeries[0].value
+          : null;
       return {
         countryCode: code,
         countryFr: config.countryFr,
@@ -399,6 +419,14 @@ export async function computeBrowneComparison(
         start: ok?.start ?? null,
         end: ok?.end ?? null,
         robustness,
+        nominal: nm
+          ? {
+              annualized: nm.annualized,
+              volatility: nm.volatility,
+              maxDrawdown: nm.maxDrawdown,
+              sharpe: nm.sharpe,
+            }
+          : null,
         real: rm
           ? {
               annualized: rm.annualized,
@@ -408,6 +436,8 @@ export async function computeBrowneComparison(
               sharpe: rm.sharpe,
             }
           : null,
+        inflationAnnualized: computeKpis(ok?.series.inflationIndex ?? []).annualized,
+        realMultiple,
         equityReal: em ? { annualized: em.annualized, maxDrawdown: em.maxDrawdown } : null,
       };
     }),

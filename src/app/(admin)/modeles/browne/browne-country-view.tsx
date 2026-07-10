@@ -415,6 +415,7 @@ function PerformanceChart({
         gridOpacity={0.22}
         cumulativeTooltip
         extraTooltipRows={extraRows}
+        axisLine
       />
     ) : null;
 
