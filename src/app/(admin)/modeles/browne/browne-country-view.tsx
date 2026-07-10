@@ -361,6 +361,23 @@ function PerformanceChart({
           showLegend={false}
           markLast
           gridOpacity={0.22}
+          cumulativeTooltip
+          extraTooltipRows={
+            displayMode === "nominal_vs_inflation"
+              ? (row) =>
+                  row.browne && row.inflation && row.inflation > 0
+                    ? [
+                        {
+                          label: "Pouvoir d’achat",
+                          value: `x${(row.browne / row.inflation).toLocaleString("fr-FR", {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })}`,
+                        },
+                      ]
+                    : []
+              : undefined
+          }
         />
       ) : (
         <div className="flex h-[360px] items-center justify-center text-sm text-muted-foreground">

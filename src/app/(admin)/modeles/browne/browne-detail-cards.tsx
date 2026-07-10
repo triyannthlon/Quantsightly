@@ -68,11 +68,11 @@ export function DrawdownCard({
     const lines: ChartLine[] = [];
     if (shown.equity) {
       active.push({ key: "equity", data: aDD });
-      lines.push({ key: "equity", label: "Actions", color: DD_COLOR.equity, width: 1.4 });
+      lines.push({ key: "equity", label: "Actions", color: DD_COLOR.equity, width: 1.4, fillOpacity: 0.08 });
     }
     if (shown.browne) {
       active.push({ key: "browne", data: bDD });
-      lines.push({ key: "browne", label: "Browne", color: DD_COLOR.browne, width: 2.6 });
+      lines.push({ key: "browne", label: "Browne", color: DD_COLOR.browne, width: 2.6, fillOpacity: 0.1 });
     }
     return { data: mergeChart(active), lines, yDomain: [floor, 0] as [number, number] };
   }, [bSeries, aSeries, shown]);
@@ -139,6 +139,7 @@ export function DrawdownCard({
         markLast
         gridOpacity={0.22}
         yDomain={dd.yDomain}
+        areaFill
       />
     </Card>
   );

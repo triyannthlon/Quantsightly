@@ -10,6 +10,7 @@ import {
   Tooltip as ReTooltip,
   Legend,
   Line,
+  Area,
 } from "recharts";
 
 export interface ChartLine {
@@ -19,6 +20,8 @@ export interface ChartLine {
   dashed?: boolean;
   /** Épaisseur de trait (px) — défaut selon `compact`. Sert à emphaser une courbe. */
   width?: number;
+  /** Opacité du remplissage sous la courbe (mode `areaFill`). */
+  fillOpacity?: number;
 }
 
 export type ChartPoint = { date: string; [key: string]: number | string | undefined };
@@ -40,6 +43,68 @@ interface Props {
   markLast?: boolean;
   /** Opacité de la grille (défaut 0.4 ; plus bas = plus discret). */
   gridOpacity?: number;
+  /** Tooltip enrichi : ajoute la perf cumulée « (+X %) » (série en base 100). */
+  cumulativeTooltip?: boolean;
+  /** Lignes de tooltip supplémentaires calculées depuis les valeurs du point. */
+  extraTooltipRows?: (row: Record<string, number>) => { label: string; value: string }[];
+  /** Remplir sous chaque courbe jusqu'à 0 (pertinent pour un drawdown). */
+  areaFill?: boolean;
+}
+
+interface CumulTooltipProps {
+  active?: boolean;
+  label?: string | number;
+  payload?: Array<{ dataKey?: string | number; name?: string; value?: number; color?: string }>;
+  cumulative?: boolean;
+  extra?: (row: Record<string, number>) => { label: string; value: string }[];
+}
+
+/** Tooltip Browne : valeur base 100 + perf cumulée (valeur − 100), + lignes calculées. */
+function CumulTooltip({ active, label, payload, cumulative, extra }: CumulTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const row: Record<string, number> = {};
+  for (const p of payload) {
+    if (typeof p.dataKey === "string" && typeof p.value === "number") row[p.dataKey] = p.value;
+  }
+  const extraRows = extra ? extra(row) : [];
+  return (
+    <div
+      style={{
+        background: "var(--popover)",
+        border: "1px solid var(--border)",
+        borderRadius: 8,
+        padding: "6px 10px",
+        fontSize: 12,
+      }}
+    >
+      <div style={{ color: "var(--muted-foreground)", marginBottom: 4 }}>
+        {formatAxisDate(String(label))}
+      </div>
+      {payload.map((p) => {
+        const v = Number(p.value);
+        const cum =
+          cumulative && Number.isFinite(v)
+            ? ` (${v - 100 >= 0 ? "+" : "−"}${Math.abs(Math.round(v - 100)).toLocaleString("fr-FR")} %)`
+            : "";
+        return (
+          <div key={String(p.dataKey)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{ width: 8, height: 8, borderRadius: 9999, background: p.color, flexShrink: 0 }}
+            />
+            <span>
+              {p.name} : {formatValue(v)}
+              {cum}
+            </span>
+          </div>
+        );
+      })}
+      {extraRows.map((e, i) => (
+        <div key={`x${i}`} style={{ color: "var(--muted-foreground)", marginTop: 3 }}>
+          {e.label} : {e.value}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function formatAxisDate(iso: string): string {
@@ -76,6 +141,9 @@ export function ExplorationChart({
   yDomain,
   markLast = false,
   gridOpacity = 0.4,
+  cumulativeTooltip = false,
+  extraTooltipRows,
+  areaFill = false,
 }: Props) {
   const ticks = useMemo(() => pickTicks(data, compact ? 4 : 10), [data, compact]);
 
@@ -113,24 +181,30 @@ export function ExplorationChart({
             domain={yDomain ?? ["auto", "auto"]}
             allowDataOverflow={yDomain !== undefined}
           />
-          <ReTooltip
-            contentStyle={{
-              background: "var(--popover)",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-            labelFormatter={(l) => formatAxisDate(String(l))}
-            formatter={(value, name, item) => {
-              // En base 100, afficher le vrai prix ({dataKey}Raw) plutôt que la
-              // valeur rebasée tracée.
-              const dataKey = item?.dataKey as string | undefined;
-              const payload = item?.payload as Record<string, unknown> | undefined;
-              const raw = dataKey && payload ? payload[`${dataKey}Raw`] : undefined;
-              const shown = typeof raw === "number" ? raw : Number(value);
-              return [formatValue(shown), name];
-            }}
-          />
+          {cumulativeTooltip || extraTooltipRows ? (
+            <ReTooltip
+              content={<CumulTooltip cumulative={cumulativeTooltip} extra={extraTooltipRows} />}
+            />
+          ) : (
+            <ReTooltip
+              contentStyle={{
+                background: "var(--popover)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+              labelFormatter={(l) => formatAxisDate(String(l))}
+              formatter={(value, name, item) => {
+                // En base 100, afficher le vrai prix ({dataKey}Raw) plutôt que la
+                // valeur rebasée tracée.
+                const dataKey = item?.dataKey as string | undefined;
+                const payload = item?.payload as Record<string, unknown> | undefined;
+                const raw = dataKey && payload ? payload[`${dataKey}Raw`] : undefined;
+                const shown = typeof raw === "number" ? raw : Number(value);
+                return [formatValue(shown), name];
+              }}
+            />
+          )}
           {!compact && showLegend && (
             <Legend
               verticalAlign="bottom"
@@ -139,41 +213,50 @@ export function ExplorationChart({
               wrapperStyle={{ fontSize: 12, paddingTop: 4 }}
             />
           )}
-          {lines.map((ln) => (
-            <Line
-              key={ln.key}
-              type="monotone"
-              dataKey={ln.key}
-              name={ln.label}
-              stroke={ln.color}
-              strokeWidth={ln.width ?? (compact ? 1.5 : 2)}
-              strokeDasharray={ln.dashed ? "5 4" : undefined}
-              dot={
-                markLast
-                  ? (props: { cx?: number; cy?: number; index?: number }) => {
-                      const isLast = props.index === data.length - 1;
-                      if (!isLast || props.cx == null || props.cy == null) {
-                        return <g key={`dot-${ln.key}-${props.index}`} />;
-                      }
-                      return (
-                        <circle
-                          key={`dot-${ln.key}-${props.index}`}
-                          cx={props.cx}
-                          cy={props.cy}
-                          r={3}
-                          fill={ln.color}
-                          stroke="var(--background)"
-                          strokeWidth={1.5}
-                        />
-                      );
-                    }
-                  : false
-              }
-              activeDot={{ r: 3 }}
-              isAnimationActive={false}
-              connectNulls
-            />
-          ))}
+          {lines.map((ln) => {
+            const dot = markLast
+              ? (props: { cx?: number; cy?: number; index?: number }) => {
+                  const isLast = props.index === data.length - 1;
+                  if (!isLast || props.cx == null || props.cy == null) {
+                    return <g key={`dot-${ln.key}-${props.index}`} />;
+                  }
+                  return (
+                    <circle
+                      key={`dot-${ln.key}-${props.index}`}
+                      cx={props.cx}
+                      cy={props.cy}
+                      r={3}
+                      fill={ln.color}
+                      stroke="var(--background)"
+                      strokeWidth={1.5}
+                    />
+                  );
+                }
+              : false;
+            const shared = {
+              type: "monotone" as const,
+              dataKey: ln.key,
+              name: ln.label,
+              stroke: ln.color,
+              strokeWidth: ln.width ?? (compact ? 1.5 : 2),
+              strokeDasharray: ln.dashed ? "5 4" : undefined,
+              dot,
+              activeDot: { r: 3 },
+              isAnimationActive: false,
+              connectNulls: true,
+            };
+            return areaFill ? (
+              <Area
+                key={ln.key}
+                {...shared}
+                fill={ln.color}
+                fillOpacity={ln.fillOpacity ?? 0.1}
+                baseValue={0}
+              />
+            ) : (
+              <Line key={ln.key} {...shared} />
+            );
+          })}
         </ComposedChart>
       </ResponsiveContainer>
     </div>
