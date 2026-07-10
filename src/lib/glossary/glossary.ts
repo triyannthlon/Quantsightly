@@ -789,6 +789,17 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     technique: "Plus il est élevé, meilleur est le rendement obtenu par unité de risque.",
     source: "glossaire",
   },
+  "br-robustesse": {
+    key: "br-robustesse",
+    term: "Robustesse Browne",
+    group: G_BR_RR,
+    base: "Score de 0 à 100 qui résume la capacité du portefeuille Browne à produire du rendement réel avec peu de risque, peu de perte et une bonne régularité.",
+    technique:
+      "Calculé sur la courbe réelle (corrigée de l’inflation) à partir de cinq composantes pondérées : rendement réel (30 %), drawdown réel (25 %), volatilité réelle (15 %), durée sous l’eau (15 %) et régularité (15 %). Badges : Très robuste (≥ 80), Robuste (≥ 65), Moyen (≥ 50), Fragile (≥ 35), Très fragile (< 35).",
+    retenir:
+      "Il mesure la qualité du chemin, pas seulement la performance : deux pays au même rendement peuvent avoir des robustesses très différentes. La qualité des données reste indiquée séparément.",
+    source: "méthode",
+  },
 
   // ─── Browne — Inflation & pouvoir d’achat ───────────────────────────────────
   "br-inflation-annualisee": {

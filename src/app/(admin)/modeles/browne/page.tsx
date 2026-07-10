@@ -31,6 +31,7 @@ const LEXIQUE_TERMS = [
   "br-reduction-drawdown",
   // Rendement-risque
   "br-sharpe",
+  "br-robustesse",
   // Inflation & pouvoir d’achat
   "br-inflation-annualisee",
   "br-ecart-inflation",

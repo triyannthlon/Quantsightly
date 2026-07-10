@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { LineChart, Table2, Swords, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CountryFlag } from "@/components/ui/CountryFlag";
@@ -13,9 +13,14 @@ import {
   type BrowneResult,
   type ComputeBrowneInput,
 } from "@/lib/coredata/browne";
-import type { CountryBrowneConfig, BrowneDataQuality } from "@/lib/coredata/browne-service";
+import type {
+  CountryBrowneConfig,
+  BrowneDataQuality,
+  BrowneComparisonRow,
+} from "@/lib/coredata/browne-service";
 import { BrowneCountryView } from "./browne-country-view";
-import { loadCountryBrowne } from "./actions";
+import { BrowneComparisonView } from "./browne-comparison-view";
+import { loadCountryBrowne, loadBrowneComparison } from "./actions";
 import {
   filterInput,
   PERIOD_ITEMS,
@@ -24,11 +29,19 @@ import {
   type BrowneDisplayMode,
 } from "./helpers";
 
+/** Preset de période → nombre d'années (null = MAX). */
+const PERIOD_YEARS: Record<BrownePeriod, number | null> = {
+  MAX: null,
+  "20A": 20,
+  "10A": 10,
+  "5A": 5,
+};
+
 type Tab = "country" | "comparison" | "vs_equity" | "methodology";
 
 const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[] = [
   { key: "country", label: "Vue pays", icon: LineChart, ready: true },
-  { key: "comparison", label: "Comparaison pays", icon: Table2, ready: false },
+  { key: "comparison", label: "Comparaison pays", icon: Table2, ready: true },
   { key: "vs_equity", label: "Browne vs Actions", icon: Swords, ready: false },
   { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: false },
 ];
@@ -69,6 +82,11 @@ export function BrowneView({
   const [tab, setTab] = useState<Tab>("country");
   const [pending, startTransition] = useTransition();
 
+  // Comparaison pays (calcul serveur) — chargée à l'ouverture de l'onglet et à
+  // chaque changement de période/rééquilibrage, sous les mêmes paramètres.
+  const [comparison, setComparison] = useState<BrowneComparisonRow[] | null>(null);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+
   const result = useMemo<BrowneResult | null>(() => {
     if (!input) return null;
     return computeBrowne({ ...filterInput(input, period), rebalance });
@@ -82,6 +100,27 @@ export function BrowneView({
       setInput(p.input);
       setDataQuality(p.dataQuality);
     });
+  }
+
+  useEffect(() => {
+    if (tab !== "comparison") return;
+    let ignore = false;
+    setComparisonLoading(true);
+    loadBrowneComparison(rebalance, PERIOD_YEARS[period])
+      .then((rows) => {
+        if (!ignore) setComparison(rows);
+      })
+      .finally(() => {
+        if (!ignore) setComparisonLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [tab, rebalance, period]);
+
+  function onPickCountry(iso: string) {
+    setTab("country");
+    onCountry(iso);
   }
 
   const countryItems: SelectItem[] = countries.map((c) => ({
@@ -164,6 +203,8 @@ export function BrowneView({
             </Card>
           )}
         </div>
+      ) : tab === "comparison" ? (
+        <BrowneComparisonView rows={comparison} loading={comparisonLoading} onPick={onPickCountry} />
       ) : (
         <Card className="p-10 text-center text-sm text-muted-foreground">
           Onglet « {TABS.find((t) => t.key === tab)?.label} » — bientôt disponible.

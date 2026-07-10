@@ -1,6 +1,15 @@
 import type { EconomicDataPoint } from "@/lib/coredata/types";
-import type { ComputeBrowneInput } from "@/lib/coredata/browne";
+import type { ComputeBrowneInput, RobustnessBadge } from "@/lib/coredata/browne";
 import type { ChartPoint } from "../../exploration/exploration-chart";
+
+/** Teinte par palier du score de robustesse (partagée Vue pays / Comparaison). */
+export const ROBUSTNESS_TONE: Record<RobustnessBadge, string> = {
+  "Très robuste": "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  Robuste: "border-teal-500/30 bg-teal-500/10 text-teal-600 dark:text-teal-400",
+  Moyen: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  Fragile: "border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400",
+  "Très fragile": "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+};
 
 export type BrownePeriod = "MAX" | "20A" | "10A" | "5A";
 export type BrowneDisplayMode = "nominal" | "real" | "nominal_vs_inflation";

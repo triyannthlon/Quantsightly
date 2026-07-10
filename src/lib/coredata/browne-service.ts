@@ -11,10 +11,12 @@ import type { EconomicSeries, EconomicDataPoint, FxRate, CoredataCountry } from 
 import { usdPerUnitMap, convertCurrency } from "./compute";
 import {
   computeBrowne,
+  computeRobustness,
   DEFAULT_REBALANCE,
   type RebalanceFrequency,
   type BrowneResult,
   type ComputeBrowneInput,
+  type Robustness,
 } from "./browne";
 
 /** Or global coté en USD, commun à tous les pays. */
@@ -298,6 +300,116 @@ export async function computeAllCountryBrowne(
       const input = await loadInput(config, ctx, rebalance);
       const result = computeBrowne(input);
       return { config, dataQuality: deriveDataQuality(config, result), input: null, result };
+    }),
+  );
+}
+
+// ─── Comparaison pays (onglet Phase 2) ───────────────────────────────────────
+
+/** Ligne légère par pays pour le tableau/nuage de comparaison (aucune série). */
+export interface BrowneComparisonRow {
+  countryCode: string;
+  countryFr: string | null;
+  currency: string;
+  dataQuality: BrowneDataQuality;
+  status: BrowneResult["status"];
+  months: number | null;
+  start: string | null;
+  end: string | null;
+  /** Score de robustesse (réel) + composantes, ou raison d'indisponibilité. */
+  robustness: Robustness;
+  /** Métriques RÉELLES du portefeuille (base de comparaison), `null` sans CPI. */
+  real: {
+    annualized: number | null;
+    volatility: number | null;
+    maxDrawdown: number | null;
+    maxUnderwaterMonths: number | null;
+    sharpe: number | null;
+  } | null;
+  /** Métriques RÉELLES de l'indice actions national (comparaison Browne vs actions). */
+  equityReal: { annualized: number | null; maxDrawdown: number | null } | null;
+}
+
+/** Restreint un input aux `years` dernières années de sa fenêtre alignée (mirroir de `helpers.filterInput`, côté serveur). */
+function clipInputByYears(input: ComputeBrowneInput, years: number | null): ComputeBrowneInput {
+  if (!years) return input;
+  const lasts = [input.equity, input.bond, input.cash, input.gold]
+    .filter((a) => a.length)
+    .map((a) => a[a.length - 1].date);
+  if (!lasts.length) return input;
+  const end = lasts.reduce((a, b) => (a < b ? a : b));
+  const from = `${Number(end.slice(0, 4)) - years}${end.slice(4)}`;
+  const clip = (a: EconomicDataPoint[]) => a.filter((p) => p.date >= from);
+  return {
+    ...input,
+    equity: clip(input.equity),
+    bond: clip(input.bond),
+    cash: clip(input.cash),
+    gold: clip(input.gold),
+    inflation: input.inflation ? clip(input.inflation) : undefined,
+  };
+}
+
+/**
+ * Comparaison des vrais pays (class 1, hors `XX`) sous les MÊMES paramètres
+ * (rééquilibrage + période). Ne renvoie que des métriques + le score de
+ * robustesse — jamais les séries (léger, calcul serveur).
+ */
+export async function computeBrowneComparison(
+  rebalance: RebalanceFrequency = DEFAULT_REBALANCE,
+  years: number | null = null,
+): Promise<BrowneComparisonRow[]> {
+  const ctx = await loadContext();
+  const codes = [
+    ...new Set(ctx.series.filter((s) => s.class === 1 && s.countryIso !== "XX").map((s) => s.countryIso)),
+  ].sort();
+
+  return Promise.all(
+    codes.map(async (code): Promise<BrowneComparisonRow> => {
+      const config = deriveBrowneConfig(code, ctx.series, ctx.countries);
+      if (!config) {
+        return {
+          countryCode: code,
+          countryFr: null,
+          currency: "",
+          dataQuality: "Partiel",
+          status: "MISSING_SERIES",
+          months: null,
+          start: null,
+          end: null,
+          robustness: { available: false, reason: "insufficient_history" },
+          real: null,
+          equityReal: null,
+        };
+      }
+      const input = clipInputByYears(await loadInput(config, ctx, rebalance), years);
+      const result = computeBrowne(input);
+      const dataQuality = deriveDataQuality(config, result);
+      const robustness = computeRobustness(result);
+      const ok = result.status === "OK" ? result : null;
+      const rm = ok?.metrics.real ?? null;
+      const em = ok?.metrics.equityReal ?? null;
+      return {
+        countryCode: code,
+        countryFr: config.countryFr,
+        currency: config.currency,
+        dataQuality,
+        status: result.status,
+        months: ok?.months ?? null,
+        start: ok?.start ?? null,
+        end: ok?.end ?? null,
+        robustness,
+        real: rm
+          ? {
+              annualized: rm.annualized,
+              volatility: rm.volatility,
+              maxDrawdown: rm.maxDrawdown,
+              maxUnderwaterMonths: rm.maxUnderwaterMonths,
+              sharpe: rm.sharpe,
+            }
+          : null,
+        equityReal: em ? { annualized: em.annualized, maxDrawdown: em.maxDrawdown } : null,
+      };
     }),
   );
 }

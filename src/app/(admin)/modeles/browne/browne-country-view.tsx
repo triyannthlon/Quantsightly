@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,12 @@ import { FrostedDialogContent } from "@/components/custom/ui/frosted-dialog";
 import { cn } from "@/lib/utils";
 import { computeKpis } from "@/lib/coredata/compute";
 import type { EconomicDataPoint } from "@/lib/coredata/types";
-import { REBALANCE_LABELS, type BrowneResult } from "@/lib/coredata/browne";
+import {
+  REBALANCE_LABELS,
+  computeRobustness,
+  type BrowneResult,
+  type Robustness,
+} from "@/lib/coredata/browne";
 import type { CountryBrowneConfig, BrowneDataQuality } from "@/lib/coredata/browne-service";
 import { ExplorationChart, type ChartLine } from "../../exploration/exploration-chart";
 import {
@@ -22,6 +27,7 @@ import {
   fmtMultiple,
   fmtPts,
   SLEEVE_PALETTE,
+  ROBUSTNESS_TONE,
   type BrowneDisplayMode,
 } from "./helpers";
 import {
@@ -93,6 +99,89 @@ function QualityBadge({ quality }: { quality: BrowneDataQuality }) {
     >
       {quality}
     </Badge>
+  );
+}
+
+// ─── Pastille de robustesse ──────────────────────────────────────────────────
+
+/**
+ * Score de robustesse Browne (0–100) + badge, avec le détail des 5 composantes
+ * au survol. Propriété RÉELLE du portefeuille : affichée quel que soit le mode.
+ */
+function RobustnessPill({ robustness }: { robustness: Robustness }) {
+  if (!robustness.available) {
+    const msg =
+      robustness.reason === "missing_cpi"
+        ? "Indisponible : sans inflation locale, la préservation du pouvoir d’achat ne peut pas être mesurée."
+        : "Historique insuffisant pour évaluer la régularité sur des fenêtres de 5 ans.";
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1 text-xs text-muted-foreground"
+          >
+            <span className="text-[11px] font-medium tracking-wide uppercase opacity-70">
+              Robustesse Browne
+            </span>
+            <span className="opacity-40">·</span>
+            <span>Indisponible</span>
+            <Info className="size-3 opacity-50" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-56">
+          {msg}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  const { score, badge, components, shortHistory } = robustness;
+  const rows: [string, number][] = [
+    ["Rendement réel", components.return],
+    ["Drawdown", components.drawdown],
+    ["Volatilité", components.volatility],
+    ["Durée sous l’eau", components.underwater],
+    ["Régularité", components.consistency],
+  ];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs",
+            ROBUSTNESS_TONE[badge],
+          )}
+        >
+          <span className="text-[11px] font-medium tracking-wide uppercase opacity-70">
+            Robustesse Browne
+          </span>
+          <span className="opacity-40">·</span>
+          <span className="tabular-nums font-semibold">{score}/100</span>
+          <span className="opacity-40">·</span>
+          <span className="font-medium">{badge}</span>
+          {shortHistory && <span className="opacity-70">· court</span>}
+          <Info className="size-3 opacity-50" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="w-60 max-w-none">
+        <div className="font-medium">Robustesse Browne — {score} / 100</div>
+        <div className="text-background/70">
+          {badge}
+          {shortHistory ? " · historique court" : ""}
+        </div>
+        <div className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-6 gap-y-0.5 tabular-nums">
+          {rows.map(([label, v]) => (
+            <Fragment key={label}>
+              <span className="text-background/70">{label} :</span>
+              <span className="text-right">{v}</span>
+            </Fragment>
+          ))}
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -442,6 +531,7 @@ export function BrowneCountryView({
   const m = metrics.nominal;
   const r = metrics.real;
   const inflAnnualized = computeKpis(series.inflationIndex ?? []).annualized;
+  const robustness = computeRobustness(result);
 
   // Multiples (mode Nominal vs Inflation) sur la fenêtre où le CPI existe.
   const multiples = (() => {
@@ -553,11 +643,14 @@ export function BrowneCountryView({
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              <Badge variant="secondary">Mensuel</Badge>
-              <Badge variant="secondary">Devise locale</Badge>
-              <Badge variant="secondary">Rééquilibrage {REBALANCE_LABELS[result.rebalance]}</Badge>
-              <QualityBadge quality={dataQuality} />
+            <div className="flex flex-col items-end gap-2">
+              <RobustnessPill robustness={robustness} />
+              <div className="flex flex-wrap justify-end gap-1.5">
+                <Badge variant="secondary">Mensuel</Badge>
+                <Badge variant="secondary">Devise locale</Badge>
+                <Badge variant="secondary">Rééquilibrage {REBALANCE_LABELS[result.rebalance]}</Badge>
+                <QualityBadge quality={dataQuality} />
+              </div>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
