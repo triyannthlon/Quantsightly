@@ -216,6 +216,8 @@ export function ExplorationCanvas({
   const [pinTitle, setPinTitle] = useState("");
   const [isPinning, setIsPinning] = useState(false);
   const [chartZoomOpen, setChartZoomOpen] = useState(false);
+  const [chartScale, setChartScale] = useState<"linear" | "log">("linear");
+  const [displayState, setDisplayState] = useState<"raw" | "base100" | null>(null);
 
   const [dataA, setDataA] = useState<EconomicDataPoint[] | null>(null);
   const [dataB, setDataB] = useState<EconomicDataPoint[] | null>(null);
@@ -429,6 +431,10 @@ export function ExplorationCanvas({
     b.typeRef !== null &&
     isConvertibleMeasure(b.typeRef);
 
+  // Rebasage base 100 : par défaut auto (overlay de prix), sinon piloté par
+  // l'utilisateur via le toggle « Affichage » (Niveau brut / Rebasé à 100).
+  const wantBase100 = displayState !== null ? displayState === "base100" : overlayPrices;
+
   // ─── Bornes de date ──────────────────────────────────────────────────────────
 
   const fromIso = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined;
@@ -436,12 +442,13 @@ export function ExplorationCanvas({
 
   // ─── Série affichée + KPIs ───────────────────────────────────────────────────
 
-  const { chartData, lines, kpiBlocks } = useMemo(() => {
+  const { chartData, lines, kpiBlocks, canRebase } = useMemo(() => {
     if (!dataA || !a.serie) {
       return {
         chartData: [] as ChartPoint[],
         lines: [] as ChartLine[],
         kpiBlocks: [] as KpiBlock[],
+        canRebase: false,
       };
     }
 
@@ -471,6 +478,7 @@ export function ExplorationCanvas({
         chartData: [] as ChartPoint[],
         lines: [] as ChartLine[],
         kpiBlocks: [] as KpiBlock[],
+        canRebase: false,
       };
     }
 
@@ -495,13 +503,20 @@ export function ExplorationCanvas({
     const secondaryF = secondary ? filterByDateRange(secondary, effFrom, effTo) : null;
     const maF = ma ? filterByDateRange(ma, effFrom, effTo) : null;
 
+    // Rebasage possible hors mode différence et si les valeurs de départ sont > 0.
+    const canRebase =
+      operation !== "difference" &&
+      (primaryF[0]?.value ?? 0) > 0 &&
+      (!secondaryF || (secondaryF[0]?.value ?? 0) > 0);
+    const rebase = wantBase100 && canRebase;
+
     // Superposition de deux prix → rebasage base 100 automatique : chaque courbe
     // part de 100 au bord gauche pour comparer les performances. La MM, linéaire,
     // est mise à l'échelle par le même facteur que sa série (A).
     let dispPrimary = primaryF;
     let dispSecondary = secondaryF;
     let dispMa = maF;
-    if (overlayPrices) {
+    if (rebase) {
       const fA = primaryF[0]?.value ? 100 / primaryF[0].value : 1;
       dispPrimary = scaleSeries(primaryF, fA);
       dispMa = maF ? scaleSeries(maF, fA) : null;
@@ -537,7 +552,7 @@ export function ExplorationCanvas({
 
     // En base 100, on conserve aussi les vrais prix (convertis, non rebasés)
     // pour l'infobulle (les courbes restent en base 100).
-    if (overlayPrices) {
+    if (rebase) {
       for (const p of primaryF) {
         const e = byDate.get(p.date);
         if (e) e.primaryRaw = p.value;
@@ -567,12 +582,12 @@ export function ExplorationCanvas({
         : [{ kpis: computeKpis(primaryF) }];
 
     const merged = [...byDate.values()].sort((x, y) => x.date.localeCompare(y.date));
-    return { chartData: merged, lines: chartLines, kpiBlocks: blocks };
+    return { chartData: merged, lines: chartLines, kpiBlocks: blocks, canRebase };
   }, [
     dataA,
     dataB,
     operation,
-    overlayPrices,
+    wantBase100,
     showMA,
     maYears,
     fromIso,
@@ -585,6 +600,20 @@ export function ExplorationCanvas({
   ]);
 
   const hasResult = chartData.length > 0;
+  // Échelle log possible seulement si toutes les valeurs sont strictement positives
+  // (exclut le mode différence, les taux négatifs, etc.).
+  const canLog = useMemo(() => {
+    if (chartData.length === 0) return false;
+    for (const p of chartData) {
+      for (const ln of lines) {
+        const v = p[ln.key];
+        if (typeof v === "number" && v <= 0) return false;
+      }
+    }
+    return true;
+  }, [chartData, lines]);
+  const effectiveScale: "linear" | "log" = chartScale === "log" && canLog ? "log" : "linear";
+  const isBase100 = wantBase100 && canRebase;
 
   // ─── Titres (graphique + panneau de stats) ───────────────────────────────────
 
@@ -818,20 +847,78 @@ export function ExplorationCanvas({
           <div className="grid gap-4 lg:grid-cols-[1fr_minmax(280px,340px)]">
             <div className="rounded-lg border bg-card p-4">
               <div className="mb-3 flex flex-col gap-2">
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" size="sm" className="cursor-pointer" onClick={copyLink}>
-                    <Link2 className="size-3.5" />
-                    Copier le lien
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="cursor-pointer"
-                    onClick={openPinDialog}
-                  >
-                    <Pin className="size-3.5" />
-                    Épingler
-                  </Button>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Affichage : Niveau brut / Rebasé à 100 */}
+                    <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
+                      {(["raw", "base100"] as const).map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          disabled={d === "base100" && !canRebase}
+                          onClick={() => setDisplayState(d)}
+                          title={
+                            d === "base100" && !canRebase
+                              ? "Rebasage indisponible (mode différence ou valeurs ≤ 0)"
+                              : undefined
+                          }
+                          className={cn(
+                            "rounded px-2 py-0.5 font-medium transition-colors",
+                            (isBase100 ? "base100" : "raw") === d
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground",
+                            d === "base100" && !canRebase
+                              ? "cursor-not-allowed opacity-40 hover:text-muted-foreground"
+                              : "cursor-pointer",
+                          )}
+                        >
+                          {d === "raw" ? "Niveau brut" : "Rebasé à 100"}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Échelle : Linéaire / Log */}
+                    <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
+                      {(["linear", "log"] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          disabled={s === "log" && !canLog}
+                          onClick={() => setChartScale(s)}
+                          title={
+                            s === "log" && !canLog
+                              ? "Échelle log indisponible (valeurs négatives ou nulles)"
+                              : undefined
+                          }
+                          className={cn(
+                            "rounded px-2 py-0.5 font-medium transition-colors",
+                            effectiveScale === s
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground",
+                            s === "log" && !canLog
+                              ? "cursor-not-allowed opacity-40 hover:text-muted-foreground"
+                              : "cursor-pointer",
+                          )}
+                        >
+                          {s === "linear" ? "Linéaire" : "Log"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="cursor-pointer" onClick={copyLink}>
+                      <Link2 className="size-3.5" />
+                      Copier le lien
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer"
+                      onClick={openPinDialog}
+                    >
+                      <Pin className="size-3.5" />
+                      Épingler
+                    </Button>
+                  </div>
                 </div>
                 {title && <h2 className="min-h-6 text-center text-base font-medium">{title}</h2>}
               </div>
@@ -841,7 +928,12 @@ export function ExplorationCanvas({
                 className="cursor-zoom-img block w-full text-left"
                 aria-label="Agrandir le graphique"
               >
-                <ExplorationChart data={chartData} lines={lines} height={460} />
+                <ExplorationChart
+                  data={chartData}
+                  lines={lines}
+                  height={460}
+                  logScale={effectiveScale === "log"}
+                />
               </button>
             </div>
             <ExplorationKpis
@@ -933,7 +1025,12 @@ export function ExplorationCanvas({
           {title && (
             <DialogTitle className="text-center text-base font-medium">{title}</DialogTitle>
           )}
-          <ExplorationChart data={chartData} lines={lines} height="78vh" />
+          <ExplorationChart
+            data={chartData}
+            lines={lines}
+            height="78vh"
+            logScale={effectiveScale === "log"}
+          />
         </FrostedDialogContent>
       </Dialog>
     </div>
