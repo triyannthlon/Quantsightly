@@ -448,3 +448,173 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
     },
   };
 }
+
+// ─── Score de robustesse ─────────────────────────────────────────────────────
+//
+// Score 0–100 qui mesure une seule chose : le portefeuille Browne de ce pays
+// a-t-il produit du RENDEMENT RÉEL avec peu de risque, peu de drawdown et une
+// bonne régularité ? Il est donc calculé ENTIÈREMENT sur la courbe réelle
+// (déflatée par le CPI) — sans inflation locale, il est indisponible.
+//
+// 5 composantes pondérées (chacune ramenée à 0–100 par interpolation linéaire
+// bornée), puis moyenne pondérée arrondie à l'entier :
+//   Rendement réel 30 % · Drawdown réel 25 % · Volatilité réelle 15 %
+//   · Durée sous l'eau 15 % · Régularité (fenêtres 5 ans) 15 %.
+
+/** Fenêtre glissante de la composante « régularité », en mois (5 ans). */
+export const ROBUSTNESS_WINDOW_MONTHS = 60;
+
+/** Minimum de mois réels requis (au moins une fenêtre 5 ans complète). */
+export const MIN_ROBUSTNESS_MONTHS = ROBUSTNESS_WINDOW_MONTHS + 1; // 61
+
+/** En-deçà de ce seuil (10 ans) le score est calculable mais marqué « Historique court ». */
+export const SHORT_HISTORY_ROBUSTNESS_MONTHS = 120;
+
+/** Pondérations des 5 composantes (somme = 1). */
+export const ROBUSTNESS_WEIGHTS = {
+  return: 0.3,
+  drawdown: 0.25,
+  volatility: 0.15,
+  underwater: 0.15,
+  consistency: 0.15,
+} as const;
+
+export type RobustnessBadge =
+  | "Très robuste"
+  | "Robuste"
+  | "Moyen"
+  | "Fragile"
+  | "Très fragile";
+
+/** Les 5 sous-scores (entiers 0–100) affichés au survol. */
+export interface RobustnessComponents {
+  /** Rendement réel annualisé (−2 % → 0, +6 % → 100). */
+  return: number;
+  /** Max drawdown réel (−40 % → 0, −10 % → 100). */
+  drawdown: number;
+  /** Volatilité réelle annualisée (15 % → 0, 5 % → 100). */
+  volatility: number;
+  /** Durée max sous l'eau (120 mois → 0, 12 mois → 100). */
+  underwater: number;
+  /** Part des fenêtres glissantes 5 ans à rendement réel positif (0–100). */
+  consistency: number;
+}
+
+/** Raison d'indisponibilité du score. */
+export type RobustnessReason = "missing_cpi" | "insufficient_history";
+
+export type Robustness =
+  | {
+      available: true;
+      /** Score composite entier 0–100. */
+      score: number;
+      badge: RobustnessBadge;
+      /** `true` si 61–119 mois → afficher « Historique court » (score non classable). */
+      shortHistory: boolean;
+      /** Nombre de mois réels utilisés. */
+      months: number;
+      components: RobustnessComponents;
+    }
+  | { available: false; reason: RobustnessReason };
+
+/** Badge à partir du score (mêmes bornes que la spec produit). */
+export function robustnessBadge(score: number): RobustnessBadge {
+  if (score >= 80) return "Très robuste";
+  if (score >= 65) return "Robuste";
+  if (score >= 50) return "Moyen";
+  if (score >= 35) return "Fragile";
+  return "Très fragile";
+}
+
+/** Interpolation linéaire bornée à [0, 100] : `lo → 0`, `hi → 100` (lo peut être > hi). */
+function lerpScore(x: number, lo: number, hi: number): number {
+  const t = (x - lo) / (hi - lo);
+  return Math.max(0, Math.min(1, t)) * 100;
+}
+
+/**
+ * Part des fenêtres glissantes de `window` mois où l'index a progressé (∈ [0, 1]).
+ * `null` si l'historique ne contient aucune fenêtre complète.
+ */
+function rollingPositiveShare(index: EconomicDataPoint[], window: number): number | null {
+  const n = index.length;
+  if (n <= window) return null;
+  let total = 0;
+  let positive = 0;
+  for (let i = 0; i + window < n; i++) {
+    const a = index[i].value;
+    const b = index[i + window].value;
+    if (a > 0 && b > 0) {
+      total += 1;
+      if (b / a - 1 > 0) positive += 1;
+    }
+  }
+  return total > 0 ? positive / total : null;
+}
+
+/**
+ * Score de robustesse Browne d'un pays, calculé sur sa courbe réelle.
+ *
+ * Indisponible (`available: false`) si :
+ *  - pas de CPI (`series.real` nul) → `reason: "missing_cpi"` ;
+ *  - moins de 61 mois réels, donc aucune fenêtre 5 ans → `reason: "insufficient_history"`
+ *    (PAS de renormalisation des poids : la régularité fait partie de la définition,
+ *    un pays trop court n'est pas comparable aux autres).
+ *
+ * Le score final est calculé à partir des sous-scores non arrondis puis arrondi ;
+ * les `components` renvoyés sont arrondis pour l'affichage (le total peut donc
+ * différer d'un point de la moyenne des composantes affichées).
+ */
+export function computeRobustness(result: BrowneResult): Robustness {
+  if (result.status !== "OK") return { available: false, reason: "insufficient_history" };
+
+  const real = result.series.real;
+  const rm = result.metrics.real;
+  if (!real || !rm) return { available: false, reason: "missing_cpi" };
+
+  const months = real.length;
+  if (months < MIN_ROBUSTNESS_MONTHS) {
+    return { available: false, reason: "insufficient_history" };
+  }
+
+  const share = rollingPositiveShare(real, ROBUSTNESS_WINDOW_MONTHS);
+  if (
+    rm.annualized === null ||
+    rm.volatility === null ||
+    rm.maxDrawdown === null ||
+    rm.maxUnderwaterMonths === null ||
+    share === null
+  ) {
+    return { available: false, reason: "insufficient_history" };
+  }
+
+  const sReturn = lerpScore(rm.annualized, -2, 6);
+  const sDrawdown = lerpScore(rm.maxDrawdown, -40, -10);
+  const sVolatility = lerpScore(rm.volatility, 15, 5);
+  const sUnderwater = lerpScore(rm.maxUnderwaterMonths, 120, 12);
+  const sConsistency = share * 100;
+
+  const raw =
+    ROBUSTNESS_WEIGHTS.return * sReturn +
+    ROBUSTNESS_WEIGHTS.drawdown * sDrawdown +
+    ROBUSTNESS_WEIGHTS.volatility * sVolatility +
+    ROBUSTNESS_WEIGHTS.underwater * sUnderwater +
+    ROBUSTNESS_WEIGHTS.consistency * sConsistency;
+
+  const score = Math.round(raw);
+
+  return {
+    available: true,
+    score,
+    badge: robustnessBadge(score),
+    shortHistory: months < SHORT_HISTORY_ROBUSTNESS_MONTHS,
+    months,
+    components: {
+      return: Math.round(sReturn),
+      drawdown: Math.round(sDrawdown),
+      volatility: Math.round(sVolatility),
+      underwater: Math.round(sUnderwater),
+      consistency: Math.round(sConsistency),
+    },
+  };
+}

@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import type { EconomicDataPoint } from "./types";
-import { computeBrowne, type BrowneResult } from "./browne";
+import {
+  computeBrowne,
+  computeRobustness,
+  robustnessBadge,
+  type BrowneResult,
+} from "./browne";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -333,5 +338,197 @@ describe("computeBrowne — inflation cumulée", () => {
     for (let k = 0; k < d.length; k++) {
       expect(avecCpi.series.inflationIndex![k].value).toBeCloseTo(100 * 1.01 ** k, 6);
     }
+  });
+});
+
+// ─── Score de robustesse ─────────────────────────────────────────────────────
+
+describe("computeRobustness — badges", () => {
+  it("mappe le score aux 5 badges aux bonnes bornes", () => {
+    expect(robustnessBadge(100)).toBe("Très robuste");
+    expect(robustnessBadge(80)).toBe("Très robuste");
+    expect(robustnessBadge(79)).toBe("Robuste");
+    expect(robustnessBadge(65)).toBe("Robuste");
+    expect(robustnessBadge(64)).toBe("Moyen");
+    expect(robustnessBadge(50)).toBe("Moyen");
+    expect(robustnessBadge(49)).toBe("Fragile");
+    expect(robustnessBadge(35)).toBe("Fragile");
+    expect(robustnessBadge(34)).toBe("Très fragile");
+    expect(robustnessBadge(0)).toBe("Très fragile");
+  });
+});
+
+describe("computeRobustness — indisponibilité", () => {
+  it("missing_cpi sans inflation (pas de courbe réelle)", () => {
+    const d = months(72);
+    const r = computeBrowne({
+      countryCode: "XX",
+      equity: flat(d),
+      bond: flat(d),
+      cash: flat(d),
+      gold: flat(d),
+    });
+    const rob = computeRobustness(r);
+    expect(rob.available).toBe(false);
+    if (!rob.available) expect(rob.reason).toBe("missing_cpi");
+  });
+
+  it("insufficient_history avec CPI mais moins de 61 mois", () => {
+    const d = months(48); // 4 ans < 61 mois
+    const r = computeBrowne({
+      countryCode: "XX",
+      equity: growSeries(d, 100, 0.005),
+      bond: growSeries(d, 100, 0.005),
+      cash: growSeries(d, 100, 0.005),
+      gold: growSeries(d, 100, 0.005),
+      inflation: flat(d),
+    });
+    const rob = computeRobustness(r);
+    expect(rob.available).toBe(false);
+    if (!rob.available) expect(rob.reason).toBe("insufficient_history");
+  });
+
+  it("insufficient_history sur un BrowneResult non-OK", () => {
+    const d = months(5);
+    const r = computeBrowne({
+      countryCode: "XX",
+      equity: flat(d),
+      bond: flat(d),
+      cash: flat(d),
+      gold: flat(d),
+    });
+    expect(r.status).not.toBe("OK");
+    const rob = computeRobustness(r);
+    expect(rob.available).toBe(false);
+    if (!rob.available) expect(rob.reason).toBe("insufficient_history");
+  });
+});
+
+describe("computeRobustness — composantes & score", () => {
+  it("score 100 / « Très robuste » sur une courbe réelle idéale (croissance régulière, CPI plat)", () => {
+    const d = months(72); // 6 ans ≥ 61 mois
+    const grow = () => growSeries(d, 100, 0.005); // +0,5 %/mois → CAGR réel ≈ 6,17 %
+    const r = computeBrowne({
+      countryCode: "XX",
+      equity: grow(),
+      bond: grow(),
+      cash: grow(),
+      gold: grow(),
+      inflation: flat(d), // CPI plat → réel = nominal
+    });
+    const rob = computeRobustness(r);
+    expect(rob.available).toBe(true);
+    if (!rob.available) return;
+    // Croissance monotone, CPI plat : rendement fort, aucun risque, régularité parfaite.
+    expect(rob.components.return).toBe(100); // CAGR réel ≈ 6,17 % ≥ 6 %
+    expect(rob.components.drawdown).toBe(100); // MDD réel 0 %
+    expect(rob.components.volatility).toBe(100); // vol réelle 0 %
+    expect(rob.components.underwater).toBe(100); // jamais sous l'eau
+    expect(rob.components.consistency).toBe(100); // toute fenêtre 5 ans positive
+    expect(rob.score).toBe(100);
+    expect(rob.badge).toBe("Très robuste");
+    expect(rob.shortHistory).toBe(true); // 72 mois < 120 → historique court
+  });
+
+  it("courbe réelle plate : rendement faible, régularité nulle, risque nul → 63 « Moyen »", () => {
+    const d = months(72);
+    // Poches constantes → nominal exactement plat ; CPI plat → réel exactement 100
+    // (on évite toute dérive flottante qui créerait des mois « sous l'eau » fantômes).
+    const r = computeBrowne({
+      countryCode: "XX",
+      equity: flat(d),
+      bond: flat(d),
+      cash: flat(d),
+      gold: flat(d),
+      inflation: flat(d),
+    });
+    const rob = computeRobustness(r);
+    expect(rob.available).toBe(true);
+    if (!rob.available) return;
+    // Réel plat : CAGR 0 % → 25 ; MDD 0 → 100 ; vol 0 → 100 ; sous l'eau 0 → 100 ;
+    // aucune fenêtre STRICTEMENT positive → régularité 0.
+    expect(rob.components.return).toBe(25);
+    expect(rob.components.drawdown).toBe(100);
+    expect(rob.components.volatility).toBe(100);
+    expect(rob.components.underwater).toBe(100);
+    expect(rob.components.consistency).toBe(0);
+    // 0,30·25 + 0,25·100 + 0,15·100 + 0,15·100 + 0,15·0 = 62,5 → 63
+    expect(rob.score).toBe(63);
+    expect(rob.badge).toBe("Moyen");
+  });
+
+  it("fort rendement mais forte volatilité → ne sature PAS en « Très robuste »", () => {
+    const d = months(84); // 7 ans
+    // Chemin réel (4 poches identiques + CPI plat ⇒ réel = ce chemin) : forte dérive
+    // haussière mais oscillations violentes + un krach soutenu → rendement élevé,
+    // mais volatilité et drawdown élevés doivent brider le score.
+    const rets: number[] = [];
+    for (let i = 0; i < d.length - 1; i++) rets.push(i % 2 === 0 ? 0.09 : -0.055);
+    rets[40] = -0.18;
+    rets[41] = -0.16;
+    rets[42] = -0.1;
+    rets[43] = -0.08;
+    const path = [100];
+    for (const r of rets) path.push(path[path.length - 1] * (1 + r));
+    const s = () => rawSeries(d, path);
+    const r = computeBrowne({
+      countryCode: "XX",
+      equity: s(),
+      bond: s(),
+      cash: s(),
+      gold: s(),
+      inflation: flat(d),
+      rebalance: "monthly", // 4 poches identiques ⇒ le portefeuille suit exactement le chemin
+    });
+    const rob = computeRobustness(r);
+    expect(rob.available).toBe(true);
+    if (!rob.available) return;
+    expect(rob.components.return).toBe(100); // rendement réel très élevé → plafonne
+    expect(rob.components.volatility).toBe(0); // volatilité réelle bien au-dessus de 15 %
+    expect(rob.score).toBeLessThan(80); // ne doit PAS être « Très robuste »
+    expect(rob.badge).not.toBe("Très robuste");
+  });
+
+  it("longue durée sous l'eau → fortement pénalisée", () => {
+    const d = months(132); // 11 ans
+    // Petit pic tôt (mois 6), léger recul, puis reste sous le pic ~9 ans avant de
+    // repasser au-dessus tout à la fin : drawdown modéré mais durée sous l'eau énorme.
+    const path = d.map((_, i) => {
+      if (i <= 6) return 100 + i * 0.5; // pic à 103 au mois 6
+      if (i < 126) return 101; // −1,9 % sous le pic, maintenu ~10 ans
+      return 104 + (i - 126) * 0.2; // repasse au-dessus du pic à la toute fin
+    });
+    const s = () => rawSeries(d, path);
+    const r = computeBrowne({
+      countryCode: "XX",
+      equity: s(),
+      bond: s(),
+      cash: s(),
+      gold: s(),
+      inflation: flat(d),
+      rebalance: "monthly",
+    });
+    const rob = computeRobustness(r);
+    expect(rob.available).toBe(true);
+    if (!rob.available) return;
+    expect(rob.components.underwater).toBeLessThan(20); // durée sous l'eau très longue
+    expect(rob.badge).not.toBe("Très robuste"); // la durée sous l'eau tire le score vers le bas
+  });
+
+  it("shortHistory faux au-delà de 10 ans d'historique réel", () => {
+    const d = months(132); // 11 ans ≥ 120 mois
+    const grow = () => growSeries(d, 100, 0.005);
+    const r = computeBrowne({
+      countryCode: "XX",
+      equity: grow(),
+      bond: grow(),
+      cash: grow(),
+      gold: grow(),
+      inflation: flat(d),
+    });
+    const rob = computeRobustness(r);
+    expect(rob.available).toBe(true);
+    if (!rob.available) return;
+    expect(rob.shortHistory).toBe(false);
   });
 });
