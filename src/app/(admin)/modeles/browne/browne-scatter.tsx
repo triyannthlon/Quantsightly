@@ -47,6 +47,29 @@ function axisTicks(min: number, max: number, n = 5): number[] {
   return Array.from({ length: n }, (_, i) => min + ((max - min) * i) / (n - 1));
 }
 
+/** Médiane d'un tableau déjà trié. */
+function median(sorted: number[]): number {
+  const n = sorted.length;
+  if (!n) return 0;
+  const mid = Math.floor(n / 2);
+  return n % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/** Lecture synthétique rendement/risque par rapport aux médianes du groupe. */
+function profilePhrase(
+  x: number,
+  y: number,
+  medX: number,
+  medY: number,
+  bandX: number,
+  bandY: number,
+): string {
+  if (Math.abs(y - medY) <= bandY && Math.abs(x - medX) <= bandX) return "Profil équilibré";
+  const ret = y >= medY ? "Rendement élevé" : "Rendement modéré";
+  const risk = x >= medX ? "risque élevé" : "risque faible";
+  return `${ret}, ${risk}`;
+}
+
 function Segmented<T extends string>({
   value,
   onChange,
@@ -161,14 +184,23 @@ export function BrowneScatter({
   const usedBadges = BADGE_ORDER.filter((b) => points.some((p) => p.badge === b));
 
   // Domaines (arrondis avec 1 pt de marge).
-  const { xMin, xMax, yMin, yMax, xTicks, yTicks } = useMemo(() => {
+  const { xMin, xMax, yMin, yMax, xTicks, yTicks, medX, medY } = useMemo(() => {
     const xs = points.map((p) => p.x);
     const ys = points.map((p) => p.y);
     const xMin = Math.floor(Math.min(...xs) - 1);
     const xMax = Math.ceil(Math.max(...xs) + 1);
     const yMin = Math.floor(Math.min(...ys) - 1);
     const yMax = Math.ceil(Math.max(...ys) + 1);
-    return { xMin, xMax, yMin, yMax, xTicks: axisTicks(xMin, xMax), yTicks: axisTicks(yMin, yMax) };
+    return {
+      xMin,
+      xMax,
+      yMin,
+      yMax,
+      xTicks: axisTicks(xMin, xMax),
+      yTicks: axisTicks(yMin, yMax),
+      medX: median([...xs].sort((a, b) => a - b)),
+      medY: median([...ys].sort((a, b) => a - b)),
+    };
   }, [points]);
 
   if (!points.length) {
@@ -177,6 +209,8 @@ export function BrowneScatter({
 
   const px = (v: number) => ((v - xMin) / (xMax - xMin)) * 100; // gauche %
   const py = (v: number) => (1 - (v - yMin) / (yMax - yMin)) * 100; // haut %
+  const bandX = (xMax - xMin) * 0.12; // bande centrale « équilibré »
+  const bandY = (yMax - yMin) * 0.12;
 
   return (
     <div>
@@ -230,11 +264,18 @@ export function BrowneScatter({
           className="absolute border-b border-l border-border"
           style={{ left: PAD.left, right: PAD.right, top: PAD.top, bottom: PAD.bottom }}
         >
-          {/* Zone idéale : haut-gauche (rendement/écart élevé + faible risque/inflation) */}
-          <div className="pointer-events-none absolute top-0 left-0 h-2/5 w-2/5 bg-gradient-to-br from-emerald-500/12 to-transparent" />
-          <span className="pointer-events-none absolute top-1 left-1.5 text-[10px] font-medium tracking-wide text-emerald-500/70">
-            Zone idéale
-          </span>
+          {/* Halo de lecture : bande haute en NvI (plus haut = meilleure protection),
+              coin haut-gauche en risque/rendement (rendement élevé + faible risque). */}
+          {isNvi ? (
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-emerald-500/10 to-transparent" />
+          ) : (
+            <>
+              <div className="pointer-events-none absolute top-0 left-0 h-2/5 w-2/5 bg-gradient-to-br from-emerald-500/12 to-transparent" />
+              <span className="pointer-events-none absolute top-1 left-1.5 text-[10px] font-medium tracking-wide text-emerald-500/70">
+                Zone optimale
+              </span>
+            </>
+          )}
 
           {/* Grille */}
           {xTicks.map((t) => (
@@ -301,6 +342,11 @@ export function BrowneScatter({
             <span className="size-2.5 shrink-0 rounded-full" style={{ background: hover.p.color }} />
             {hover.p.name}
           </p>
+          {!isNvi && (
+            <p className="text-[11px] text-muted-foreground">
+              {profilePhrase(hover.p.x, hover.p.y, medX, medY, bandX, bandY)}
+            </p>
+          )}
           <div className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
             <TipRow
               label="Robustesse"
@@ -350,8 +396,18 @@ export function BrowneScatter({
             {b}
           </span>
         ))}
-        <span className="ml-auto">Bord = robustesse · idéal en haut à gauche.</span>
+        <span className="ml-auto">
+          Bord = robustesse ·{" "}
+          {isNvi ? "plus haut = meilleure protection du pouvoir d’achat" : "idéal en haut à gauche"}.
+        </span>
       </div>
+      {isNvi && (
+        <p className="mt-1 px-1 text-[11px] leading-relaxed text-muted-foreground">
+          <span className="text-foreground/70">Lecture :</span> haut-gauche = pouvoir d’achat élevé,
+          inflation faible · haut-droite = forte résistance à l’inflation · bas-droite = inflation
+          élevée, protection insuffisante · bas-gauche = inflation faible, faible surperformance.
+        </p>
+      )}
       {dropped > 0 && (
         <p className="px-1 text-[11px] text-muted-foreground">
           {dropped} pays non affiché{dropped > 1 ? "s" : ""} (métrique indisponible).

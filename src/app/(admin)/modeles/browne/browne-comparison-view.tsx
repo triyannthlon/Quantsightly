@@ -52,7 +52,7 @@ function columnsFor(mode: BrowneDisplayMode): NumCol[] {
       { key: "n-cagr", label: "Rendement nominal", tip: "Rendement nominal annualisé (CAGR, sans correction d’inflation).", get: (r) => r.nominal?.annualized ?? null, fmt: (r) => fmtPct(r.nominal?.annualized), better: "desc" },
       { key: "n-vol", label: "Volatilité nominale", tip: "Volatilité annualisée nominale.", get: (r) => r.nominal?.volatility ?? null, fmt: (r) => fmtPct(r.nominal?.volatility), better: "asc" },
       { key: "n-mdd", label: "Max drawdown nominal", tip: "Pire perte nominale entre un sommet et un point bas.", get: (r) => r.nominal?.maxDrawdown ?? null, fmt: (r) => fmtPct(r.nominal?.maxDrawdown), better: "desc" },
-      { key: "n-sharpe", label: "Sharpe nominal", tip: "Rendement nominal annualisé rapporté à la volatilité nominale.", get: (r) => r.nominal?.sharpe ?? null, fmt: (r) => fmtRatio(r.nominal?.sharpe), better: "desc" },
+      { key: "n-sharpe", label: "Sharpe nominal", tip: "Excédent du rendement nominal sur le cash, rapporté à la volatilité nominale.", get: (r) => r.nominal?.sharpe ?? null, fmt: (r) => fmtRatio(r.nominal?.sharpe), better: "desc" },
     ];
   }
   if (mode === "nominal_vs_inflation") {
@@ -69,7 +69,7 @@ function columnsFor(mode: BrowneDisplayMode): NumCol[] {
     { key: "r-cagr", label: "Rendement réel", tip: "Rendement réel annualisé (corrigé de l’inflation locale).", get: (r) => r.real?.annualized ?? null, fmt: (r) => fmtPct(r.real?.annualized), better: "desc" },
     { key: "r-vol", label: "Volatilité réelle", tip: "Volatilité annualisée de la série réelle.", get: (r) => r.real?.volatility ?? null, fmt: (r) => fmtPct(r.real?.volatility), better: "asc" },
     { key: "r-mdd", label: "Max drawdown réel", tip: "Pire perte réelle entre un sommet et un point bas.", get: (r) => r.real?.maxDrawdown ?? null, fmt: (r) => fmtPct(r.real?.maxDrawdown), better: "desc" },
-    { key: "r-sharpe", label: "Sharpe réel", tip: "Rendement réel annualisé rapporté à la volatilité réelle.", get: (r) => r.real?.sharpe ?? null, fmt: (r) => fmtRatio(r.real?.sharpe), better: "desc" },
+    { key: "r-sharpe", label: "Sharpe réel", tip: "Excédent du rendement réel sur le cash réel, rapporté à la volatilité réelle.", get: (r) => r.real?.sharpe ?? null, fmt: (r) => fmtRatio(r.real?.sharpe), better: "desc" },
   ];
 }
 
