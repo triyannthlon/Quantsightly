@@ -5,6 +5,8 @@ import { Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogTitle } from "@/components/ui/dialog";
+import { FrostedDialogContent } from "@/components/custom/ui/frosted-dialog";
 import {
   Table,
   TableBody,
@@ -57,6 +59,7 @@ export function DrawdownCard({
   const aMetrics = useReal ? result.metrics.equityReal! : result.metrics.equity;
 
   const [shown, setShown] = useState({ browne: true, equity: true });
+  const [zoom, setZoom] = useState(false);
 
   const dd = useMemo(() => {
     const bDD = drawdownSeries(bSeries);
@@ -68,11 +71,11 @@ export function DrawdownCard({
     const lines: ChartLine[] = [];
     if (shown.equity) {
       active.push({ key: "equity", data: aDD });
-      lines.push({ key: "equity", label: "Actions", color: DD_COLOR.equity, width: 1.4, fillOpacity: 0.08 });
+      lines.push({ key: "equity", label: "Actions", color: DD_COLOR.equity, width: 1.4, fillOpacity: 0.16 });
     }
     if (shown.browne) {
       active.push({ key: "browne", data: bDD });
-      lines.push({ key: "browne", label: "Browne", color: DD_COLOR.browne, width: 2.6, fillOpacity: 0.1 });
+      lines.push({ key: "browne", label: "Browne", color: DD_COLOR.browne, width: 2.6, fillOpacity: 0.22 });
     }
     return { data: mergeChart(active), lines, yDomain: [floor, 0] as [number, number] };
   }, [bSeries, aSeries, shown]);
@@ -94,7 +97,7 @@ export function DrawdownCard({
           <h3 className="text-sm font-semibold">Drawdown</h3>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button type="button" className="text-muted-foreground/60 hover:text-foreground">
+              <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
                 <Info className="size-3.5" />
               </button>
             </TooltipTrigger>
@@ -110,7 +113,7 @@ export function DrawdownCard({
               type="button"
               onClick={() => setShown((s) => ({ ...s, [t.key]: !s[t.key] }))}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
+                "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
                 shown[t.key]
                   ? "border-foreground/20 text-foreground"
                   : "border-transparent text-muted-foreground/50 hover:text-foreground",
@@ -131,16 +134,43 @@ export function DrawdownCard({
         <Stat label="Réduction" value={reduction === null ? "—" : `+${reduction.toFixed(1)} pts`} />
         <Stat label="Durée max sous l’eau" value={fmtMonths(bMetrics.maxUnderwaterMonths)} />
       </div>
-      <ExplorationChart
-        data={dd.data}
-        lines={dd.lines}
-        height={240}
-        showLegend={false}
-        markLast
-        gridOpacity={0.22}
-        yDomain={dd.yDomain}
-        areaFill
-      />
+      <button
+        type="button"
+        onClick={() => setZoom(true)}
+        className="cursor-zoom-img block w-full text-left"
+        aria-label="Agrandir le graphique"
+      >
+        <ExplorationChart
+          data={dd.data}
+          lines={dd.lines}
+          height={240}
+          showLegend={false}
+          markLast
+          gridOpacity={0.22}
+          yDomain={dd.yDomain}
+          areaFill
+          percentTooltip
+        />
+      </button>
+      <Dialog open={zoom} onOpenChange={setZoom}>
+        <FrostedDialogContent
+          className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]"
+          showCloseButton
+        >
+          <DialogTitle className="text-center text-base font-medium">Drawdown</DialogTitle>
+          <ExplorationChart
+            data={dd.data}
+            lines={dd.lines}
+            height="78vh"
+            showLegend={false}
+            markLast
+            gridOpacity={0.22}
+            yDomain={dd.yDomain}
+            areaFill
+            percentTooltip
+          />
+        </FrostedDialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -223,7 +253,7 @@ export function ContributionCard({ result }: { result: OkResult }) {
         <h3 className="text-sm font-semibold">Sources de performance</h3>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className="text-muted-foreground/60 hover:text-foreground">
+            <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
               <Info className="size-3.5" />
             </button>
           </TooltipTrigger>

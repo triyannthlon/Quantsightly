@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Dialog, DialogTitle } from "@/components/ui/dialog";
+import { FrostedDialogContent } from "@/components/custom/ui/frosted-dialog";
 import { cn } from "@/lib/utils";
 import { computeKpis } from "@/lib/coredata/compute";
 import type { EconomicDataPoint } from "@/lib/coredata/types";
@@ -170,7 +172,7 @@ function KpiCard({
         </span>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className="text-muted-foreground/60 hover:text-foreground">
+            <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
               <Info className="size-3.5" />
             </button>
           </TooltipTrigger>
@@ -276,6 +278,7 @@ function PerformanceChart({
   // Log par défaut sur les périodes longues (> 10 ans) ; l'utilisateur peut forcer.
   const [userScale, setUserScale] = useState<"linear" | "log" | null>(null);
   const scale = userScale ?? (result.months > 120 ? "log" : "linear");
+  const [zoom, setZoom] = useState(false);
 
   const chart = useMemo(() => {
     const withData = defs
@@ -295,6 +298,37 @@ function PerformanceChart({
     return { data: mergeChart(withData.map(({ def, data }) => ({ key: def.key, data }))), lines };
   }, [defs, shown, displayMode, result.series]);
 
+  const extraRows =
+    displayMode === "nominal_vs_inflation"
+      ? (row: Record<string, number>) =>
+          row.browne && row.inflation && row.inflation > 0
+            ? [
+                {
+                  label: "Pouvoir d’achat",
+                  value: `x${(row.browne / row.inflation).toLocaleString("fr-FR", {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  })}`,
+                },
+              ]
+            : []
+      : undefined;
+
+  const renderChart = (height: number | string) =>
+    chart ? (
+      <ExplorationChart
+        data={chart.data}
+        lines={chart.lines}
+        height={height}
+        logScale={scale === "log"}
+        showLegend={false}
+        markLast
+        gridOpacity={0.22}
+        cumulativeTooltip
+        extraTooltipRows={extraRows}
+      />
+    ) : null;
+
   return (
     <Card className="gap-0 bg-gradient-to-b from-foreground/[0.015] to-transparent p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -302,7 +336,7 @@ function PerformanceChart({
           <h3 className="text-sm font-semibold">Performance cumulée</h3>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button type="button" className="text-muted-foreground/60 hover:text-foreground">
+              <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
                 <Info className="size-3.5" />
               </button>
             </TooltipTrigger>
@@ -319,7 +353,7 @@ function PerformanceChart({
                 type="button"
                 onClick={() => setShown((s) => ({ ...s, [d.key]: !s[d.key] }))}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
+                  "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
                   shown[d.key]
                     ? "border-foreground/20 text-foreground"
                     : "border-transparent text-muted-foreground/50 hover:text-foreground",
@@ -340,7 +374,7 @@ function PerformanceChart({
                 type="button"
                 onClick={() => setUserScale(sc)}
                 className={cn(
-                  "rounded px-2 py-0.5 font-medium transition-colors",
+                  "cursor-pointer rounded px-2 py-0.5 font-medium transition-colors",
                   scale === sc
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -353,32 +387,27 @@ function PerformanceChart({
         </div>
       </div>
       {chart ? (
-        <ExplorationChart
-          data={chart.data}
-          lines={chart.lines}
-          height={360}
-          logScale={scale === "log"}
-          showLegend={false}
-          markLast
-          gridOpacity={0.22}
-          cumulativeTooltip
-          extraTooltipRows={
-            displayMode === "nominal_vs_inflation"
-              ? (row) =>
-                  row.browne && row.inflation && row.inflation > 0
-                    ? [
-                        {
-                          label: "Pouvoir d’achat",
-                          value: `x${(row.browne / row.inflation).toLocaleString("fr-FR", {
-                            minimumFractionDigits: 1,
-                            maximumFractionDigits: 1,
-                          })}`,
-                        },
-                      ]
-                    : []
-              : undefined
-          }
-        />
+        <>
+          <button
+            type="button"
+            onClick={() => setZoom(true)}
+            className="cursor-zoom-img block w-full text-left"
+            aria-label="Agrandir le graphique"
+          >
+            {renderChart(360)}
+          </button>
+          <Dialog open={zoom} onOpenChange={setZoom}>
+            <FrostedDialogContent
+              className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]"
+              showCloseButton
+            >
+              <DialogTitle className="text-center text-base font-medium">
+                Performance cumulée
+              </DialogTitle>
+              {renderChart("78vh")}
+            </FrostedDialogContent>
+          </Dialog>
+        </>
       ) : (
         <div className="flex h-[360px] items-center justify-center text-sm text-muted-foreground">
           Donnée indisponible pour ce mode.

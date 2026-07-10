@@ -49,6 +49,8 @@ interface Props {
   extraTooltipRows?: (row: Record<string, number>) => { label: string; value: string }[];
   /** Remplir sous chaque courbe jusqu'à 0 (pertinent pour un drawdown). */
   areaFill?: boolean;
+  /** Tooltip : valeurs formatées en pourcentage à 1 décimale (ex. drawdown). */
+  percentTooltip?: boolean;
 }
 
 interface CumulTooltipProps {
@@ -57,10 +59,12 @@ interface CumulTooltipProps {
   payload?: Array<{ dataKey?: string | number; name?: string; value?: number; color?: string }>;
   cumulative?: boolean;
   extra?: (row: Record<string, number>) => { label: string; value: string }[];
+  /** Formater chaque valeur en pourcentage à 1 décimale (ex. drawdown). */
+  percent?: boolean;
 }
 
 /** Tooltip Browne : valeur base 100 + perf cumulée (valeur − 100), + lignes calculées. */
-function CumulTooltip({ active, label, payload, cumulative, extra }: CumulTooltipProps) {
+function CumulTooltip({ active, label, payload, cumulative, extra, percent }: CumulTooltipProps) {
   if (!active || !payload?.length) return null;
   const row: Record<string, number> = {};
   for (const p of payload) {
@@ -86,14 +90,24 @@ function CumulTooltip({ active, label, payload, cumulative, extra }: CumulToolti
           cumulative && Number.isFinite(v)
             ? ` (${v - 100 >= 0 ? "+" : "−"}${Math.abs(Math.round(v - 100)).toLocaleString("fr-FR")} %)`
             : "";
+        const valueStr = percent
+          ? `${v.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`
+          : `${formatValue(v)}${cum}`;
         return (
-          <div key={String(p.dataKey)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div key={String(p.dataKey)} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span
               style={{ width: 8, height: 8, borderRadius: 9999, background: p.color, flexShrink: 0 }}
             />
-            <span>
-              {p.name} : {formatValue(v)}
-              {cum}
+            <span style={{ flex: 1, whiteSpace: "nowrap" }}>{p.name}</span>
+            <span
+              style={{
+                marginLeft: 16,
+                textAlign: "right",
+                fontVariantNumeric: "tabular-nums",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {valueStr}
             </span>
           </div>
         );
@@ -144,6 +158,7 @@ export function ExplorationChart({
   cumulativeTooltip = false,
   extraTooltipRows,
   areaFill = false,
+  percentTooltip = false,
 }: Props) {
   const ticks = useMemo(() => pickTicks(data, compact ? 4 : 10), [data, compact]);
 
@@ -181,9 +196,15 @@ export function ExplorationChart({
             domain={yDomain ?? ["auto", "auto"]}
             allowDataOverflow={yDomain !== undefined}
           />
-          {cumulativeTooltip || extraTooltipRows ? (
+          {cumulativeTooltip || extraTooltipRows || percentTooltip ? (
             <ReTooltip
-              content={<CumulTooltip cumulative={cumulativeTooltip} extra={extraTooltipRows} />}
+              content={
+                <CumulTooltip
+                  cumulative={cumulativeTooltip}
+                  extra={extraTooltipRows}
+                  percent={percentTooltip}
+                />
+              }
             />
           ) : (
             <ReTooltip
