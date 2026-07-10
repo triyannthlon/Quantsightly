@@ -52,6 +52,8 @@ export interface BrowneMetrics {
   volatility: number | null;
   /** Pire creux pic-à-creux, en % (≤ 0). */
   maxDrawdown: number | null;
+  /** Recul depuis le pic historique à la dernière date, en % (≤ 0). */
+  currentDrawdown: number | null;
   /** Ratio de Sharpe (rf = 0) = annualisé / volatilité. */
   sharpe: number | null;
   /** Ratio de Sortino = annualisé / volatilité baissière (MAR = 0). */
@@ -60,6 +62,8 @@ export interface BrowneMetrics {
   calmar: number | null;
   /** Pire rendement d'une année civile (fin d'année → fin d'année), en %. */
   worstYear: number | null;
+  /** Meilleur rendement d'une année civile, en %. */
+  bestYear: number | null;
   /** Plus longue durée passée sous le dernier sommet, en mois. */
   maxUnderwaterMonths: number | null;
   /** Variation % sur 1 / 12 / 36 / 60 mois. */
@@ -91,6 +95,8 @@ export interface BrowneSeriesSet {
   real: EconomicDataPoint[] | null;
   /** Indice actions national rebasé 100 sur la même fenêtre (« vs marché »). */
   equityBenchmark: EconomicDataPoint[];
+  /** Indice actions RÉEL (déflaté par le CPI), base 100 — `null` sans inflation. */
+  equityReal: EconomicDataPoint[] | null;
   /** Inflation cumulée base 100 (mode « Nominal vs Inflation ») — `null` sans CPI. */
   inflationIndex: EconomicDataPoint[] | null;
   /** Chaque poche rebasée 100 sur la fenêtre. */
@@ -111,6 +117,7 @@ export type BrowneResult =
         nominal: BrowneMetrics;
         real: BrowneMetrics | null;
         equity: BrowneMetrics;
+        equityReal: BrowneMetrics | null;
         sleeves: Record<SleeveKey, SleeveMetrics>;
       };
     }
@@ -213,22 +220,18 @@ function maxDrawdownPct(index: EconomicDataPoint[]): number | null {
   return mdd;
 }
 
-/** Pire rendement d'une année civile (valeur fin d'année Y / fin d'année Y−1), en %. */
-function worstCalendarYear(index: EconomicDataPoint[]): number | null {
+/** Rendements par année civile (valeur fin d'année Y / fin d'année Y−1), en %. */
+function calendarYearReturns(index: EconomicDataPoint[]): number[] {
   const byYear = new Map<string, number>(); // année → dernière valeur (l'ordre écrase)
   for (const p of index) byYear.set(p.date.slice(0, 4), p.value);
   const years = [...byYear.keys()].sort();
-  if (years.length < 2) return null;
-  let worst = Infinity;
+  const out: number[] = [];
   for (let i = 1; i < years.length; i++) {
     const prev = byYear.get(years[i - 1])!;
     const cur = byYear.get(years[i])!;
-    if (prev > 0) {
-      const r = (cur / prev - 1) * 100;
-      if (r < worst) worst = r;
-    }
+    if (prev > 0) out.push((cur / prev - 1) * 100);
   }
-  return Number.isFinite(worst) ? worst : null;
+  return out;
 }
 
 /** Plus longue série de mois consécutifs sous le dernier sommet. */
@@ -249,6 +252,33 @@ function maxUnderwaterMonths(index: EconomicDataPoint[]): number | null {
   return maxRun;
 }
 
+/** Déflate une courbe par le CPI (base 100, rebasée à la 1ʳᵉ date où le CPI existe). */
+function deflateByCpi(
+  index: EconomicDataPoint[],
+  cpiByMonth: Map<string, number>,
+): EconomicDataPoint[] | null {
+  const pts = index
+    .map((n) => ({ date: n.date, v: n.value, c: cpiByMonth.get(n.date.slice(0, 7)) }))
+    .filter((x): x is { date: string; v: number; c: number } => x.c !== undefined && x.c > 0);
+  if (pts.length < 2) return null;
+  const v0 = pts[0].v;
+  const c0 = pts[0].c;
+  return pts.map((x) => ({ date: x.date, value: (100 * (x.v / v0)) / (x.c / c0) }));
+}
+
+/** Inflation cumulée (base 100) sur les dates de `index` où le CPI existe. */
+function cumulativeInflation(
+  index: EconomicDataPoint[],
+  cpiByMonth: Map<string, number>,
+): EconomicDataPoint[] | null {
+  const pts = index
+    .map((n) => ({ date: n.date, c: cpiByMonth.get(n.date.slice(0, 7)) }))
+    .filter((x): x is { date: string; c: number } => x.c !== undefined && x.c > 0);
+  if (pts.length < 2) return null;
+  const c0 = pts[0].c;
+  return pts.map((x) => ({ date: x.date, value: (100 * x.c) / c0 }));
+}
+
 /** Métriques complètes d'une courbe d'index (réutilise `computeKpis` + drawdown). */
 function indexMetrics(index: EconomicDataPoint[]): BrowneMetrics {
   const k = computeKpis(index);
@@ -257,6 +287,9 @@ function indexMetrics(index: EconomicDataPoint[]): BrowneMetrics {
   const cumulative =
     index.length >= 2 && first > 0 && last > 0 ? (last / first - 1) * 100 : null;
   const maxDrawdown = maxDrawdownPct(index);
+  const peak = index.length ? index.reduce((mx, p) => (p.value > mx ? p.value : mx), -Infinity) : 0;
+  const currentDrawdown =
+    index.length >= 2 && peak > 0 && last > 0 ? (last / peak - 1) * 100 : null;
   const sharpe =
     k.annualized !== null && k.volatility !== null && k.volatility > 0
       ? k.annualized / k.volatility
@@ -276,15 +309,19 @@ function indexMetrics(index: EconomicDataPoint[]): BrowneMetrics {
       ? k.annualized / Math.abs(maxDrawdown)
       : null;
 
+  const yearly = calendarYearReturns(index);
+
   return {
     cumulative,
     annualized: k.annualized,
     volatility: k.volatility,
     maxDrawdown,
+    currentDrawdown,
     sharpe,
     sortino,
     calmar,
-    worstYear: worstCalendarYear(index),
+    worstYear: yearly.length ? Math.min(...yearly) : null,
+    bestYear: yearly.length ? Math.max(...yearly) : null,
     maxUnderwaterMonths: maxUnderwaterMonths(index),
     lastMonth: k.lastMonth,
     oneYear: k.oneYear,
@@ -378,20 +415,15 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
   // Benchmark actions : indice actions rebasé 100 sur la même fenêtre.
   const equityBenchmark = sleeves.equity;
 
-  // Courbe réelle + inflation cumulée : déflate le nominal par le CPI.
+  // Courbes réelles (Browne + actions) + inflation cumulée : déflate par le CPI.
   let real: EconomicDataPoint[] | null = null;
+  let equityReal: EconomicDataPoint[] | null = null;
   let inflationIndex: EconomicDataPoint[] | null = null;
   if (input.inflation?.length) {
     const cpiByMonth = new Map(toMonthly(input.inflation).map((pt) => [pt.date.slice(0, 7), pt.value]));
-    const pts = nominal
-      .map((n) => ({ date: n.date, nom: n.value, cpi: cpiByMonth.get(n.date.slice(0, 7)) }))
-      .filter((x): x is { date: string; nom: number; cpi: number } => x.cpi !== undefined && x.cpi > 0);
-    if (pts.length >= 2) {
-      const nom0 = pts[0].nom;
-      const cpi0 = pts[0].cpi;
-      real = pts.map((x) => ({ date: x.date, value: (100 * (x.nom / nom0)) / (x.cpi / cpi0) }));
-      inflationIndex = pts.map((x) => ({ date: x.date, value: (100 * x.cpi) / cpi0 }));
-    }
+    real = deflateByCpi(nominal, cpiByMonth);
+    equityReal = deflateByCpi(equityBenchmark, cpiByMonth);
+    inflationIndex = cumulativeInflation(nominal, cpiByMonth);
   }
 
   return {
@@ -401,11 +433,12 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
     start: valid[0].date,
     end: valid[valid.length - 1].date,
     months: valid.length,
-    series: { nominal, real, equityBenchmark, inflationIndex, sleeves },
+    series: { nominal, real, equityBenchmark, equityReal, inflationIndex, sleeves },
     metrics: {
       nominal: indexMetrics(nominal),
       real: real ? indexMetrics(real) : null,
       equity: indexMetrics(equityBenchmark),
+      equityReal: equityReal ? indexMetrics(equityReal) : null,
       sleeves: {
         equity: sleeveMetrics(sleeves.equity, contrib[0] * 100),
         bond: sleeveMetrics(sleeves.bond, contrib[1] * 100),

@@ -181,6 +181,7 @@ describe("computeBrowne — métriques", () => {
       }),
     );
     expect(r.metrics.nominal.maxDrawdown).toBe(0);
+    expect(r.metrics.nominal.currentDrawdown).toBe(0); // toujours au sommet
     expect(r.metrics.nominal.sharpe).not.toBeNull();
     expect(r.metrics.nominal.sharpe!).toBeGreaterThan(0);
   });
@@ -236,6 +237,8 @@ describe("computeBrowne — Sortino / Calmar / pire année / sous l'eau", () => 
       computeBrowne({ countryCode: "XX", equity: s(), bond: s(), cash: s(), gold: s(), rebalance: "monthly" }),
     );
     expect(r.metrics.nominal.worstYear).toBeCloseTo(-20, 6); // 80/100 − 1
+    expect(r.metrics.nominal.bestYear).toBeCloseTo(10, 6); // 88/80 − 1
+    expect(r.metrics.nominal.currentDrawdown).toBeCloseTo(-12, 6); // 88/100 − 1 (dernier vs pic)
     expect(r.metrics.nominal.maxUnderwaterMonths).toBe(24); // jan 2001 → déc 2002, jamais revenu à 100
   });
 
@@ -310,6 +313,8 @@ describe("computeBrowne — inflation cumulée", () => {
       computeBrowne({ countryCode: "XX", equity: flat(d), bond: flat(d), cash: flat(d), gold: flat(d) }),
     );
     expect(sansCpi.series.inflationIndex).toBeNull();
+    expect(sansCpi.series.equityReal).toBeNull();
+    expect(sansCpi.metrics.equityReal).toBeNull();
 
     const avecCpi = ok(
       computeBrowne({
@@ -322,6 +327,8 @@ describe("computeBrowne — inflation cumulée", () => {
       }),
     );
     expect(avecCpi.series.inflationIndex).not.toBeNull();
+    expect(avecCpi.series.equityReal).not.toBeNull();
+    expect(avecCpi.metrics.equityReal).not.toBeNull();
     expect(avecCpi.series.inflationIndex![0].value).toBe(100);
     for (let k = 0; k < d.length; k++) {
       expect(avecCpi.series.inflationIndex![k].value).toBeCloseTo(100 * 1.01 ** k, 6);
