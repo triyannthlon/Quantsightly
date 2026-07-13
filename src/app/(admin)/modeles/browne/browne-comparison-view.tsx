@@ -155,7 +155,7 @@ export function BrowneComparisonView({
               </h3>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
+                  <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
                     <Info className="size-3.5" />
                   </button>
                 </TooltipTrigger>
@@ -183,7 +183,7 @@ export function BrowneComparisonView({
               <h3 className="text-sm font-semibold">Comparaison des pays</h3>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
+                  <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
                     <Info className="size-3.5" />
                   </button>
                 </TooltipTrigger>

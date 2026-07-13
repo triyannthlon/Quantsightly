@@ -1,11 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Info } from "lucide-react";
 import { CountryFlag } from "@/components/ui/CountryFlag";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { BrowneComparisonRow } from "@/lib/coredata/browne-service";
 
 type Mode = "inflation" | "equity";
+
+// Texte principal (pédagogique) + détail au survol (notion d'horizon glissant).
+const SUBTEXT: Record<Mode, string> = {
+  inflation: "Pourcentage de périodes où Browne a gagné du pouvoir d’achat.",
+  equity: "Pourcentage de périodes où Browne a fait mieux que les actions locales.",
+};
+const DETAIL: Record<Mode, string> = {
+  inflation:
+    "Une période correspond à un horizon glissant de 1 an, 3 ans, 5 ans, 10 ans ou 20 ans. Par exemple, 100 % sur 5 ans signifie que Browne a été positif en réel sur toutes les périodes de 5 ans observées.",
+  equity:
+    "Une période correspond à un horizon glissant. Par exemple, 67 % sur 5 ans signifie que Browne a surperformé les actions locales dans 67 % des périodes de 5 ans observées.",
+};
 
 const HORIZON_LABELS = ["1 an", "3 ans", "5 ans", "10 ans", "20 ans"];
 const SORT_COL = 2; // tri par la colonne 5 ans
@@ -64,8 +78,8 @@ export function BrowneHeatmap({
 
   return (
     <div>
-      {/* Toggle mesure */}
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+      {/* Mesure + explication pédagogique */}
+      <div className="mb-1 flex flex-wrap items-center gap-2 text-xs">
         <span className="text-muted-foreground">Mesure</span>
         <div className="inline-flex items-center rounded-md border border-border/50 bg-background/40 p-0.5">
           {(["inflation", "equity"] as const).map((m) => (
@@ -84,12 +98,20 @@ export function BrowneHeatmap({
             </button>
           ))}
         </div>
-        <span className="text-muted-foreground">
-          {mode === "inflation"
-            ? "% de fenêtres glissantes où le Browne réel a progressé."
-            : "% de fenêtres glissantes où le Browne réel surperforme les actions réelles."}
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
+              <Info className="size-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-72">
+            {DETAIL[mode]}
+          </TooltipContent>
+        </Tooltip>
       </div>
+      <p className="mb-3 text-xs text-muted-foreground">
+        <span className="font-medium text-foreground/80">Taux de réussite</span> — {SUBTEXT[mode]}
+      </p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

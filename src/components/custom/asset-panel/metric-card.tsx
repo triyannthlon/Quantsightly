@@ -150,7 +150,7 @@ export function MetricCard({
             </TooltipTrigger>
             <TooltipContent side="top" align="end" className="max-w-xs p-3">
               <p className="font-semibold text-xs leading-snug">{tooltip.definition}</p>
-              <p className="text-[11px] text-background/70 mt-1.5 leading-snug">
+              <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
                 {tooltip.interpretation}
               </p>
             </TooltipContent>

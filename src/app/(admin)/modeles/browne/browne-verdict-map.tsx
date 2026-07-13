@@ -9,7 +9,7 @@ import { browneVsEquity, fmtPts, VERDICT_HEX, VERDICT_ORDER, type BrowneVerdict 
 const MAP_CLASS: Record<BrowneVerdict, { fill: string; dot: string }> = {
   "Supérieur aux actions": { fill: "fill-[#34d399] stroke-[#34d399]", dot: "bg-[#34d399]" },
   "Excellent compromis": { fill: "fill-[#22d3ee] stroke-[#22d3ee]", dot: "bg-[#22d3ee]" },
-  Défensif: { fill: "fill-[#fbbf24] stroke-[#fbbf24]", dot: "bg-[#fbbf24]" },
+  Protecteur: { fill: "fill-[#fbbf24] stroke-[#fbbf24]", dot: "bg-[#fbbf24]" },
   "Peu convaincant": { fill: "fill-[#f87171] stroke-[#f87171]", dot: "bg-[#f87171]" },
   "Cas atypique": { fill: "fill-[#a78bfa] stroke-[#a78bfa]", dot: "bg-[#a78bfa]" },
   "Compromis modéré": { fill: "fill-[#94a3b8] stroke-[#94a3b8]", dot: "bg-[#94a3b8]" },

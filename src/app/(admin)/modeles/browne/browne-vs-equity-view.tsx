@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Info, ShieldCheck, TrendingUp, Trophy, Scale, Users, Map as MapIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CountryFlag } from "@/components/ui/CountryFlag";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider, TooltipBody } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { RebalanceFrequency } from "@/lib/coredata/browne";
 import type { BrowneComparisonRow } from "@/lib/coredata/browne-service";
@@ -14,6 +14,7 @@ import {
   fmtMonths,
   browneVsEquity,
   VERDICT_TONE,
+  VERDICT_DESC,
   VERDICT_ORDER,
   COUNTRY_REGION,
   type BrowneRegion,
@@ -59,7 +60,7 @@ function FlagsRow({ items, max = 6 }: { items: Item[]; max?: number }) {
           </TooltipTrigger>
           <TooltipContent className="flex max-w-[240px] flex-wrap gap-1.5">
             {overflow.map((it) => (
-              <span key={it.row.countryCode} className="inline-flex items-center gap-1 text-[11px] text-background">
+              <span key={it.row.countryCode} className="inline-flex items-center gap-1 text-[11px]">
                 <CountryFlag code={it.row.countryCode} countryName={it.row.countryFr ?? it.row.countryCode} size={14} />
                 <span className="font-medium tabular-nums">{it.row.countryCode}</span>
               </span>
@@ -71,19 +72,31 @@ function FlagsRow({ items, max = 6 }: { items: Item[]; max?: number }) {
   );
 }
 
-function CardHead({ icon: Icon, label, tip }: { icon: typeof ShieldCheck; label: string; tip: string }) {
+function CardHead({
+  icon: Icon,
+  label,
+  desc,
+  formula,
+}: {
+  icon: typeof ShieldCheck;
+  label: string;
+  desc: string;
+  formula?: string;
+}) {
   return (
     <div className="flex items-center gap-1.5 text-[11px] font-medium tracking-wide uppercase opacity-80">
       <Icon className="size-3.5 shrink-0" />
       <span className="whitespace-nowrap">{label}</span>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button type="button" className="cursor-pointer opacity-70 hover:opacity-100">
+          <button type="button" className="cursor-help opacity-70 hover:opacity-100">
             <Info className="size-3" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-60 normal-case">
-          {tip}
+        <TooltipContent side="top" className="max-w-64 normal-case">
+          <TooltipBody title={label} formula={formula}>
+            {desc}
+          </TooltipBody>
         </TooltipContent>
       </Tooltip>
     </div>
@@ -93,19 +106,19 @@ function CardHead({ icon: Icon, label, tip }: { icon: typeof ShieldCheck; label:
 function CountCard({
   icon: Icon,
   label,
-  tip,
+  desc,
   tone,
   items,
 }: {
   icon: typeof ShieldCheck;
   label: string;
-  tip: string;
+  desc: string;
   tone: string;
   items: Item[];
 }) {
   return (
     <Card className={cn("gap-0 p-4", tone)}>
-      <CardHead icon={Icon} label={label} tip={tip} />
+      <CardHead icon={Icon} label={label} desc={desc} />
       <div className="mt-1 text-2xl font-semibold tabular-nums">
         {items.length}
         <span className="ml-1 text-sm font-normal opacity-70">pays</span>
@@ -118,21 +131,23 @@ function CountCard({
 function LeaderCard({
   icon: Icon,
   label,
-  tip,
+  desc,
+  formula,
   tone,
   item,
   value,
 }: {
   icon: typeof Trophy;
   label: string;
-  tip: string;
+  desc: string;
+  formula?: string;
   tone: string;
   item: Item | null;
   value: string;
 }) {
   return (
     <Card className={cn("gap-0 p-4", tone)}>
-      <CardHead icon={Icon} label={label} tip={tip} />
+      <CardHead icon={Icon} label={label} desc={desc} formula={formula} />
       {item ? (
         <>
           <div className="mt-1 flex items-center gap-2">
@@ -252,21 +267,22 @@ export function BrowneVsEquityView({
           <CountCard
             icon={TrendingUp}
             label="Supérieur aux actions"
-            tip="Nombre de pays où le portefeuille Browne fait mieux que l’indice actions local en rendement, tout en réduisant le risque."
+            desc="Nombre de pays où le portefeuille Browne fait mieux que l’indice actions local en rendement, tout en réduisant le risque."
             tone="border-emerald-500/25 bg-gradient-to-b from-emerald-500/[0.06] to-transparent"
             items={cards.superieur}
           />
           <CountCard
             icon={Scale}
             label="Excellent compromis"
-            tip="Nombre de pays où Browne fait presque aussi bien que les actions, mais avec une baisse maximale beaucoup plus faible."
+            desc="Nombre de pays où Browne fait presque aussi bien que les actions, mais avec une baisse maximale beaucoup plus faible."
             tone="border-cyan-500/25 bg-gradient-to-b from-cyan-500/[0.06] to-transparent"
             items={cards.excellent}
           />
           <LeaderCard
             icon={ShieldCheck}
             label="Réduction drawdown"
-            tip="Pays où Browne réduit le plus la perte maximale par rapport à l’indice actions local. Calcul : |Max DD actions| − |Max DD Browne|."
+            desc="Pays où Browne réduit le plus la perte maximale par rapport à l’indice actions local."
+            formula="|Max DD actions| − |Max DD Browne|"
             tone="border-amber-500/25 bg-gradient-to-b from-amber-500/[0.06] to-transparent"
             item={cards.topDd}
             value={fmtPts(cards.topDd?.ve.drawdownReduction ?? null)}
@@ -274,7 +290,8 @@ export function BrowneVsEquityView({
           <LeaderCard
             icon={Trophy}
             label="Gain risque/rendement"
-            tip="Pays où Browne améliore le plus le rendement obtenu par unité de risque. Calcul : Sharpe Browne − Sharpe actions."
+            desc="Pays où Browne améliore le plus le rendement obtenu par unité de risque."
+            formula="Sharpe Browne − Sharpe actions"
             tone="border-violet-500/25 bg-gradient-to-b from-violet-500/[0.06] to-transparent"
             item={cards.topSharpe}
             value={fmtSignedRatio(cards.topSharpe?.ve.ecartSharpe ?? null)}
@@ -287,7 +304,7 @@ export function BrowneVsEquityView({
             <h3 className="text-sm font-semibold">Compromis Browne vs Actions</h3>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
+                <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
                   <Info className="size-3.5" />
                 </button>
               </TooltipTrigger>
@@ -368,9 +385,21 @@ export function BrowneVsEquityView({
                     </td>
                     <td className="px-3 py-2.5">
                       {it.ve.verdict && (
-                        <span className={cn("inline-block rounded-md border px-1.5 py-0.5 text-[11px] font-medium", VERDICT_TONE[it.ve.verdict])}>
-                          {it.ve.verdict}
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              className={cn(
+                                "inline-block min-w-[150px] cursor-help rounded-md border px-2 py-0.5 text-center text-[11px] font-medium whitespace-nowrap",
+                                VERDICT_TONE[it.ve.verdict],
+                              )}
+                            >
+                              {it.ve.verdict}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-60">
+                            {VERDICT_DESC[it.ve.verdict]}
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </td>
                     {COLS.map((c) => (
@@ -391,14 +420,14 @@ export function BrowneVsEquityView({
             <h3 className="text-sm font-semibold">Régularité par horizon</h3>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
+                <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
                   <Info className="size-3.5" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-72">
-                Part des fenêtres glissantes favorables selon l’horizon de détention. Deux mesures :
-                Browne bat l’inflation (rendement réel positif) ou Browne bat les actions locales.
-                Plus c’est vert, plus c’est fréquent.
+                Taux de réussite de Browne selon la durée de détention, sur deux mesures : gagner du
+                pouvoir d’achat (bat l’inflation) ou faire mieux que les actions locales. Plus c’est
+                vert, plus c’est fréquent.
               </TooltipContent>
             </Tooltip>
           </div>

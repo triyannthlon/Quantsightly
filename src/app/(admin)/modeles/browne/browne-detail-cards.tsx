@@ -97,7 +97,7 @@ export function DrawdownCard({
           <h3 className="text-sm font-semibold">Drawdown</h3>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
+              <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
                 <Info className="size-3.5" />
               </button>
             </TooltipTrigger>
@@ -255,7 +255,7 @@ export function ContributionCard({ result }: { result: OkResult }) {
         <h3 className="text-sm font-semibold">Sources de performance</h3>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
+            <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
               <Info className="size-3.5" />
             </button>
           </TooltipTrigger>

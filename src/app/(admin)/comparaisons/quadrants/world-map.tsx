@@ -124,7 +124,7 @@ export function WorldMap({
                                 {overflow.map((p) => (
                                   <span
                                     key={p.countryCode}
-                                    className="inline-flex items-center gap-1 text-[11px] text-background"
+                                    className="inline-flex items-center gap-1 text-[11px]"
                                   >
                                     <CountryFlag code={p.countryCode} countryName={p.name} size={14} />
                                     <span className="font-medium tabular-nums">{p.countryCode}</span>

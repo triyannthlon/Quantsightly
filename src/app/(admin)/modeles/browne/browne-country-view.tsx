@@ -168,14 +168,14 @@ function RobustnessPill({ robustness }: { robustness: Robustness }) {
       </TooltipTrigger>
       <TooltipContent side="bottom" className="w-60 max-w-none">
         <div className="font-medium">Robustesse Browne — {score} / 100</div>
-        <div className="text-background/70">
+        <div className="text-muted-foreground">
           {badge}
           {shortHistory ? " · historique court" : ""}
         </div>
         <div className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-6 gap-y-0.5 tabular-nums">
           {rows.map(([label, v]) => (
             <Fragment key={label}>
-              <span className="text-background/70">{label} :</span>
+              <span className="text-muted-foreground">{label} :</span>
               <span className="text-right">{v}</span>
             </Fragment>
           ))}
@@ -261,7 +261,7 @@ function KpiCard({
         </span>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
+            <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
               <Info className="size-3.5" />
             </button>
           </TooltipTrigger>
@@ -426,14 +426,14 @@ function PerformanceChart({
           <h3 className="text-sm font-semibold">Performance cumulée</h3>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button type="button" className="cursor-pointer text-muted-foreground/60 hover:text-foreground">
+              <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
                 <Info className="size-3.5" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-64">
               Base 100 au début de la période sélectionnée.
               {scale === "log" && (
-                <span className="mt-1.5 block text-background/70">
+                <span className="mt-1.5 block text-muted-foreground">
                   Échelle logarithmique active : les distances verticales représentent des variations
                   relatives.
                 </span>
