@@ -35,7 +35,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <div className="flex min-w-0 flex-1 flex-col">
               <AppHeader email={session.email} />
 
-              <main className="min-h-0 flex-1 overflow-auto">
+              <main className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
                 {" "}
                 {/* Contenu scrollable uniquement ici */}
                 {children}
