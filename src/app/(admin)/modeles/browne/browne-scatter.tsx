@@ -261,7 +261,7 @@ export function BrowneScatter({
 
         {/* Zone de données (axes X/Y dessinés = bords bas + gauche) */}
         <div
-          className="absolute border-b border-l border-border"
+          className="absolute border-b-[1.5px] border-l-[1.5px] border-foreground/20"
           style={{ left: PAD.left, right: PAD.right, top: PAD.top, bottom: PAD.bottom }}
         >
           {/* Halo de lecture : bande haute en NvI (plus haut = meilleure protection),
@@ -389,14 +389,14 @@ export function BrowneScatter({
       )}
 
       {/* Légende des paliers + repère */}
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[11px] text-muted-foreground">
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 px-1 text-[13px] text-muted-foreground">
         {usedBadges.map((b) => (
-          <span key={b} className="inline-flex items-center gap-1">
-            <span className="size-2 rounded-full" style={{ background: ROBUSTNESS_HEX[b] }} />
+          <span key={b} className="inline-flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full" style={{ background: ROBUSTNESS_HEX[b] }} />
             {b}
           </span>
         ))}
-        <span className="ml-auto">
+        <span className="ml-auto text-xs">
           Bord = robustesse ·{" "}
           {isNvi ? "plus haut = meilleure protection du pouvoir d’achat" : "idéal en haut à gauche"}.
         </span>

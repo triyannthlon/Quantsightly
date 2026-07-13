@@ -548,7 +548,7 @@ function lerpScore(x: number, lo: number, hi: number): number {
  * Part des fenêtres glissantes de `window` mois où l'index a progressé (∈ [0, 1]).
  * `null` si l'historique ne contient aucune fenêtre complète.
  */
-function rollingPositiveShare(index: EconomicDataPoint[], window: number): number | null {
+export function rollingPositiveShare(index: EconomicDataPoint[], window: number): number | null {
   const n = index.length;
   if (n <= window) return null;
   let total = 0;
@@ -562,6 +562,33 @@ function rollingPositiveShare(index: EconomicDataPoint[], window: number): numbe
     }
   }
   return total > 0 ? positive / total : null;
+}
+
+/**
+ * Part des fenêtres glissantes de `window` mois où l'index `a` surperforme `b`
+ * (rendements relatifs sur la même fenêtre) ∈ [0, 1]. `a` et `b` sont supposés
+ * alignés par index (mêmes dates). `null` si aucune fenêtre complète.
+ */
+export function rollingOutperformanceShare(
+  a: EconomicDataPoint[],
+  b: EconomicDataPoint[],
+  window: number,
+): number | null {
+  const n = Math.min(a.length, b.length);
+  if (n <= window) return null;
+  let total = 0;
+  let win = 0;
+  for (let i = 0; i + window < n; i++) {
+    const a0 = a[i].value;
+    const a1 = a[i + window].value;
+    const b0 = b[i].value;
+    const b1 = b[i + window].value;
+    if (a0 > 0 && a1 > 0 && b0 > 0 && b1 > 0) {
+      total += 1;
+      if (a1 / a0 > b1 / b0) win += 1;
+    }
+  }
+  return total > 0 ? win / total : null;
 }
 
 /**

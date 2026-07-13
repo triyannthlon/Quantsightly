@@ -1,5 +1,6 @@
 import type { EconomicDataPoint } from "@/lib/coredata/types";
 import type { ComputeBrowneInput, RobustnessBadge } from "@/lib/coredata/browne";
+import type { BrowneComparisonRow } from "@/lib/coredata/browne-service";
 import type { ChartPoint } from "../../exploration/exploration-chart";
 
 /** Teinte par palier du score de robustesse (partagée Vue pays / Comparaison).
@@ -172,3 +173,102 @@ export const fmtMultiple = (v: number | null | undefined): string =>
 
 export const fmtPts = (v: number | null | undefined): string =>
   v === null || v === undefined ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)} pts`;
+
+// ─── Browne vs Actions (onglet relatif) ──────────────────────────────────────
+
+/** Verdict qualitatif du compromis Browne vs indice actions local (en réel). */
+export type BrowneVerdict =
+  | "Supérieur aux actions"
+  | "Excellent compromis"
+  | "Défensif"
+  | "Peu convaincant"
+  | "Cas atypique"
+  | "Compromis modéré";
+
+/** Écarts RELATIFS Browne − Actions (base de l'onglet) + verdict. */
+export interface BrowneVsEquity {
+  /** CAGR Browne − CAGR Actions (pts). */
+  ecartReturn: number | null;
+  /** Volatilité Browne − Volatilité Actions (pts). */
+  ecartVol: number | null;
+  /** |Max DD Actions| − |Max DD Browne| (pts) : > 0 = Browne protège mieux. */
+  drawdownReduction: number | null;
+  /** Sharpe Browne − Sharpe Actions. */
+  ecartSharpe: number | null;
+  verdict: BrowneVerdict | null;
+}
+
+/** Ordre d'affichage (du meilleur au moins bon, cas atypique/repli en fin). */
+export const VERDICT_ORDER: BrowneVerdict[] = [
+  "Supérieur aux actions",
+  "Excellent compromis",
+  "Défensif",
+  "Compromis modéré",
+  "Peu convaincant",
+  "Cas atypique",
+];
+
+/** Hex par verdict (points de la matrice, carte). */
+export const VERDICT_HEX: Record<BrowneVerdict, string> = {
+  "Supérieur aux actions": "#34d399", // emerald-400
+  "Excellent compromis": "#22d3ee", // cyan-400
+  Défensif: "#fbbf24", // amber-400
+  "Peu convaincant": "#f87171", // red-400
+  "Cas atypique": "#a78bfa", // violet-400
+  "Compromis modéré": "#94a3b8", // slate-400
+};
+
+/** Teinte sobre par verdict (badges tableau). */
+export const VERDICT_TONE: Record<BrowneVerdict, string> = {
+  "Supérieur aux actions": "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  "Excellent compromis": "border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
+  Défensif: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  "Peu convaincant": "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
+  "Cas atypique": "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  "Compromis modéré": "border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400",
+};
+
+/**
+ * Écarts relatifs Browne − Actions (réel) + verdict, à partir d'une ligne de
+ * comparaison. Règles verrouillées (Yann) ; « Compromis modéré » = repli pour les
+ * cas ne tombant dans aucune règle. `verdict` = null si données insuffisantes.
+ */
+export function browneVsEquity(row: BrowneComparisonRow): BrowneVsEquity {
+  const b = row.real;
+  const e = row.equityReal;
+  const none: BrowneVsEquity = {
+    ecartReturn: null,
+    ecartVol: null,
+    drawdownReduction: null,
+    ecartSharpe: null,
+    verdict: null,
+  };
+  if (!b || !e) return none;
+
+  const ecartReturn =
+    b.annualized != null && e.annualized != null ? b.annualized - e.annualized : null;
+  const ecartVol = b.volatility != null && e.volatility != null ? b.volatility - e.volatility : null;
+  const drawdownReduction =
+    b.maxDrawdown != null && e.maxDrawdown != null
+      ? Math.abs(e.maxDrawdown) - Math.abs(b.maxDrawdown)
+      : null;
+  const ecartSharpe = b.sharpe != null && e.sharpe != null ? b.sharpe - e.sharpe : null;
+
+  let verdict: BrowneVerdict | null = null;
+  if (ecartReturn != null && drawdownReduction != null && ecartVol != null) {
+    if (ecartReturn >= 0 && drawdownReduction >= 5 && ecartVol <= 0) {
+      verdict = "Supérieur aux actions";
+    } else if (ecartReturn >= -1.5 && drawdownReduction >= 20 && ecartVol <= -3) {
+      verdict = "Excellent compromis";
+    } else if (ecartReturn < -1.5 && drawdownReduction >= 20) {
+      verdict = "Défensif";
+    } else if (ecartReturn > 0 && (drawdownReduction < 0 || ecartVol > 0)) {
+      verdict = "Cas atypique";
+    } else if (ecartReturn < 0 && drawdownReduction < 10) {
+      verdict = "Peu convaincant";
+    } else {
+      verdict = "Compromis modéré";
+    }
+  }
+  return { ecartReturn, ecartVol, drawdownReduction, ecartSharpe, verdict };
+}

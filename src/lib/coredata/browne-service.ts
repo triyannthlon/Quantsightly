@@ -12,12 +12,17 @@ import { usdPerUnitMap, convertCurrency, computeKpis } from "./compute";
 import {
   computeBrowne,
   computeRobustness,
+  rollingPositiveShare,
+  rollingOutperformanceShare,
   DEFAULT_REBALANCE,
   type RebalanceFrequency,
   type BrowneResult,
   type ComputeBrowneInput,
   type Robustness,
 } from "./browne";
+
+/** Horizons (mois) de la heatmap de régularité : 1 / 3 / 5 / 10 / 20 ans. */
+export const HEATMAP_HORIZONS = [12, 36, 60, 120, 240] as const;
 
 /** Or global coté en USD, commun à tous les pays. */
 const GLOBAL_GOLD_ID = "XAU Comdty-XX-5-1";
@@ -338,7 +343,20 @@ export interface BrowneComparisonRow {
   /** Multiple réel cumulé (pouvoir d'achat final / initial), `null` sans CPI. */
   realMultiple: number | null;
   /** Métriques RÉELLES de l'indice actions national (comparaison Browne vs actions). */
-  equityReal: { annualized: number | null; maxDrawdown: number | null } | null;
+  equityReal: {
+    annualized: number | null;
+    volatility: number | null;
+    maxDrawdown: number | null;
+    sharpe: number | null;
+    maxUnderwaterMonths: number | null;
+  } | null;
+  /** Régularité par horizon (`HEATMAP_HORIZONS`) : part des fenêtres favorables. */
+  heatmap: {
+    /** % de fenêtres où le Browne réel a progressé (bat l'inflation). */
+    beatsInflation: (number | null)[];
+    /** % de fenêtres où le Browne réel surperforme les actions réelles. */
+    beatsEquity: (number | null)[];
+  } | null;
 }
 
 /** Restreint un input aux `years` dernières années de sa fenêtre alignée (mirroir de `helpers.filterInput`, côté serveur). */
@@ -394,6 +412,7 @@ export async function computeBrowneComparison(
           inflationAnnualized: null,
           realMultiple: null,
           equityReal: null,
+          heatmap: null,
         };
       }
       const input = clipInputByYears(await loadInput(config, ctx, rebalance), years);
@@ -405,10 +424,19 @@ export async function computeBrowneComparison(
       const rm = ok?.metrics.real ?? null;
       const em = ok?.metrics.equityReal ?? null;
       const realSeries = ok?.series.real ?? null;
+      const eqRealSeries = ok?.series.equityReal ?? null;
       const realMultiple =
         realSeries && realSeries.length >= 2 && realSeries[0].value > 0
           ? realSeries[realSeries.length - 1].value / realSeries[0].value
           : null;
+      const heatmap = realSeries
+        ? {
+            beatsInflation: HEATMAP_HORIZONS.map((w) => rollingPositiveShare(realSeries, w)),
+            beatsEquity: eqRealSeries
+              ? HEATMAP_HORIZONS.map((w) => rollingOutperformanceShare(realSeries, eqRealSeries, w))
+              : HEATMAP_HORIZONS.map(() => null),
+          }
+        : null;
       return {
         countryCode: code,
         countryFr: config.countryFr,
@@ -438,7 +466,50 @@ export async function computeBrowneComparison(
           : null,
         inflationAnnualized: computeKpis(ok?.series.inflationIndex ?? []).annualized,
         realMultiple,
-        equityReal: em ? { annualized: em.annualized, maxDrawdown: em.maxDrawdown } : null,
+        equityReal: em
+          ? {
+              annualized: em.annualized,
+              volatility: em.volatility,
+              maxDrawdown: em.maxDrawdown,
+              sharpe: em.sharpe,
+              maxUnderwaterMonths: em.maxUnderwaterMonths,
+            }
+          : null,
+        heatmap,
+      };
+    }),
+  );
+}
+
+/** Série réelle (base 100) d'un pays pour le comparateur multi-pays. */
+export interface BrowneRealSeries {
+  countryCode: string;
+  countryFr: string | null;
+  real: EconomicDataPoint[] | null;
+}
+
+/**
+ * Séries RÉELLES (base 100) des pays demandés, sous les mêmes paramètres
+ * (rééquilibrage + période). Chargées à la demande (2–5 pays) pour le
+ * comparateur multi-pays ; l'alignement sur une période commune se fait côté
+ * client.
+ */
+export async function computeBrowneRealSeries(
+  codes: string[],
+  rebalance: RebalanceFrequency = DEFAULT_REBALANCE,
+  years: number | null = null,
+): Promise<BrowneRealSeries[]> {
+  const ctx = await loadContext();
+  return Promise.all(
+    codes.map(async (code): Promise<BrowneRealSeries> => {
+      const config = deriveBrowneConfig(code, ctx.series, ctx.countries);
+      if (!config) return { countryCode: code, countryFr: null, real: null };
+      const input = clipInputByYears(await loadInput(config, ctx, rebalance), years);
+      const result = computeBrowne(input);
+      return {
+        countryCode: code,
+        countryFr: config.countryFr,
+        real: result.status === "OK" ? result.series.real : null,
       };
     }),
   );

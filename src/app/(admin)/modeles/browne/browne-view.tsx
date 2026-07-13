@@ -20,6 +20,7 @@ import type {
 } from "@/lib/coredata/browne-service";
 import { BrowneCountryView } from "./browne-country-view";
 import { BrowneComparisonView } from "./browne-comparison-view";
+import { BrowneVsEquityView } from "./browne-vs-equity-view";
 import { loadCountryBrowne, loadBrowneComparison } from "./actions";
 import {
   filterInput,
@@ -44,7 +45,7 @@ type Tab = "country" | "comparison" | "vs_equity" | "methodology";
 const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[] = [
   { key: "country", label: "Vue pays", icon: LineChart, ready: true },
   { key: "comparison", label: "Comparaison pays", icon: Table2, ready: true },
-  { key: "vs_equity", label: "Browne vs Actions", icon: Swords, ready: false },
+  { key: "vs_equity", label: "Browne vs Actions", icon: Swords, ready: true },
   { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: false },
 ];
 
@@ -106,7 +107,7 @@ export function BrowneView({
   }
 
   useEffect(() => {
-    if (tab !== "comparison") return;
+    if (tab !== "comparison" && tab !== "vs_equity") return;
     let ignore = false;
     setComparisonLoading(true);
     loadBrowneComparison(rebalance, PERIOD_YEARS[period])
@@ -167,7 +168,7 @@ export function BrowneView({
       {/* Barre de paramètres contextuelle (dépend de l'onglet actif) */}
       <Card className="p-3">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {tab === "comparison" ? (
+          {tab === "comparison" || tab === "vs_equity" ? (
             <Control label="Région">
               <SelectDropdown
                 items={BROWNE_REGION_ITEMS}
@@ -229,6 +230,15 @@ export function BrowneView({
           onPick={onPickCountry}
           displayMode={displayMode}
           region={region}
+        />
+      ) : tab === "vs_equity" ? (
+        <BrowneVsEquityView
+          rows={comparison}
+          loading={comparisonLoading}
+          onPick={onPickCountry}
+          region={region}
+          rebalance={rebalance}
+          periodYears={PERIOD_YEARS[period]}
         />
       ) : (
         <Card className="p-10 text-center text-sm text-muted-foreground">

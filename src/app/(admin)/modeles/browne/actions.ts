@@ -3,9 +3,11 @@
 import {
   getCountryBrowne,
   computeBrowneComparison,
+  computeBrowneRealSeries,
   type CountryBrowneConfig,
   type BrowneDataQuality,
   type BrowneComparisonRow,
+  type BrowneRealSeries,
 } from "@/lib/coredata/browne-service";
 import type { ComputeBrowneInput, RebalanceFrequency } from "@/lib/coredata/browne";
 
@@ -35,4 +37,13 @@ export async function loadBrowneComparison(
   years: number | null,
 ): Promise<BrowneComparisonRow[]> {
   return computeBrowneComparison(rebalance, years);
+}
+
+/** Séries réelles (base 100) des pays sélectionnés — comparateur multi-pays. */
+export async function loadBrowneRealSeries(
+  codes: string[],
+  rebalance: RebalanceFrequency,
+  years: number | null,
+): Promise<BrowneRealSeries[]> {
+  return computeBrowneRealSeries(codes, rebalance, years);
 }
