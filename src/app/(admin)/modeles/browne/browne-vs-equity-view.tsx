@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Info, ShieldCheck, TrendingUp, Trophy, Scale, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Info, ShieldCheck, TrendingUp, Trophy, Scale, Users, Map as MapIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +22,7 @@ import {
 import { BrowneVsEquityMatrix } from "./browne-vs-equity-matrix";
 import { BrowneHeatmap } from "./browne-heatmap";
 import { BrowneMultiCompare } from "./browne-multi-compare";
+import { BrowneVerdictMap } from "./browne-verdict-map";
 
 interface Item {
   row: BrowneComparisonRow;
@@ -33,11 +34,11 @@ const fmtSignedRatio = (v: number | null): string =>
 
 // ─── Cartes de synthèse ──────────────────────────────────────────────────────
 
-function FlagsRow({ items, max = 7 }: { items: Item[]; max?: number }) {
+function FlagsRow({ items, max = 6 }: { items: Item[]; max?: number }) {
   const shown = items.slice(0, max);
-  const extra = items.length - shown.length;
+  const overflow = items.slice(max);
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-1">
+    <div className="mt-2 flex items-center gap-1">
       {shown.map((it) => (
         <CountryFlag
           key={it.row.countryCode}
@@ -46,7 +47,26 @@ function FlagsRow({ items, max = 7 }: { items: Item[]; max?: number }) {
           size={16}
         />
       ))}
-      {extra > 0 && <span className="text-[11px] text-muted-foreground">+{extra}</span>}
+      {overflow.length > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="cursor-pointer rounded-md border bg-background/60 px-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+            >
+              +{overflow.length}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className="flex max-w-[240px] flex-wrap gap-1.5">
+            {overflow.map((it) => (
+              <span key={it.row.countryCode} className="inline-flex items-center gap-1 text-[11px] text-background">
+                <CountryFlag code={it.row.countryCode} countryName={it.row.countryFr ?? it.row.countryCode} size={14} />
+                <span className="font-medium tabular-nums">{it.row.countryCode}</span>
+              </span>
+            ))}
+          </TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
 }
@@ -170,6 +190,7 @@ export function BrowneVsEquityView({
   const [sortKey, setSortKey] = useState("dd");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const [showCompare, setShowCompare] = useState(false);
+  const [showMap, setShowMap] = useState(false);
 
   const items = useMemo<Item[]>(() => {
     return (rows ?? [])
@@ -407,6 +428,28 @@ export function BrowneVsEquityView({
                 years={periodYears}
                 onPick={onPick}
               />
+            </div>
+          )}
+        </Card>
+
+        {/* Carte internationale des verdicts (optionnelle, charge la géo à la demande) */}
+        <Card className="gap-0 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <MapIcon className="size-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">Carte internationale des verdicts</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowMap((v) => !v)}
+              className="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              {showMap ? "Masquer" : "Afficher la carte"}
+            </button>
+          </div>
+          {showMap && (
+            <div className="mt-3">
+              <BrowneVerdictMap rows={items.map((it) => it.row)} region={region} />
             </div>
           )}
         </Card>
