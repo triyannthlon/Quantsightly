@@ -181,7 +181,7 @@ export type BrowneVerdict =
   | "Supérieur aux actions"
   | "Excellent compromis"
   | "Protecteur"
-  | "Peu convaincant"
+  | "Protection limitée"
   | "Profil atypique"
   | "Compromis modéré";
 
@@ -204,7 +204,7 @@ export const VERDICT_ORDER: BrowneVerdict[] = [
   "Excellent compromis",
   "Protecteur",
   "Compromis modéré",
-  "Peu convaincant",
+  "Protection limitée",
   "Profil atypique",
 ];
 
@@ -213,7 +213,7 @@ export const VERDICT_HEX: Record<BrowneVerdict, string> = {
   "Supérieur aux actions": "#34d399", // emerald-400
   "Excellent compromis": "#22d3ee", // cyan-400
   Protecteur: "#fbbf24", // amber-400
-  "Peu convaincant": "#f87171", // red-400
+  "Protection limitée": "#f87171", // red-400
   "Profil atypique": "#a78bfa", // violet-400
   "Compromis modéré": "#94a3b8", // slate-400
 };
@@ -223,7 +223,7 @@ export const VERDICT_TONE: Record<BrowneVerdict, string> = {
   "Supérieur aux actions": "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   "Excellent compromis": "border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
   Protecteur: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  "Peu convaincant": "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
+  "Protection limitée": "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
   "Profil atypique": "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400",
   "Compromis modéré": "border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400",
 };
@@ -234,7 +234,7 @@ export const VERDICT_DESC: Record<BrowneVerdict, string> = {
   "Excellent compromis": "Browne fait presque aussi bien que les actions, avec une baisse maximale nettement plus faible.",
   Protecteur: "Browne fait moins bien que les actions en rendement, mais réduit fortement les pertes maximales.",
   "Compromis modéré": "Browne apporte une amélioration partielle, sans remplir les critères des profils les plus favorables.",
-  "Peu convaincant": "Browne sous-performe les actions et ne réduit pas suffisamment le drawdown.",
+  "Protection limitée": "Browne sous-performe les actions et ne réduit pas suffisamment le drawdown.",
   "Profil atypique": "Browne présente un comportement inhabituel, par exemple plus de rendement mais aussi plus de risque.",
 };
 
@@ -275,7 +275,7 @@ export function browneVsEquity(row: BrowneComparisonRow): BrowneVsEquity {
     } else if (ecartReturn > 0 && (drawdownReduction < 0 || ecartVol > 0)) {
       verdict = "Profil atypique";
     } else if (ecartReturn < 0 && drawdownReduction < 10) {
-      verdict = "Peu convaincant";
+      verdict = "Protection limitée";
     } else {
       verdict = "Compromis modéré";
     }

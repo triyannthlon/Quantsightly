@@ -637,36 +637,44 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     key: "br-browne",
     term: "Portefeuille permanent de Browne",
     group: G_BR_PILOTAGE,
-    base: "Portefeuille réparti à parts égales entre actions, obligations longues, cash et or.",
+    base: "Portefeuille réparti entre actions, obligations longues, cash et or.",
     technique:
-      "Il cherche à rester robuste dans plusieurs environnements économiques plutôt qu’à prédire le meilleur actif à l’avance.",
+      "Dans Quantsightly, il est construit localement pour chaque pays avec quatre poches de 25 % : actions locales, obligations 10 ans, cash local et or converti dans la devise du pays. Son objectif n’est pas de prédire le meilleur actif, mais de rester robuste dans plusieurs environnements économiques.",
+    retenir:
+      "Le portefeuille Browne cherche la robustesse et la préservation du pouvoir d’achat, pas la performance maximale à tout moment.",
     source: "méthode",
   },
   "br-reequilibrage": {
     key: "br-reequilibrage",
     term: "Rééquilibrage",
     group: G_BR_PILOTAGE,
-    base: "Remise périodique des poches du portefeuille à leur poids cible.",
+    base: "Remise des quatre poches du portefeuille à leur poids cible.",
     technique:
-      "Un rééquilibrage à 25/25/25/25 force à vendre une partie des actifs qui ont monté et à racheter ceux qui ont baissé.",
+      "Le rééquilibrage ramène les actions, obligations, cash et or vers 25 % chacun. Entre deux rééquilibrages, les poids peuvent s’éloigner de 25 % selon la performance de chaque actif.",
+    retenir:
+      "Rééquilibrer revient souvent à vendre une partie de ce qui a beaucoup monté et à renforcer ce qui a moins bien performé.",
     source: "méthode",
   },
   "br-mode-analyse": {
     key: "br-mode-analyse",
     term: "Mode d’analyse",
     group: G_BR_PILOTAGE,
-    base: "Façon dont les performances sont affichées : nominal, réel, ou nominal vs inflation.",
+    base: "Façon de lire les résultats : nominal, réel, ou nominal vs inflation.",
     technique:
-      "Le mode choisi change la lecture : performance brute, pouvoir d’achat, ou comparaison directe avec l’inflation.",
+      "Le mode nominal montre la performance dans la devise courante. Le mode réel corrige les résultats de l’inflation locale. Le mode nominal vs inflation compare directement la progression du portefeuille à celle du coût de la vie.",
+    retenir:
+      "Le mode réel est le plus utile pour mesurer la préservation du pouvoir d’achat.",
     source: "méthode",
   },
   "br-periode-backtest": {
     key: "br-periode-backtest",
     term: "Période de backtest",
     group: G_BR_PILOTAGE,
-    base: "Intervalle historique utilisé pour calculer les performances et les risques.",
+    base: "Période historique utilisée pour calculer les performances et les risques.",
     technique:
-      "Une période longue donne une vision plus robuste, mais peut masquer des phases très différentes.",
+      "Une période longue permet de tester le portefeuille dans plusieurs environnements de marché. Une période courte peut être utile, mais elle donne une vision moins robuste.",
+    retenir:
+      "Plus l’historique est long, plus la lecture est riche ; mais le résultat dépend toujours de la période choisie.",
     source: "méthode",
   },
   "br-devise-analyse": {
@@ -675,7 +683,9 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     group: G_BR_PILOTAGE,
     base: "Devise dans laquelle les performances sont exprimées.",
     technique:
-      "En devise locale, on mesure l’expérience d’un investisseur du pays. En devise commune, on compare les pays du point de vue d’un investisseur international.",
+      "En devise locale, le portefeuille est analysé comme le verrait un investisseur du pays. En devise commune, les résultats peuvent être convertis dans une devise de référence pour comparer plusieurs pays du point de vue d’un investisseur international.",
+    retenir:
+      "La devise change fortement la lecture d’un portefeuille international.",
     source: "méthode",
   },
 
@@ -686,23 +696,31 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     group: G_BR_PERF,
     base: "Rendement annuel moyen composé sur la période.",
     technique:
-      "Elle indique le rythme de croissance moyen du portefeuille, en tenant compte de la capitalisation.",
+      "Elle transforme la performance totale en rythme annuel moyen, en tenant compte de la capitalisation. Elle permet de comparer des périodes de durées différentes.",
+    formule: "(Valeur finale / Valeur initiale)^(12 / nombre de mois) − 1",
+    retenir: "C’est le rythme moyen de croissance du capital sur la période.",
     source: "glossaire",
   },
   "br-perf-nominale": {
     key: "br-perf-nominale",
     term: "Performance nominale annualisée",
     group: G_BR_PERF,
-    base: "Rendement annuel moyen avant correction de l’inflation.",
-    technique: "Elle mesure la croissance du capital dans la devise courante.",
+    base: "Performance annuelle moyenne avant correction de l’inflation.",
+    technique:
+      "Elle mesure la croissance du capital dans la devise courante. Elle ne dit pas encore si le pouvoir d’achat a réellement augmenté.",
+    retenir:
+      "La performance nominale montre la progression visible du capital, mais pas son gain réel de pouvoir d’achat.",
     source: "glossaire",
   },
   "br-perf-reelle": {
     key: "br-perf-reelle",
     term: "Performance réelle annualisée",
     group: G_BR_PERF,
-    base: "Rendement annuel moyen après correction de l’inflation.",
-    technique: "Elle mesure le gain réel de pouvoir d’achat.",
+    base: "Performance annuelle moyenne après correction de l’inflation.",
+    technique:
+      "Elle mesure le rendement du portefeuille une fois retirée la hausse des prix. C’est l’indicateur clé pour savoir si le capital a réellement gagné du pouvoir d’achat.",
+    formule: "(1 + performance nominale) / (1 + inflation) − 1",
+    retenir: "La performance réelle répond à la question : ai-je gagné du pouvoir d’achat ?",
     source: "glossaire",
   },
   "br-perf-cumulee": {
@@ -710,7 +728,10 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     term: "Performance cumulée (base 100)",
     group: G_BR_PERF,
     base: "Évolution d’un investissement ramené à 100 au début de la période.",
-    technique: "Une valeur de 250 signifie que le capital a été multiplié par 2,5, soit +150 %.",
+    technique:
+      "Une valeur de 250 signifie que le capital a été multiplié par 2,5 depuis le début de la période, soit +150 %. La base 100 facilite la comparaison entre plusieurs séries.",
+    retenir:
+      "La base 100 permet de comparer visuellement plusieurs trajectoires depuis un même point de départ.",
     source: "glossaire",
   },
   "br-meilleure-annee": {
@@ -718,7 +739,8 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     term: "Meilleure année",
     group: G_BR_PERF,
     base: "Plus forte performance annuelle observée sur la période.",
-    technique: "Elle montre le meilleur scénario historique annuel du portefeuille.",
+    technique:
+      "Elle montre le meilleur scénario historique annuel du portefeuille. Elle complète la performance moyenne en montrant les phases très favorables.",
     source: "glossaire",
   },
   "br-pire-annee": {
@@ -726,7 +748,10 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     term: "Pire année",
     group: G_BR_PERF,
     base: "Plus mauvaise performance annuelle observée sur la période.",
-    technique: "Elle mesure la perte annuelle la plus sévère subie sur l’historique.",
+    technique:
+      "Elle montre la plus forte perte ou la plus faible performance observée sur une année civile. C’est une mesure simple du stress historique subi par l’investisseur.",
+    retenir:
+      "La pire année donne une idée concrète de ce que l’investisseur aurait pu vivre sur douze mois.",
     source: "glossaire",
   },
 
@@ -735,24 +760,31 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     key: "br-volatilite",
     term: "Volatilité annualisée",
     group: G_BR_RISQUE,
-    base: "Mesure de l’amplitude moyenne des variations du portefeuille sur une base annuelle.",
-    technique: "Plus elle est élevée, plus le portefeuille fluctue fortement.",
+    base: "Amplitude habituelle des variations du portefeuille sur une base annuelle.",
+    technique:
+      "Elle est calculée à partir des rendements mensuels, puis annualisée. Plus elle est élevée, plus la valeur du portefeuille fluctue fortement.",
+    formule: "Écart-type des rendements mensuels × √12",
+    retenir: "La volatilité mesure l’ampleur des variations, pas seulement les pertes.",
     source: "glossaire",
   },
   "br-max-drawdown": {
     key: "br-max-drawdown",
     term: "Max drawdown",
     group: G_BR_RISQUE,
-    base: "Perte maximale entre un sommet historique et le point bas suivant.",
-    technique: "C’est une mesure de la pire baisse subie par l’investisseur.",
+    base: "Pire perte observée entre un sommet historique et le point bas suivant.",
+    technique:
+      "Le max drawdown mesure la plus forte baisse subie avant de retrouver un nouveau sommet. C’est l’une des mesures les plus concrètes du risque vécu par l’investisseur.",
+    formule: "Valeur / plus haut historique − 1",
+    retenir: "Le max drawdown répond à la question : combien aurais-je pu perdre au pire ?",
     source: "glossaire",
   },
   "br-max-drawdown-nominal": {
     key: "br-max-drawdown-nominal",
     term: "Max drawdown nominal",
     group: G_BR_RISQUE,
-    base: "Max drawdown calculé sur la courbe non corrigée de l’inflation.",
-    technique: "Il mesure la perte maximale visible en devise courante.",
+    base: "Max drawdown calculé avant correction de l’inflation.",
+    technique:
+      "Il mesure la pire perte visible dans la devise courante. Il ne tient pas compte de la perte de pouvoir d’achat due à l’inflation.",
     source: "glossaire",
   },
   "br-drawdown-courant": {
@@ -760,25 +792,31 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     term: "Drawdown courant",
     group: G_BR_RISQUE,
     base: "Perte actuelle depuis le dernier plus haut historique.",
-    technique: "Il indique à quel point le portefeuille est actuellement sous son sommet.",
+    technique:
+      "Il indique à quel point le portefeuille est aujourd’hui sous son précédent sommet. Un drawdown courant de -5 % signifie que le portefeuille doit encore remonter d’environ 5,3 % pour retrouver son ancien sommet.",
+    retenir: "Le drawdown courant mesure la baisse en cours, pas la pire baisse historique.",
     source: "glossaire",
   },
   "br-duree-sous-eau": {
     key: "br-duree-sous-eau",
     term: "Durée max sous l’eau",
     group: G_BR_RISQUE,
-    base: "Plus longue période pendant laquelle le portefeuille est resté sous son précédent sommet.",
-    technique: "Elle mesure le temps maximal nécessaire pour récupérer après une baisse.",
+    base: "Plus longue période passée sous un précédent sommet.",
+    technique:
+      "Cette mesure indique combien de temps le portefeuille a mis, au maximum, pour retrouver un plus haut historique après une baisse.",
+    retenir:
+      "Deux portefeuilles peuvent avoir le même drawdown, mais l’un peut récupérer beaucoup plus lentement.",
     source: "glossaire",
   },
   "br-reduction-drawdown": {
     key: "br-reduction-drawdown",
     term: "Réduction de drawdown",
     group: G_BR_VS_ACTIONS,
-    base: "De combien Browne réduit la pire perte par rapport à l’indice actions local.",
+    base: "Baisse maximale évitée par Browne par rapport aux actions locales.",
     technique:
-      "Une réduction positive (en points) indique que Browne a mieux protégé le capital que les actions. C’est l’axe horizontal de la matrice « Compromis Browne vs Actions ».",
+      "Elle compare la pire perte du portefeuille Browne à celle de l’indice actions local. Une valeur positive signifie que Browne a mieux protégé le capital.",
     formule: "|Max DD actions| − |Max DD Browne|",
+    retenir: "Plus la réduction est élevée, plus Browne a protégé contre les pertes profondes.",
     source: "méthode",
   },
 
@@ -787,20 +825,24 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     key: "br-sharpe",
     term: "Ratio de Sharpe",
     group: G_BR_RR,
-    base: "Rapport entre le rendement excédentaire (au-delà du cash) et la volatilité.",
+    base: "Rendement obtenu au-dessus du cash, par unité de volatilité.",
     technique:
-      "Le rendement de la poche cash sert de taux sans risque. Plus le ratio est élevé, meilleur est le rendement obtenu par unité de risque.",
+      "Le Sharpe ne se calcule pas en divisant simplement la performance par la volatilité. On retire d’abord le rendement du cash local, puis on divise ce rendement excédentaire par la volatilité.",
+    formule: "(rendement annualisé − rendement du cash local) / volatilité annualisée",
+    retenir: "Le Sharpe mesure la rémunération du risque par rapport au cash de la même devise.",
     source: "glossaire",
   },
   "br-robustesse": {
     key: "br-robustesse",
     term: "Robustesse Browne",
     group: G_BR_RR,
-    base: "Score de 0 à 100 qui résume la capacité du portefeuille Browne à produire du rendement réel avec peu de risque, peu de perte et une bonne régularité.",
+    base: "Score de 0 à 100 qui résume la qualité du portefeuille Browne dans un pays.",
     technique:
-      "Calculé sur la courbe réelle (corrigée de l’inflation) à partir de cinq composantes pondérées : rendement réel (30 %), drawdown réel (25 %), volatilité réelle (15 %), durée sous l’eau (15 %) et régularité (15 %). Badges : Très robuste (≥ 80), Robuste (≥ 65), Moyen (≥ 50), Fragile (≥ 35), Très fragile (< 35).",
+      "Le score est calculé sur la courbe réelle, corrigée de l’inflation. Il combine cinq sous-scores : rendement réel, max drawdown réel, volatilité réelle, durée sous l’eau et régularité. Chaque composante est d’abord ramenée sur 0–100, puis pondérée.",
+    formule:
+      "30 % rendement réel + 25 % drawdown réel + 15 % volatilité réelle + 15 % durée sous l’eau + 15 % régularité",
     retenir:
-      "Il mesure la qualité du chemin, pas seulement la performance : deux pays au même rendement peuvent avoir des robustesses très différentes. La qualité des données reste indiquée séparément.",
+      "La robustesse mesure la qualité du parcours, pas seulement la performance finale. La qualité des données reste affichée séparément.",
     source: "méthode",
   },
 
@@ -809,8 +851,11 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     key: "br-inflation-annualisee",
     term: "Inflation annualisée",
     group: G_BR_INFLATION,
-    base: "Hausse annuelle moyenne des prix à la consommation sur la période.",
-    technique: "Elle représente l’érosion moyenne du pouvoir d’achat.",
+    base: "Hausse annuelle moyenne des prix sur la période.",
+    technique:
+      "Elle mesure l’érosion moyenne du pouvoir d’achat de la monnaie. Elle est calculée à partir de l’indice des prix à la consommation local.",
+    formule: "(CPI final / CPI initial)^(12 / nombre de mois) − 1",
+    retenir: "L’inflation est le seuil minimum à battre pour préserver le pouvoir d’achat.",
     source: "glossaire",
   },
   "br-ecart-inflation": {
@@ -819,7 +864,9 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     group: G_BR_INFLATION,
     base: "Différence entre la performance nominale annualisée et l’inflation annualisée.",
     technique:
-      "Un écart positif indique que le portefeuille progresse plus vite que le coût de la vie.",
+      "Il est affiché en points de pourcentage. Un écart positif signifie que le portefeuille progresse plus vite que le coût de la vie.",
+    formule: "Performance nominale annualisée − inflation annualisée",
+    retenir: "Un écart positif indique que le portefeuille bat l’inflation.",
     source: "méthode",
   },
   "br-pouvoir-achat": {
@@ -828,113 +875,130 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     group: G_BR_INFLATION,
     base: "Capacité du capital à acheter des biens et services après inflation.",
     technique:
-      "Un portefeuille protège le pouvoir d’achat s’il progresse plus vite que l’inflation.",
+      "Un portefeuille protège le pouvoir d’achat s’il progresse plus vite que l’inflation locale. C’est une lecture plus économique que la simple performance nominale.",
+    retenir: "Gagner en nominal ne suffit pas : il faut aussi battre l’inflation.",
     source: "glossaire",
   },
   "br-multiple-portefeuille": {
     key: "br-multiple-portefeuille",
     term: "Multiple portefeuille",
     group: G_BR_INFLATION,
-    base: "Multiplication du capital nominal sur la période.",
-    technique: "Un multiple de 10× signifie que le capital nominal a été multiplié par 10.",
+    base: "Facteur par lequel le capital nominal a été multiplié.",
+    technique:
+      "Un multiple de 10× signifie que le capital nominal est devenu dix fois plus élevé sur la période.",
+    retenir: "C’est une mesure cumulée, pas annualisée.",
     source: "glossaire",
   },
   "br-multiple-inflation": {
     key: "br-multiple-inflation",
     term: "Multiple inflation",
     group: G_BR_INFLATION,
-    base: "Multiplication du niveau général des prix sur la période.",
-    technique: "Un multiple de 4× signifie que les prix ont été multipliés par 4.",
+    base: "Facteur par lequel les prix ont été multipliés.",
+    technique:
+      "Un multiple de 4× signifie que le niveau général des prix a été multiplié par quatre sur la période.",
+    retenir: "Il montre combien le coût de la vie a augmenté.",
     source: "glossaire",
   },
   "br-multiple-reel": {
     key: "br-multiple-reel",
     term: "Multiple réel",
     group: G_BR_INFLATION,
-    base: "Multiple du portefeuille après correction de l’inflation.",
-    technique: "Il indique combien le pouvoir d’achat du capital a réellement été multiplié.",
+    base: "Facteur de multiplication du capital après correction de l’inflation.",
+    technique:
+      "Il indique combien le pouvoir d’achat du capital a réellement été multiplié sur la période.",
+    retenir: "C’est le multiple le plus parlant pour mesurer l’enrichissement réel.",
     source: "glossaire",
   },
 
   // ─── Browne — Comparaison & sources ─────────────────────────────────────────
   "br-comparaison-actions": {
     key: "br-comparaison-actions",
-    term: "Comparaison Browne vs Actions (écart en points)",
+    term: "Comparaison Browne vs Actions",
     group: G_BR_COMPARAISON,
-    base: "Différence entre une métrique du portefeuille Browne et celle de l’indice actions local.",
+    base: "Comparaison entre le portefeuille Browne et l’indice actions local.",
     technique:
-      "Un écart positif ou négatif montre si Browne fait mieux ou moins bien que les actions sur la métrique observée.",
+      "Elle permet de voir si Browne offre plus de stabilité, moins de drawdown ou un meilleur rendement-risque que les actions locales.",
+    retenir: "La question n’est pas seulement : qui gagne le plus ? Mais aussi : à quel risque ?",
     source: "méthode",
   },
+  "br-contribution": {
+    key: "br-contribution",
+    term: "Sources de performance",
+    group: G_BR_COMPARAISON,
+    base: "Répartition des contributions des quatre poches à la performance du portefeuille.",
+    technique:
+      "Les contributions montrent quels actifs ont le plus porté le portefeuille : actions, obligations, cash ou or. Elles sont calculées à partir des rendements de chaque poche et de leurs poids dans le portefeuille.",
+    retenir:
+      "Cette mesure montre d’où vient la performance, sans représenter exactement la part du gain final capitalisé.",
+    source: "méthode",
+  },
+
+  // ─── Browne vs Actions ──────────────────────────────────────────────────────
   "br-vs-actions": {
     key: "br-vs-actions",
-    term: "Browne vs Actions (approche relative)",
+    term: "Browne vs Actions",
     group: G_BR_VS_ACTIONS,
-    base: "Comparaison, pays par pays, du portefeuille Browne local avec l’indice actions local, en réel.",
+    base: "Analyse du compromis entre Browne et l’indice actions local.",
     technique:
-      "On ne regarde pas seulement le niveau de Browne, mais l’écart avec les actions : rendement, volatilité, drawdown, Sharpe. Ces écarts déterminent un verdict.",
+      "Cette approche compare, pays par pays, le rendement réel, la volatilité, le drawdown et le Sharpe du portefeuille Browne avec ceux des actions locales.",
     retenir:
-      "La vraie question : Browne améliore-t-il l’expérience de l’investisseur par rapport aux actions locales ?",
+      "Elle répond à la question : Browne améliore-t-il l’expérience de l’investisseur par rapport aux actions ?",
     source: "méthode",
   },
   "br-ecart-rendement": {
     key: "br-ecart-rendement",
     term: "Écart de rendement",
     group: G_BR_VS_ACTIONS,
-    base: "Rendement réel annualisé de Browne moins celui de l’indice actions, en points.",
+    base: "Différence de rendement entre Browne et les actions locales.",
     technique:
-      "Négatif = Browne rend moins que les actions ; positif = Browne fait mieux. C’est l’axe vertical de la matrice.",
+      "Un écart positif signifie que Browne a fait mieux que les actions en rendement annualisé. Un écart négatif signifie qu’il a moins rapporté.",
     formule: "CAGR Browne − CAGR actions",
+    retenir: "C’est le gain ou le coût en rendement par rapport aux actions.",
     source: "méthode",
   },
   "br-ecart-volatilite": {
     key: "br-ecart-volatilite",
     term: "Écart de volatilité",
     group: G_BR_VS_ACTIONS,
-    base: "Volatilité réelle de Browne moins celle des actions, en points.",
-    technique: "Négatif = Browne est moins volatil (chemin plus stable) que les actions.",
-    formule: "Volatilité Browne − Volatilité actions",
+    base: "Différence de volatilité entre Browne et les actions locales.",
+    technique:
+      "Un écart négatif signifie que Browne a été moins volatil que les actions. C’est généralement favorable, car le parcours a été moins agité.",
+    formule: "Volatilité Browne − volatilité actions",
+    retenir: "Un écart négatif indique un portefeuille plus stable que les actions.",
     source: "méthode",
   },
   "br-ecart-sharpe": {
     key: "br-ecart-sharpe",
     term: "Écart de Sharpe",
     group: G_BR_VS_ACTIONS,
-    base: "Ratio de Sharpe de Browne moins celui des actions.",
+    base: "Différence entre le Sharpe de Browne et celui des actions locales.",
     technique:
-      "Positif = Browne offre un meilleur rendement par unité de risque que les actions locales.",
+      "Un écart positif signifie que Browne a offert un meilleur rendement excédentaire par unité de volatilité.",
     formule: "Sharpe Browne − Sharpe actions",
+    retenir: "Il mesure si Browne améliore le couple rendement-risque.",
     source: "méthode",
   },
   "br-verdict": {
     key: "br-verdict",
     term: "Profil Browne vs Actions",
     group: G_BR_VS_ACTIONS,
-    base: "Qualifie le type de compromis entre Browne et les actions locales, en six catégories.",
+    base: "Catégorie qui qualifie le compromis entre Browne et les actions locales.",
     technique:
-      "Six profils : Supérieur aux actions, Excellent compromis, Protecteur, Compromis modéré, Peu convaincant, Profil atypique. Les règles de calcul détaillées figurent dans la page Méthodologie.",
+      "Le profil n’est pas un jugement absolu. Il décrit le type de compromis observé : supérieur aux actions, excellent compromis, protecteur, compromis modéré, protection limitée ou profil atypique.",
     retenir:
-      "Un profil n’est pas un jugement absolu : « Protecteur » signifie que Browne protège fortement, même s’il rend un peu moins que les actions.",
+      "Un profil « Protecteur » peut être positif : il signifie que Browne rend moins que les actions, mais réduit fortement les pertes.",
     source: "méthode",
   },
   "br-regularite": {
     key: "br-regularite",
-    term: "Régularité par horizon (taux de réussite)",
+    term: "Régularité par horizon",
     group: G_BR_VS_ACTIONS,
-    base: "Part des périodes de détention où Browne atteint son objectif, selon l’horizon (1, 3, 5, 10, 20 ans).",
+    base: "Pourcentage de périodes où Browne atteint un objectif donné.",
     technique:
-      "Deux mesures : bat l’inflation (rendement réel positif) ou bat les actions locales. Une période correspond à un horizon glissant ; 100 % sur 5 ans = réussite sur toutes les périodes de 5 ans observées.",
+      "Deux mesures existent : « bat l’inflation », qui indique les périodes où Browne gagne du pouvoir d’achat, et « bat les actions », qui indique les périodes où Browne fait mieux que l’indice actions local. Les horizons peuvent être 1, 3, 5, 10 ou 20 ans.",
+    formule: "Nombre de périodes réussies / nombre total de périodes observées",
     retenir:
-      "Plus l’horizon est long, plus Browne bat souvent l’inflation ; il ne bat pas toujours les actions.",
-    source: "méthode",
-  },
-  "br-contribution": {
-    key: "br-contribution",
-    term: "Contribution des poches (sources de performance)",
-    group: G_BR_COMPARAISON,
-    base: "Répartition des contributions cumulées des quatre poches du portefeuille.",
-    technique:
-      "Elle montre quels actifs ont le plus porté la performance : actions, obligations, cash ou or.",
+      "Cette mesure montre si le résultat est régulier dans le temps, et pas seulement bon sur la période complète.",
     source: "méthode",
   },
 
@@ -943,27 +1007,32 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     key: "br-proxy-structurel",
     term: "Proxy structurel",
     group: G_BR_DONNEES,
-    base: "Série reconstruite par méthode standard lorsqu’une donnée directement observable n’est pas disponible.",
+    base: "Série reconstruite lorsqu’une série directement exploitable n’est pas disponible.",
     technique:
-      "Ce n’est pas une anomalie : c’est une approximation normale et documentée du modèle.",
+      "Un proxy structurel n’est pas une anomalie. C’est une méthode standard et documentée, notamment pour reconstruire certaines séries d’obligations 10 ans ou de cash.",
+    retenir:
+      "Proxy structurel signifie approximation méthodologique normale, pas donnée de mauvaise qualité.",
     source: "méthode",
   },
   "br-qualite-donnees": {
     key: "br-qualite-donnees",
     term: "Qualité des données",
     group: G_BR_DONNEES,
-    base: "Indication sur la fiabilité et la méthode utilisée pour chaque poche.",
+    base: "Indication sur la manière dont chaque série a été obtenue.",
     technique:
-      "Elle permet de savoir si les résultats reposent sur des séries de référence, observées, converties, reconstruites ou en repli.",
+      "La qualité des données distingue les séries de référence, observées, converties, reconstruites par proxy structurel ou utilisées en repli. Elle permet de savoir à quel point les résultats reposent sur des données directement adaptées au modèle.",
+    retenir: "La qualité des données est affichée séparément du score de robustesse.",
     source: "méthode",
   },
   "br-echelle-log": {
     key: "br-echelle-log",
-    term: "Échelle logarithmique (vs linéaire)",
+    term: "Échelle logarithmique",
     group: G_BR_DONNEES,
-    base: "Échelle où les mêmes pourcentages de variation occupent la même distance verticale.",
+    base: "Échelle qui compare mieux les variations en pourcentage sur longue période.",
     technique:
-      "Elle est plus adaptée aux longues périodes, car elle compare mieux les rythmes de croissance. L’échelle linéaire montre mieux les écarts de niveau absolu.",
+      "Sur une échelle logarithmique, une hausse de 100 à 200 occupe le même espace qu’une hausse de 1 000 à 2 000, car ce sont deux hausses de +100 %. Elle est souvent plus adaptée aux graphiques de performance longue durée.",
+    retenir:
+      "Logarithmique = meilleure lecture des rythmes de croissance ; linéaire = meilleure lecture des écarts de niveau.",
     source: "glossaire",
   },
 };

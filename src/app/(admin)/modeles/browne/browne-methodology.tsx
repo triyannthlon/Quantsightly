@@ -16,7 +16,7 @@ const RULE_ORDER: BrowneVerdict[] = [
   "Excellent compromis",
   "Protecteur",
   "Profil atypique",
-  "Peu convaincant",
+  "Protection limitée",
   "Compromis modéré",
 ];
 const PROFILE_RULES: Record<BrowneVerdict, string> = {
@@ -24,7 +24,7 @@ const PROFILE_RULES: Record<BrowneVerdict, string> = {
   "Excellent compromis": "écart rendement ≥ −1,5 pt · réduction drawdown ≥ 20 pts · écart volatilité ≤ −3 pts",
   Protecteur: "écart rendement < −1,5 pt · réduction drawdown ≥ 20 pts",
   "Profil atypique": "écart rendement > 0 ET (réduction drawdown < 0 OU écart volatilité > 0)",
-  "Peu convaincant": "écart rendement < 0 · réduction drawdown < 10 pts",
+  "Protection limitée": "écart rendement < 0 · réduction drawdown < 10 pts",
   "Compromis modéré": "tous les autres cas",
 };
 
