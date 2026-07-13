@@ -31,7 +31,7 @@ const GLOBAL_GOLD_ID = "XAU Comdty-XX-5-1";
 export const SHORT_HISTORY_MONTHS = 180; // 15 ans
 
 /** Niveau de qualité d'une poche (méthode d'obtention de la série). */
-export type SleeveQuality = "Idéal" | "Repli" | "Proxy structurel" | "Converti" | "Observé";
+export type SleeveQuality = "Référence" | "Repli" | "Proxy structurel" | "Converti" | "Observé";
 
 /** Badge de qualité globale d'un pays. */
 export type BrowneDataQuality =
@@ -129,7 +129,7 @@ export function deriveBrowneConfig(
       method: equityTR
         ? "Indice total-return (dividendes réinvestis)"
         : "Prix simple (dividendes non inclus)",
-      quality: equityTR ? "Idéal" : "Repli",
+      quality: equityTR ? "Référence" : "Repli",
     },
     bond: {
       label: "Obligations 10 ans",

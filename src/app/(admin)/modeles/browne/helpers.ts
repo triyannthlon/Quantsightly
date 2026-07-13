@@ -182,7 +182,7 @@ export type BrowneVerdict =
   | "Excellent compromis"
   | "Protecteur"
   | "Peu convaincant"
-  | "Cas atypique"
+  | "Profil atypique"
   | "Compromis modéré";
 
 /** Écarts RELATIFS Browne − Actions (base de l'onglet) + verdict. */
@@ -205,7 +205,7 @@ export const VERDICT_ORDER: BrowneVerdict[] = [
   "Protecteur",
   "Compromis modéré",
   "Peu convaincant",
-  "Cas atypique",
+  "Profil atypique",
 ];
 
 /** Hex par verdict (points de la matrice, carte). */
@@ -214,7 +214,7 @@ export const VERDICT_HEX: Record<BrowneVerdict, string> = {
   "Excellent compromis": "#22d3ee", // cyan-400
   Protecteur: "#fbbf24", // amber-400
   "Peu convaincant": "#f87171", // red-400
-  "Cas atypique": "#a78bfa", // violet-400
+  "Profil atypique": "#a78bfa", // violet-400
   "Compromis modéré": "#94a3b8", // slate-400
 };
 
@@ -224,18 +224,18 @@ export const VERDICT_TONE: Record<BrowneVerdict, string> = {
   "Excellent compromis": "border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
   Protecteur: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
   "Peu convaincant": "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
-  "Cas atypique": "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  "Profil atypique": "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400",
   "Compromis modéré": "border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400",
 };
 
-/** Explication courte par verdict (tooltips des badges, méthodologie). */
+/** Explication courte par profil (tooltips des badges, méthodologie). */
 export const VERDICT_DESC: Record<BrowneVerdict, string> = {
-  "Supérieur aux actions": "Browne fait mieux que les actions en rendement, tout en réduisant le risque.",
-  "Excellent compromis": "Browne fait presque aussi bien que les actions, mais avec beaucoup moins de pertes.",
+  "Supérieur aux actions": "Browne fait mieux que les actions en rendement tout en réduisant le risque.",
+  "Excellent compromis": "Browne fait presque aussi bien que les actions, avec une baisse maximale nettement plus faible.",
   Protecteur: "Browne fait moins bien que les actions en rendement, mais réduit fortement les pertes maximales.",
-  "Peu convaincant": "Browne sous-performe les actions et ne réduit pas suffisamment les pertes.",
-  "Cas atypique": "Browne fait mieux en rendement, mais avec un risque supérieur (volatilité ou drawdown).",
-  "Compromis modéré": "Browne apporte un compromis, mais pas assez marqué pour être classé Excellent compromis ou Protecteur.",
+  "Compromis modéré": "Browne apporte une amélioration partielle, sans remplir les critères des profils les plus favorables.",
+  "Peu convaincant": "Browne sous-performe les actions et ne réduit pas suffisamment le drawdown.",
+  "Profil atypique": "Browne présente un comportement inhabituel, par exemple plus de rendement mais aussi plus de risque.",
 };
 
 /**
@@ -273,7 +273,7 @@ export function browneVsEquity(row: BrowneComparisonRow): BrowneVsEquity {
     } else if (ecartReturn < -1.5 && drawdownReduction >= 20) {
       verdict = "Protecteur";
     } else if (ecartReturn > 0 && (drawdownReduction < 0 || ecartVol > 0)) {
-      verdict = "Cas atypique";
+      verdict = "Profil atypique";
     } else if (ecartReturn < 0 && drawdownReduction < 10) {
       verdict = "Peu convaincant";
     } else {

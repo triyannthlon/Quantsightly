@@ -338,7 +338,7 @@ export function BrowneVsEquityView({
                       onClick={() => toggle("verdict", "asc")}
                       className="inline-flex cursor-pointer items-center gap-1 hover:text-foreground"
                     >
-                      <span className={cn(sortKey === "verdict" && "text-foreground")}>Verdict</span>
+                      <span className={cn(sortKey === "verdict" && "text-foreground")}>Profil</span>
                       {sortKey === "verdict" ? (
                         dir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
                       ) : (

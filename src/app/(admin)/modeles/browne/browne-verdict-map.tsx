@@ -11,7 +11,7 @@ const MAP_CLASS: Record<BrowneVerdict, { fill: string; dot: string }> = {
   "Excellent compromis": { fill: "fill-[#22d3ee] stroke-[#22d3ee]", dot: "bg-[#22d3ee]" },
   Protecteur: { fill: "fill-[#fbbf24] stroke-[#fbbf24]", dot: "bg-[#fbbf24]" },
   "Peu convaincant": { fill: "fill-[#f87171] stroke-[#f87171]", dot: "bg-[#f87171]" },
-  "Cas atypique": { fill: "fill-[#a78bfa] stroke-[#a78bfa]", dot: "bg-[#a78bfa]" },
+  "Profil atypique": { fill: "fill-[#a78bfa] stroke-[#a78bfa]", dot: "bg-[#a78bfa]" },
   "Compromis modéré": { fill: "fill-[#94a3b8] stroke-[#94a3b8]", dot: "bg-[#94a3b8]" },
 };
 
@@ -59,7 +59,7 @@ export function BrowneVerdictMap({
             <div className="font-semibold">{name}</div>
             {ve?.verdict ? (
               <div className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
-                <span className="text-muted-foreground">Verdict :</span>
+                <span className="text-muted-foreground">Profil :</span>
                 <span className="text-right font-semibold" style={{ color: VERDICT_HEX[ve.verdict] }}>
                   {ve.verdict}
                 </span>
@@ -86,7 +86,7 @@ export function BrowneVerdictMap({
         if (!present.length) return null;
         return (
           <div className="rounded-xl border bg-card p-3">
-            <div className="mb-2 text-xs font-medium text-muted-foreground">Verdicts couverts</div>
+            <div className="mb-2 text-xs font-medium text-muted-foreground">Profils couverts</div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-muted-foreground">
               {present.map((v) => (
                 <span key={v} className="inline-flex items-center gap-1.5">

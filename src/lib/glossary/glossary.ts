@@ -908,13 +908,13 @@ const ENTRIES: Record<string, GlossaryEntry> = {
   },
   "br-verdict": {
     key: "br-verdict",
-    term: "Verdict Browne vs Actions",
+    term: "Profil Browne vs Actions",
     group: G_BR_VS_ACTIONS,
-    base: "Synthèse du compromis Browne vs actions locales, en six catégories.",
+    base: "Qualifie le type de compromis entre Browne et les actions locales, en six catégories.",
     technique:
-      "Règles (première remplie, dans l’ordre) : Supérieur aux actions (écart rendement ≥ 0, réduction drawdown ≥ 5 pts, écart volatilité ≤ 0) ; Excellent compromis (écart rendement ≥ −1,5 pt, réduction drawdown ≥ 20 pts, écart volatilité ≤ −3 pts) ; Protecteur (écart rendement < −1,5 pt, réduction drawdown ≥ 20 pts) ; Cas atypique (écart rendement > 0 avec réduction drawdown < 0 ou écart volatilité > 0) ; Peu convaincant (écart rendement < 0 et réduction drawdown < 10 pts) ; Compromis modéré (tous les autres cas).",
+      "Six profils : Supérieur aux actions, Excellent compromis, Protecteur, Compromis modéré, Peu convaincant, Profil atypique. Les règles de calcul détaillées figurent dans la page Méthodologie.",
     retenir:
-      "Un verdict n’est pas un jugement absolu : « Protecteur » signifie que Browne protège fortement, même s’il rend un peu moins que les actions.",
+      "Un profil n’est pas un jugement absolu : « Protecteur » signifie que Browne protège fortement, même s’il rend un peu moins que les actions.",
     source: "méthode",
   },
   "br-regularite": {
@@ -954,7 +954,7 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     group: G_BR_DONNEES,
     base: "Indication sur la fiabilité et la méthode utilisée pour chaque poche.",
     technique:
-      "Elle permet de savoir si les résultats reposent sur des séries idéales, observées, converties, reconstruites ou en repli.",
+      "Elle permet de savoir si les résultats reposent sur des séries de référence, observées, converties, reconstruites ou en repli.",
     source: "méthode",
   },
   "br-echelle-log": {

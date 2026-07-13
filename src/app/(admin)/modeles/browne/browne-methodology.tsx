@@ -2,7 +2,31 @@
 
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { ROBUSTNESS_TONE } from "./helpers";
+import {
+  ROBUSTNESS_TONE,
+  VERDICT_ORDER,
+  VERDICT_TONE,
+  VERDICT_DESC,
+  type BrowneVerdict,
+} from "./helpers";
+
+// Ordre d'ÉVALUATION des règles de profil (première remplie l'emporte).
+const RULE_ORDER: BrowneVerdict[] = [
+  "Supérieur aux actions",
+  "Excellent compromis",
+  "Protecteur",
+  "Profil atypique",
+  "Peu convaincant",
+  "Compromis modéré",
+];
+const PROFILE_RULES: Record<BrowneVerdict, string> = {
+  "Supérieur aux actions": "écart rendement ≥ 0 · réduction drawdown ≥ 5 pts · écart volatilité ≤ 0",
+  "Excellent compromis": "écart rendement ≥ −1,5 pt · réduction drawdown ≥ 20 pts · écart volatilité ≤ −3 pts",
+  Protecteur: "écart rendement < −1,5 pt · réduction drawdown ≥ 20 pts",
+  "Profil atypique": "écart rendement > 0 ET (réduction drawdown < 0 OU écart volatilité > 0)",
+  "Peu convaincant": "écart rendement < 0 · réduction drawdown < 10 pts",
+  "Compromis modéré": "tous les autres cas",
+};
 
 // ─── Petits blocs réutilisables ──────────────────────────────────────────────
 
@@ -88,9 +112,23 @@ function DocTable({ head, rows }: { head: string[]; rows: React.ReactNode[][] })
   );
 }
 
-function QualityBadge({ children, className }: { children: React.ReactNode; className?: string }) {
+function QualityBadge({
+  children,
+  className,
+  w = "min-w-[6.5rem]",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  w?: string;
+}) {
   return (
-    <span className={cn("inline-block min-w-[6.5rem] rounded-md border px-2 py-0.5 text-center text-[11px] font-medium whitespace-nowrap", className)}>
+    <span
+      className={cn(
+        "inline-block rounded-md border px-2 py-0.5 text-center text-[11px] font-medium whitespace-nowrap",
+        w,
+        className,
+      )}
+    >
       {children}
     </span>
   );
@@ -305,6 +343,41 @@ Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée de
             ]}
           />
         </Sub>
+
+        <Sub
+          title="Profil Browne vs Actions"
+          intuition="Le profil qualifie le type de compromis Browne vs actions — ce n’est pas un jugement absolu."
+        >
+          <p>
+            Le profil ne compare pas seulement les rendements : il qualifie le <strong>compromis</strong>{" "}
+            entre rendement, volatilité et drawdown par rapport à l’indice actions local. Un
+            portefeuille Browne peut être <strong>intéressant même s’il rend moins</strong> que les
+            actions, dès lors qu’il réduit fortement les pertes.
+          </p>
+          <DocTable
+            head={["Profil", "Signification"]}
+            rows={VERDICT_ORDER.map((v) => [
+              <QualityBadge key={v} w="min-w-[10rem]" className={VERDICT_TONE[v]}>
+                {v}
+              </QualityBadge>,
+              VERDICT_DESC[v],
+            ])}
+          />
+          <p className="text-xs text-muted-foreground">
+            Règles de classement — la <strong>première règle remplie</strong> (dans l’ordre) l’emporte :
+          </p>
+          <DocTable
+            head={["Profil", "Règle"]}
+            rows={RULE_ORDER.map((v) => [
+              <QualityBadge key={v} w="min-w-[10rem]" className={VERDICT_TONE[v]}>
+                {v}
+              </QualityBadge>,
+              <span key={`${v}-r`} className="font-mono text-[11px] text-foreground/85">
+                {PROFILE_RULES[v]}
+              </span>,
+            ])}
+          />
+        </Sub>
       </Section>
 
       {/* 3 — Hypothèses */}
@@ -343,15 +416,16 @@ Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée de
       <Section id="meth-donnees" n={4} title="Qualité des données">
         <p>
           Chaque poche est construite à partir d’une série de données. La qualité indique comment
-          cette série a été obtenue et à quel point elle correspond à la donnée idéale.
+          cette série a été obtenue et à quel point elle correspond à une série directement
+          exploitable.
         </p>
         <DocTable
           head={["Badge (poche)", "Signification"]}
           rows={[
-            ["Idéal", "Série directement adaptée au modèle (ex. indice actions total return)."],
+            ["Référence", "Série directement adaptée au modèle (ex. indice actions total return)."],
             ["Observé", "Série directement observée (ex. CPI local)."],
             ["Converti", "Série transformée dans la devise locale (ex. or USD converti en EUR)."],
-            ["Proxy structurel", "Série reconstruite par une méthode standard quand l’indice idéal n’existe pas."],
+            ["Proxy structurel", "Série reconstruite par une méthode standard lorsqu’une série directement exploitable n’est pas disponible."],
             ["Repli", "Série moins complète utilisée faute de meilleure donnée disponible."],
           ]}
         />
@@ -360,7 +434,7 @@ Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée de
           <DocTable
             head={["Poche", "Série", "Qualité"]}
             rows={[
-              ["Actions", "CAC 40 GR", "Idéal"],
+              ["Actions", "CAC 40 GR", "Référence"],
               ["Obligations", "Proxy total-return 10 ans", "Proxy structurel"],
               ["Cash", "Indice capitalisé à partir du taux court", "Proxy structurel"],
               ["Or", "XAU USD converti en EUR", "Converti"],
@@ -370,7 +444,7 @@ Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée de
         </div>
         <p className="rounded-md border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2 text-foreground/90">
           <strong>Un proxy structurel n’est pas une anomalie.</strong> C’est une méthode standard
-          utilisée lorsque la série directement investissable n’existe pas, notamment pour les
+          utilisée lorsqu’une série directement exploitable n’est pas disponible, notamment pour les
           obligations 10 ans et le cash.
         </p>
         <DocTable

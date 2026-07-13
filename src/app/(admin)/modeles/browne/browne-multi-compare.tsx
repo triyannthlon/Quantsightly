@@ -178,7 +178,7 @@ export function BrowneMultiCompare({
                   <th className="px-3 py-2 text-right font-medium">Max DD réel</th>
                   <th className="px-3 py-2 text-right font-medium">Sous l’eau</th>
                   <th className="px-3 py-2 text-right font-medium">Sharpe réel</th>
-                  <th className="px-3 py-2 text-left font-medium">Verdict vs actions</th>
+                  <th className="px-3 py-2 text-left font-medium">Profil vs actions</th>
                 </tr>
               </thead>
               <tbody>

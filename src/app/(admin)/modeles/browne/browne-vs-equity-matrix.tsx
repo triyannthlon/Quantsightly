@@ -204,7 +204,7 @@ export function BrowneVsEquityMatrix({
             <TipRow label="Réduction drawdown" value={pts(hover.p.x)} />
             <TipRow label="Sharpe Browne" value={ratio(hover.p.sharpeBrowne)} />
             <TipRow label="Sharpe Actions" value={ratio(hover.p.sharpeActions)} />
-            <span className="text-right whitespace-nowrap text-muted-foreground">Verdict :</span>
+            <span className="text-right whitespace-nowrap text-muted-foreground">Profil :</span>
             <span className="text-right font-semibold" style={{ color: hover.p.color }}>
               {hover.p.verdict}
             </span>
