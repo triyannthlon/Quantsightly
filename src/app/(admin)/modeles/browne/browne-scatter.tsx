@@ -80,17 +80,17 @@ function Segmented<T extends string>({
   options: { value: T; label: string }[];
 }) {
   return (
-    <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
+    <div className="inline-flex items-center rounded-md border border-border/50 bg-background/40 p-0.5 text-xs">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
           className={cn(
-            "cursor-pointer rounded px-2 py-0.5 font-medium transition-colors",
+            "cursor-pointer rounded px-2.5 py-1 font-medium transition-all",
             value === o.value
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
+              ? "bg-slate-700/70 text-white shadow-sm ring-1 ring-slate-500/50"
+              : "text-slate-400 hover:text-slate-200",
           )}
         >
           {o.label}

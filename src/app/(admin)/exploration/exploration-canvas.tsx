@@ -850,7 +850,7 @@ export function ExplorationCanvas({
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Affichage : Niveau brut / Rebasé à 100 */}
-                    <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
+                    <div className="inline-flex items-center rounded-md border border-border/50 bg-background/40 p-0.5 text-xs">
                       {(["raw", "base100"] as const).map((d) => (
                         <button
                           key={d}
@@ -863,12 +863,12 @@ export function ExplorationCanvas({
                               : undefined
                           }
                           className={cn(
-                            "rounded px-2 py-0.5 font-medium transition-colors",
+                            "rounded px-2.5 py-1 font-medium transition-all",
                             (isBase100 ? "base100" : "raw") === d
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground",
+                              ? "bg-slate-700/70 text-white shadow-sm ring-1 ring-slate-500/50"
+                              : "text-slate-400 hover:text-slate-200",
                             d === "base100" && !canRebase
-                              ? "cursor-not-allowed opacity-40 hover:text-muted-foreground"
+                              ? "cursor-not-allowed opacity-40 hover:text-slate-400"
                               : "cursor-pointer",
                           )}
                         >
@@ -877,7 +877,7 @@ export function ExplorationCanvas({
                       ))}
                     </div>
                     {/* Échelle : Linéaire / Log */}
-                    <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
+                    <div className="inline-flex items-center rounded-md border border-border/50 bg-background/40 p-0.5 text-xs">
                       {(["linear", "log"] as const).map((s) => (
                         <button
                           key={s}
@@ -890,12 +890,12 @@ export function ExplorationCanvas({
                               : undefined
                           }
                           className={cn(
-                            "rounded px-2 py-0.5 font-medium transition-colors",
+                            "rounded px-2.5 py-1 font-medium transition-all",
                             effectiveScale === s
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground",
+                              ? "bg-slate-700/70 text-white shadow-sm ring-1 ring-slate-500/50"
+                              : "text-slate-400 hover:text-slate-200",
                             s === "log" && !canLog
-                              ? "cursor-not-allowed opacity-40 hover:text-muted-foreground"
+                              ? "cursor-not-allowed opacity-40 hover:text-slate-400"
                               : "cursor-pointer",
                           )}
                         >
