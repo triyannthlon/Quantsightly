@@ -220,12 +220,13 @@ export function BrowneMethodology() {
           </p>
         </Sub>
 
-        <Sub title="Rendement du portefeuille Browne" intuition="Le portefeuille avance comme la moyenne de ses quatre poches, remises à parts égales au rééquilibrage.">
-          <Formula>{`r_Browne,ₜ = 0,25·r_Actions,ₜ + 0,25·r_Obligations,ₜ + 0,25·r_Cash,ₜ + 0,25·r_Or,ₜ`}</Formula>
+        <Sub title="Rendement du portefeuille Browne" intuition="Le portefeuille avance comme la moyenne pondérée de ses quatre poches.">
+          <Formula>{`r_Browne,ₜ = w_Actions,ₜ·r_Actions,ₜ + w_Obligations,ₜ·r_Obligations,ₜ + w_Cash,ₜ·r_Cash,ₜ + w_Or,ₜ·r_Or,ₜ`}</Formula>
           <p>
-            Au moment du rééquilibrage, chaque poche est ramenée à 25 %. Entre deux rééquilibrages,
-            les poids dérivent selon la performance des actifs.
+            Au rééquilibrage, chaque poids wₖ est remis à 25 % ; entre deux rééquilibrages, les poids
+            dérivent selon la performance des actifs. En rééquilibrage mensuel, cela revient à :
           </p>
+          <Formula>{`r_Browne,ₜ = 0,25·r_Actions,ₜ + 0,25·r_Obligations,ₜ + 0,25·r_Cash,ₜ + 0,25·r_Or,ₜ`}</Formula>
         </Sub>
 
         <Sub title="Performance cumulée (base 100)" intuition="Une façon de lire toutes les courbes sur la même échelle, en partant de 100.">
@@ -278,6 +279,18 @@ Perf. réelle annualisée   = (1 + perf. nom. ann.) / (1 + inflation ann.) − 1
           </p>
         </Sub>
 
+        <Sub title="Volatilité annualisée" intuition="L’amplitude des variations mensuelles, ramenée à l’année.">
+          <Formula>{`Volatilité annualisée = écart-type des rendements mensuels × √12`}</Formula>
+        </Sub>
+
+        <Sub title="Régularité" intuition="À quelle fréquence Browne atteint son objectif sur les périodes glissantes.">
+          <Formula>{`Régularité = nb de périodes positives en réel / nb total de périodes observées`}</Formula>
+          <p>
+            Pour la mesure « bat les actions », on compte les périodes où Browne <strong>surperforme
+            l’indice actions local</strong> (au lieu des périodes à rendement réel positif).
+          </p>
+        </Sub>
+
         <Sub title="Ratio de Sharpe (excédent sur le cash local)" intuition="Cette formule mesure ce que le portefeuille rapporte au-dessus du cash, par unité de risque.">
           <p>
             Le ratio de Sharpe mesure le rendement obtenu <strong>au-dessus du cash</strong>, par
@@ -290,9 +303,10 @@ Sharpe Browne  = (CAGR Browne  − CAGR cash local) / volatilité annualisée du
 Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée des actions`}</Formula>
           <p>
             Le taux sans risque est le <strong>rendement de la poche cash dans la devise du pays</strong>,
-            sur la même période et selon le mode d’analyse (nominal ou réel). Cette convention permet
-            la comparaison internationale : un pays au cash très rémunérateur n’est pas évalué comme un
-            pays au cash quasi nul.
+            sur la même période que le backtest. <strong>En mode nominal</strong>, le Sharpe utilise le
+            cash nominal local ; <strong>en mode réel</strong>, le cash réel local (corrigé de
+            l’inflation). Cette convention permet la comparaison internationale : un pays au cash très
+            rémunérateur n’est pas évalué comme un pays au cash quasi nul.
           </p>
         </Sub>
 
@@ -306,8 +320,13 @@ Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée de
             Un pays peut donc afficher un rendement réel élevé mais un score plus faible si le chemin
             est trop volatil, si les pertes sont profondes ou si le temps de récupération est long.
           </p>
-          <Formula>{`Score = 30 %·rendement réel + 25 %·max drawdown réel
-      + 15 %·volatilité réelle + 15 %·durée sous l’eau + 15 %·régularité`}</Formula>
+          <Formula>{`Score = 30 %·score_rendement_réel + 25 %·score_drawdown_réel
+      + 15 %·score_volatilité_réelle + 15 %·score_durée_sous_l’eau + 15 %·score_régularité`}</Formula>
+          <p>
+            Chaque <code className="font-mono">score_…</code> est la composante correspondante d’abord
+            transformée en <strong>sous-score de 0 à 100</strong> (interpolation linéaire bornée entre
+            les deux seuils ci-dessous), puis pondérée.
+          </p>
           <DocTable
             head={["Composante", "Poids", "Ce que cela mesure"]}
             rows={[
@@ -318,10 +337,7 @@ Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée de
               ["Régularité", "15 %", "Fréquence des périodes positives en réel"],
             ]}
           />
-          <p className="text-xs text-muted-foreground">
-            Chaque composante est ramenée sur 0–100 par interpolation linéaire entre ces deux seuils
-            (bornée) :
-          </p>
+          <p className="text-xs text-muted-foreground">Seuils utilisés pour chaque sous-score :</p>
           <DocTable
             head={["Composante", "Score 100", "Score 0"]}
             rows={[
@@ -342,6 +358,13 @@ Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée de
               ["0 – 34", <QualityBadge key="e" className={ROBUSTNESS_TONE["Très fragile"]}>Très fragile</QualityBadge>],
             ]}
           />
+        </Sub>
+
+        <Sub title="Écarts Browne vs Actions" intuition="Les mesures relatives qui alimentent le profil : on compare Browne à l’indice actions local.">
+          <Formula>{`Écart rendement    = CAGR Browne − CAGR actions
+Écart volatilité   = Volatilité Browne − Volatilité actions
+Réduction drawdown = |Max DD actions| − |Max DD Browne|
+Écart Sharpe       = Sharpe Browne − Sharpe actions`}</Formula>
         </Sub>
 
         <Sub
