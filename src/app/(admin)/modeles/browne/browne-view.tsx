@@ -134,7 +134,37 @@ export function BrowneView({
 
   return (
     <div className="space-y-4">
-      {/* Barre de paramètres globale */}
+      {/* Onglets — navigation principale de la page (sticky au scroll) */}
+      <div className="sticky top-0 z-20 -mx-6 bg-background/85 px-6 backdrop-blur-sm">
+        <nav className="flex flex-wrap gap-1 border-b border-border/60">
+          {TABS.map((t) => {
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className={cn(
+                  "relative -mb-px inline-flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                  active
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <t.icon className={cn("size-4", active ? "text-primary" : "opacity-70")} />
+                {t.label}
+                {!t.ready && (
+                  <span className="ml-0.5 rounded bg-muted px-1 py-px text-[9px] font-medium tracking-wide text-muted-foreground/70 uppercase">
+                    bientôt
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Barre de paramètres contextuelle (dépend de l'onglet actif) */}
       <Card className="p-3">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {tab === "comparison" ? (
@@ -175,31 +205,6 @@ export function BrowneView({
           </Control>
         </div>
       </Card>
-
-      {/* Onglets */}
-      <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            className={cn(
-              "inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium transition-colors",
-              tab === t.key
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <t.icon className="size-3.5" />
-            {t.label}
-            {!t.ready && (
-              <span className="rounded-full border border-border px-1 text-[10px] leading-none uppercase">
-                bientôt
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
 
       {/* Contenu */}
       {tab === "country" ? (

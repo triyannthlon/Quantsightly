@@ -27,11 +27,13 @@ function Tab({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium transition-colors",
-        active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+        "relative -mb-px inline-flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+        active
+          ? "border-primary text-foreground"
+          : "border-transparent text-muted-foreground hover:text-foreground",
       )}
     >
-      <Icon className="size-3.5" />
+      <Icon className={cn("size-4", active ? "text-primary" : "opacity-70")} />
       {label}
     </button>
   );
@@ -66,8 +68,9 @@ export function QuadrantsView({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+      {/* Onglets — navigation principale de la page (sticky au scroll) */}
+      <div className="sticky top-0 z-20 -mx-6 bg-background/85 px-6 backdrop-blur-sm">
+        <nav className="flex flex-wrap gap-1 border-b border-border/60">
           <Tab
             active={view === "quadrants"}
             icon={Grid2x2}
@@ -81,17 +84,18 @@ export function QuadrantsView({
             label="Historique"
             onClick={() => setView("history")}
           />
-        </div>
+        </nav>
+      </div>
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          {COUNTERS.map((r) => (
-            <span key={r.key} className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <span className={cn("size-2.5 rounded-full", r.dot)} />
-              {r.label}
-              <span className="font-semibold tabular-nums text-foreground">{counts[r.key]}</span>
-            </span>
-          ))}
-        </div>
+      {/* Compteurs de régimes (légende globale) */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        {COUNTERS.map((r) => (
+          <span key={r.key} className="inline-flex items-center gap-1.5 text-muted-foreground">
+            <span className={cn("size-2.5 rounded-full", r.dot)} />
+            {r.label}
+            <span className="font-semibold tabular-nums text-foreground">{counts[r.key]}</span>
+          </span>
+        ))}
       </div>
 
       {(view === "map" || view === "history") && (
