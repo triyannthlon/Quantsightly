@@ -150,11 +150,11 @@ function LeaderCard({
       <CardHead icon={Icon} label={label} desc={desc} formula={formula} />
       {item ? (
         <>
-          <div className="mt-1 flex items-center gap-2">
-            <CountryFlag code={item.row.countryCode} countryName={item.row.countryFr ?? item.row.countryCode} size={18} />
-            <span className="truncate font-semibold">{item.row.countryFr ?? item.row.countryCode}</span>
+          <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
+          <div className="mt-2 flex items-center gap-1.5">
+            <CountryFlag code={item.row.countryCode} countryName={item.row.countryFr ?? item.row.countryCode} size={16} />
+            <span className="truncate text-sm font-medium">{item.row.countryFr ?? item.row.countryCode}</span>
           </div>
-          <div className="mt-0.5 text-xl font-semibold tabular-nums">{value}</div>
         </>
       ) : (
         <div className="mt-1 text-sm text-muted-foreground">—</div>
