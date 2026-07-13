@@ -629,7 +629,7 @@ export function BrowneCountryView({
         {/* Résumé */}
         <Card className="gap-0 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-4">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-slate-800 shadow-sm sm:size-12">
                 <CountryFlag
                   code={config.countryCode}
@@ -642,7 +642,7 @@ export function BrowneCountryView({
                   <h2 className="text-lg font-semibold">{config.countryFr ?? config.countryCode}</h2>
                   <RobustnessPill robustness={robustness} />
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                   Portefeuille Browne local en {config.currency}
                 </p>
               </div>
