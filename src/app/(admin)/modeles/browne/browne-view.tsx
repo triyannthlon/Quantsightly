@@ -21,6 +21,7 @@ import type {
 import { BrowneCountryView } from "./browne-country-view";
 import { BrowneComparisonView } from "./browne-comparison-view";
 import { BrowneVsEquityView } from "./browne-vs-equity-view";
+import { BrowneMethodology } from "./browne-methodology";
 import { loadCountryBrowne, loadBrowneComparison } from "./actions";
 import {
   filterInput,
@@ -46,7 +47,7 @@ const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[
   { key: "country", label: "Vue pays", icon: LineChart, ready: true },
   { key: "comparison", label: "Comparaison pays", icon: Table2, ready: true },
   { key: "vs_equity", label: "Browne vs Actions", icon: Swords, ready: true },
-  { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: false },
+  { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: true },
 ];
 
 const REBALANCE_ITEMS: SelectItem[] = (
@@ -165,7 +166,8 @@ export function BrowneView({
         </nav>
       </div>
 
-      {/* Barre de paramètres contextuelle (dépend de l'onglet actif) */}
+      {/* Barre de paramètres contextuelle (dépend de l'onglet actif ; masquée sur la doc) */}
+      {tab !== "methodology" && (
       <Card className="p-3">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {tab === "comparison" || tab === "vs_equity" ? (
@@ -206,6 +208,7 @@ export function BrowneView({
           </Control>
         </div>
       </Card>
+      )}
 
       {/* Contenu */}
       {tab === "country" ? (
@@ -240,6 +243,8 @@ export function BrowneView({
           rebalance={rebalance}
           periodYears={PERIOD_YEARS[period]}
         />
+      ) : tab === "methodology" ? (
+        <BrowneMethodology />
       ) : (
         <Card className="p-10 text-center text-sm text-muted-foreground">
           Onglet « {TABS.find((t) => t.key === tab)?.label} » — bientôt disponible.
