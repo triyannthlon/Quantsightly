@@ -204,6 +204,7 @@ export function BrowneVsEquityView({
 }) {
   const [sortKey, setSortKey] = useState("dd");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
+  const [showHeatmap, setShowHeatmap] = useState(true);
   const [showCompare, setShowCompare] = useState(false);
   const [showMap, setShowMap] = useState(false);
 
@@ -416,22 +417,35 @@ export function BrowneVsEquityView({
 
         {/* Heatmap de régularité */}
         <Card className="gap-0 p-4">
-          <div className="mb-3 flex items-center gap-1.5">
-            <h3 className="text-sm font-semibold">Régularité par horizon</h3>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
-                  <Info className="size-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-72">
-                Taux de réussite de Browne selon la durée de détention, sur deux mesures : gagner du
-                pouvoir d’achat (bat l’inflation) ou faire mieux que les actions locales. Plus c’est
-                vert, plus c’est fréquent.
-              </TooltipContent>
-            </Tooltip>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-sm font-semibold">Régularité par horizon</h3>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
+                    <Info className="size-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-72">
+                  Taux de réussite de Browne selon la durée de détention, sur deux mesures : gagner du
+                  pouvoir d’achat (bat l’inflation) ou faire mieux que les actions locales. Plus c’est
+                  vert, plus c’est fréquent.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowHeatmap((v) => !v)}
+              className="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              {showHeatmap ? "Masquer" : "Afficher"}
+            </button>
           </div>
-          <BrowneHeatmap rows={items.map((it) => it.row)} onPick={onPick} />
+          {showHeatmap && (
+            <div className="mt-3">
+              <BrowneHeatmap rows={items.map((it) => it.row)} onPick={onPick} />
+            </div>
+          )}
         </Card>
 
         {/* Comparateur multi-pays */}

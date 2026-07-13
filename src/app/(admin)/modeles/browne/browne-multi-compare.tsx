@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CountryFlag } from "@/components/ui/CountryFlag";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { EconomicDataPoint } from "@/lib/coredata/types";
 import type { RebalanceFrequency } from "@/lib/coredata/browne";
@@ -15,6 +16,7 @@ import {
   fmtMonths,
   browneVsEquity,
   VERDICT_TONE,
+  VERDICT_DESC,
 } from "./helpers";
 import { loadBrowneRealSeries } from "./actions";
 
@@ -205,9 +207,21 @@ export function BrowneMultiCompare({
                       <td className="px-3 py-2.5 text-right tabular-nums">{fmtRatio(r.real?.sharpe)}</td>
                       <td className="px-3 py-2.5">
                         {ve.verdict && (
-                          <span className={cn("inline-block rounded-md border px-1.5 py-0.5 text-[11px] font-medium", VERDICT_TONE[ve.verdict])}>
-                            {ve.verdict}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span
+                                className={cn(
+                                  "inline-block min-w-[150px] cursor-help rounded-md border px-2 py-0.5 text-center text-[11px] font-medium whitespace-nowrap",
+                                  VERDICT_TONE[ve.verdict],
+                                )}
+                              >
+                                {ve.verdict}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-60">
+                              {VERDICT_DESC[ve.verdict]}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </td>
                     </tr>

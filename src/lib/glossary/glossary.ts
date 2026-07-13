@@ -44,6 +44,7 @@ const G_BR_RR = "Rendement-risque";
 const G_BR_INFLATION = "Inflation & pouvoir d’achat";
 const G_BR_COMPARAISON = "Comparaison & sources";
 const G_BR_DONNEES = "Données & graphes";
+const G_BR_VS_ACTIONS = "Browne vs Actions";
 
 const ENTRIES: Record<string, GlossaryEntry> = {
   // ─── Régime macro ─────────────────────────────────────────────────────────
@@ -773,10 +774,11 @@ const ENTRIES: Record<string, GlossaryEntry> = {
   "br-reduction-drawdown": {
     key: "br-reduction-drawdown",
     term: "Réduction de drawdown",
-    group: G_BR_RISQUE,
-    base: "Différence entre le drawdown de Browne et celui de l’indice actions.",
+    group: G_BR_VS_ACTIONS,
+    base: "De combien Browne réduit la pire perte par rapport à l’indice actions local.",
     technique:
-      "Une réduction positive indique que Browne a mieux protégé le capital que les actions.",
+      "Une réduction positive (en points) indique que Browne a mieux protégé le capital que les actions. C’est l’axe horizontal de la matrice « Compromis Browne vs Actions ».",
+    formule: "|Max DD actions| − |Max DD Browne|",
     source: "méthode",
   },
 
@@ -862,6 +864,68 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     base: "Différence entre une métrique du portefeuille Browne et celle de l’indice actions local.",
     technique:
       "Un écart positif ou négatif montre si Browne fait mieux ou moins bien que les actions sur la métrique observée.",
+    source: "méthode",
+  },
+  "br-vs-actions": {
+    key: "br-vs-actions",
+    term: "Browne vs Actions (approche relative)",
+    group: G_BR_VS_ACTIONS,
+    base: "Comparaison, pays par pays, du portefeuille Browne local avec l’indice actions local, en réel.",
+    technique:
+      "On ne regarde pas seulement le niveau de Browne, mais l’écart avec les actions : rendement, volatilité, drawdown, Sharpe. Ces écarts déterminent un verdict.",
+    retenir:
+      "La vraie question : Browne améliore-t-il l’expérience de l’investisseur par rapport aux actions locales ?",
+    source: "méthode",
+  },
+  "br-ecart-rendement": {
+    key: "br-ecart-rendement",
+    term: "Écart de rendement",
+    group: G_BR_VS_ACTIONS,
+    base: "Rendement réel annualisé de Browne moins celui de l’indice actions, en points.",
+    technique:
+      "Négatif = Browne rend moins que les actions ; positif = Browne fait mieux. C’est l’axe vertical de la matrice.",
+    formule: "CAGR Browne − CAGR actions",
+    source: "méthode",
+  },
+  "br-ecart-volatilite": {
+    key: "br-ecart-volatilite",
+    term: "Écart de volatilité",
+    group: G_BR_VS_ACTIONS,
+    base: "Volatilité réelle de Browne moins celle des actions, en points.",
+    technique: "Négatif = Browne est moins volatil (chemin plus stable) que les actions.",
+    formule: "Volatilité Browne − Volatilité actions",
+    source: "méthode",
+  },
+  "br-ecart-sharpe": {
+    key: "br-ecart-sharpe",
+    term: "Écart de Sharpe",
+    group: G_BR_VS_ACTIONS,
+    base: "Ratio de Sharpe de Browne moins celui des actions.",
+    technique:
+      "Positif = Browne offre un meilleur rendement par unité de risque que les actions locales.",
+    formule: "Sharpe Browne − Sharpe actions",
+    source: "méthode",
+  },
+  "br-verdict": {
+    key: "br-verdict",
+    term: "Verdict Browne vs Actions",
+    group: G_BR_VS_ACTIONS,
+    base: "Synthèse du compromis Browne vs actions locales, en six catégories.",
+    technique:
+      "Règles (première remplie, dans l’ordre) : Supérieur aux actions (écart rendement ≥ 0, réduction drawdown ≥ 5 pts, écart volatilité ≤ 0) ; Excellent compromis (écart rendement ≥ −1,5 pt, réduction drawdown ≥ 20 pts, écart volatilité ≤ −3 pts) ; Protecteur (écart rendement < −1,5 pt, réduction drawdown ≥ 20 pts) ; Cas atypique (écart rendement > 0 avec réduction drawdown < 0 ou écart volatilité > 0) ; Peu convaincant (écart rendement < 0 et réduction drawdown < 10 pts) ; Compromis modéré (tous les autres cas).",
+    retenir:
+      "Un verdict n’est pas un jugement absolu : « Protecteur » signifie que Browne protège fortement, même s’il rend un peu moins que les actions.",
+    source: "méthode",
+  },
+  "br-regularite": {
+    key: "br-regularite",
+    term: "Régularité par horizon (taux de réussite)",
+    group: G_BR_VS_ACTIONS,
+    base: "Part des périodes de détention où Browne atteint son objectif, selon l’horizon (1, 3, 5, 10, 20 ans).",
+    technique:
+      "Deux mesures : bat l’inflation (rendement réel positif) ou bat les actions locales. Une période correspond à un horizon glissant ; 100 % sur 5 ans = réussite sur toutes les périodes de 5 ans observées.",
+    retenir:
+      "Plus l’horizon est long, plus Browne bat souvent l’inflation ; il ne bat pas toujours les actions.",
     source: "méthode",
   },
   "br-contribution": {

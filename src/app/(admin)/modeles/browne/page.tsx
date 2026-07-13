@@ -28,7 +28,6 @@ const LEXIQUE_TERMS = [
   "br-max-drawdown-nominal",
   "br-drawdown-courant",
   "br-duree-sous-eau",
-  "br-reduction-drawdown",
   // Rendement-risque
   "br-sharpe",
   "br-robustesse",
@@ -42,6 +41,14 @@ const LEXIQUE_TERMS = [
   // Comparaison & sources
   "br-comparaison-actions",
   "br-contribution",
+  // Browne vs Actions
+  "br-vs-actions",
+  "br-ecart-rendement",
+  "br-ecart-volatilite",
+  "br-reduction-drawdown",
+  "br-ecart-sharpe",
+  "br-verdict",
+  "br-regularite",
   // Données & graphes
   "br-proxy-structurel",
   "br-qualite-donnees",
