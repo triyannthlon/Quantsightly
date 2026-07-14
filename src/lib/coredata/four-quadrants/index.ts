@@ -4,6 +4,7 @@
 // dédié, sur le modèle de `quadrant-service.ts` / `browne-service.ts`.
 
 export * from "./types";
+export * from "./settings";
 export * from "./ratios";
 export * from "./robust-normalization";
 export * from "./coordinates";

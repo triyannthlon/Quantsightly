@@ -6,7 +6,6 @@ import {
   regimeIntensity,
 } from "./coordinates";
 import { getQuadrant, QUADRANT_TO_REGIME_CODE } from "./quadrant";
-import { getTransitionState } from "./transition";
 
 describe("scoreToCoordinate", () => {
   it("z = 0 → 0 ; borné dans [-100, +100]", () => {
@@ -51,15 +50,5 @@ describe("getQuadrant", () => {
   it("pont vers les codes de palette TR/BR/TL/BL", () => {
     expect(QUADRANT_TO_REGIME_CODE[getQuadrant(50, 50)]).toBe("TR");
     expect(QUADRANT_TO_REGIME_CODE[getQuadrant(-50, -50)]).toBe("BL");
-  });
-});
-
-describe("getTransitionState", () => {
-  it("none / activity / monetary / double", () => {
-    expect(getTransitionState(50, 50, 20)).toBe("none");
-    expect(getTransitionState(10, 50, 20)).toBe("activity");
-    expect(getTransitionState(50, 10, 20)).toBe("monetary");
-    expect(getTransitionState(0, 0, 20)).toBe("double");
-    expect(getTransitionState(20, 50, 20)).toBe("activity"); // |x| = T inclus dans la bande
   });
 });

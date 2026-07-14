@@ -8,16 +8,22 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 /**
- * État de transition : un axe est « en transition » quand |coord| ≤ T.
- * La zone de transition n'affecte QUE l'allocation, jamais les coordonnées
- * brutes ni la cinématique (vitesse / accélération).
+ * État de transition : un axe est « en transition » quand |coord| ≤ T (T borné
+ * à [0, 50]). Les deux axes sont évalués séparément. La zone de transition
+ * n'affecte QUE l'état + l'allocation cible — jamais les coordonnées brutes, le
+ * quadrant affiché, l'intensité, la vitesse, l'accélération ou la trajectoire.
  */
-export function getTransitionState(x: number, y: number, transitionWidth = DEFAULT_TRANSITION_WIDTH): TransitionState {
-  const activity = Math.abs(x) <= transitionWidth;
-  const monetary = Math.abs(y) <= transitionWidth;
-  if (activity && monetary) return "double";
-  if (activity) return "activity";
-  if (monetary) return "monetary";
+export function computeTransitionState(
+  x: number,
+  y: number,
+  transitionWidth = DEFAULT_TRANSITION_WIDTH,
+): TransitionState {
+  const T = Math.max(0, Math.min(50, transitionWidth));
+  const activityInTransition = Math.abs(x) <= T;
+  const monetaryInTransition = Math.abs(y) <= T;
+  if (activityInTransition && monetaryInTransition) return "double";
+  if (activityInTransition) return "activity";
+  if (monetaryInTransition) return "monetary";
   return "none";
 }
 
