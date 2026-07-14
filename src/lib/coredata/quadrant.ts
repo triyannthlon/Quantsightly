@@ -5,12 +5,26 @@
 // Deux axes, calculés en log et dans la DEVISE DU PAYS :
 //   X — Croissance : ln(actions / pétrole)
 //   Y — Inflation  : ln(or / obligations 10 ans)
-// Chaque ratio est comparé à sa moyenne mobile 7 ans (84 mois) EXCLUANT le mois
-// courant (pour ne pas que le point influence sa propre référence). L'écart à la
-// tendance, passé par un seuil neutre, donne le signal de chaque axe ; la
-// combinaison des deux signaux donne le quadrant.
+//
+// ⚠️ Depuis 2026-07-13, ce moteur PARTAGE la convention du module « 4 Quadrants »
+// (`four-quadrants/`), devenue la convention par défaut — AUCUNE divergence entre
+// les deux moteurs :
+//   • MM7 sur 84 mois INCLUANT le dernier mois clôturé ;
+//   • écart normalisé robuste (MAD sur la même fenêtre → `tanh`) → coordonnées
+//     `x, y ∈ [-100, +100]` (cf. `four-quadrants/robust-normalization`) ;
+//   • bande neutre = seuil `T` sur les coordonnées normalisées (`|coord| ≤ T`).
+// L'écart brut à la MM7 + le seuil ±0,05 de l'ancienne version sont ABANDONNÉS.
 
 import type { EconomicDataPoint } from "./types";
+import {
+  robustDeviationSeries,
+  activityCoordinate,
+  monetaryCoordinate,
+  mean,
+  minMonthsForScore,
+  DEFAULT_WINDOW,
+  DEFAULT_TRANSITION_WIDTH,
+} from "./four-quadrants";
 
 export type AxisSignal = "ACCELERATING" | "NEUTRAL" | "DECELERATING";
 
@@ -30,10 +44,10 @@ export type QuadrantStatus =
   | "INVALID_VALUE"
   | "STALE_DATA";
 
-/** Seuil neutre (écart relatif ≈ en log) en deçà duquel l'axe est « neutre ». */
-export const DEFAULT_THRESHOLD = 0.05;
-/** Fenêtre de la moyenne mobile : 7 ans = 84 mois. */
-export const DEFAULT_LOOKBACK_MONTHS = 84;
+/** Demi-largeur de la bande neutre `T`, sur l'échelle normalisée [-100, +100]. */
+export const DEFAULT_THRESHOLD = DEFAULT_TRANSITION_WIDTH;
+/** Fenêtre de la moyenne mobile : 7 ans = 84 mois (mois courant inclus). */
+export const DEFAULT_LOOKBACK_MONTHS = DEFAULT_WINDOW;
 
 // ─── Libellés & descriptions par quadrant ───────────────────────────────────
 
@@ -70,10 +84,10 @@ export const QUADRANT_DESCRIPTIONS: Record<Quadrant, string> = {
 
 // ─── Fonctions de classification (pures) ────────────────────────────────────
 
-/** Écart à la tendance → signal de l'axe, avec bande neutre ±threshold. */
-export function getAxisSignal(gap: number, threshold = DEFAULT_THRESHOLD): AxisSignal {
-  if (gap > threshold) return "ACCELERATING";
-  if (gap < -threshold) return "DECELERATING";
+/** Coordonnée normalisée → signal de l'axe, avec bande neutre ±T. */
+export function getAxisSignal(coord: number, threshold = DEFAULT_THRESHOLD): AxisSignal {
+  if (coord > threshold) return "ACCELERATING";
+  if (coord < -threshold) return "DECELERATING";
   return "NEUTRAL";
 }
 
@@ -86,11 +100,11 @@ export function getQuadrant(growth: AxisSignal, inflation: AxisSignal): Quadrant
   return "TRANSITION";
 }
 
-/** Force du régime = distance du plus FAIBLE des deux axes à sa bande neutre. */
-export function getConvictionLevel(growthGap: number, inflationGap: number): ConvictionLevel {
-  const minAbs = Math.min(Math.abs(growthGap), Math.abs(inflationGap));
-  if (minAbs < 0.1) return "LOW";
-  if (minAbs < 0.3) return "MEDIUM";
+/** Force du régime = distance (normalisée) du plus FAIBLE des deux axes au centre. */
+export function getConvictionLevel(x: number, y: number): ConvictionLevel {
+  const minAbs = Math.min(Math.abs(x), Math.abs(y));
+  if (minAbs < 20) return "LOW";
+  if (minAbs < 50) return "MEDIUM";
   return "HIGH";
 }
 
@@ -138,6 +152,19 @@ function align4(
   return out;
 }
 
+/** Coordonnées normalisées (activité, monnaie) à partir des séries de log-ratios. */
+function coordinateSeries(growth: number[], inflation: number[]): {
+  x: (number | null)[];
+  y: (number | null)[];
+} {
+  const zG = robustDeviationSeries(growth);
+  const zI = robustDeviationSeries(inflation);
+  return {
+    x: zG.map((z) => (z === null ? null : activityCoordinate(z))),
+    y: zI.map((z) => (z === null ? null : monetaryCoordinate(z))),
+  };
+}
+
 // ─── Résultat ───────────────────────────────────────────────────────────────
 
 export interface QuadrantMetrics {
@@ -145,8 +172,12 @@ export interface QuadrantMetrics {
   inflationRatio: number;
   growthMA7Y: number;
   inflationMA7Y: number;
+  /** Écart brut à la MM7 (mois courant inclus) — informatif. */
   growthGap: number;
   inflationGap: number;
+  /** Coordonnées normalisées robustes [-100, +100] qui pilotent la classification. */
+  x: number;
+  y: number;
   growthSignal: AxisSignal;
   inflationSignal: AxisSignal;
   quadrant: Quadrant;
@@ -183,10 +214,6 @@ export interface ComputeQuadrantInput {
   lookbackMonths?: number;
 }
 
-function average(values: number[]): number {
-  return values.reduce((s, v) => s + v, 0) / values.length;
-}
-
 /**
  * Calcule le positionnement d'un pays dans les 4 quadrants à sa dernière date
  * disponible. Renvoie un statut explicite si le calcul est impossible.
@@ -216,46 +243,45 @@ export function computeQuadrant(input: ComputeQuadrantInput): QuadrantResult {
   // Le log exige des valeurs strictement positives (prix/total-return le sont).
   const valid = aligned.filter((p) => p.equity > 0 && p.oil > 0 && p.gold > 0 && p.bond > 0);
   if (valid.length === 0) return fail("INVALID_VALUE");
-  if (valid.length < lookbackMonths + 1) {
+  if (valid.length < minMonthsForScore(lookbackMonths)) {
     return fail("INSUFFICIENT_HISTORY", valid[valid.length - 1].date);
   }
 
-  const ratios = valid.map((p) => ({
-    date: p.date,
-    growth: Math.log(p.equity / p.oil),
-    inflation: Math.log(p.gold / p.bond),
-  }));
+  const growth = valid.map((p) => Math.log(p.equity / p.oil));
+  const inflation = valid.map((p) => Math.log(p.gold / p.bond));
+  const { x: xs, y: ys } = coordinateSeries(growth, inflation);
+  const last = valid.length - 1;
+  const x = xs[last];
+  const y = ys[last];
+  if (x === null || y === null) return fail("INSUFFICIENT_HISTORY", valid[last].date);
 
-  const lastIndex = ratios.length - 1;
-  const last = ratios[lastIndex];
-  const prev = ratios.slice(lastIndex - lookbackMonths, lastIndex); // 84 mois AVANT le courant
-  const growthMA7Y = average(prev.map((r) => r.growth));
-  const inflationMA7Y = average(prev.map((r) => r.inflation));
-  const growthGap = last.growth - growthMA7Y;
-  const inflationGap = last.inflation - inflationMA7Y;
-  const growthSignal = getAxisSignal(growthGap, threshold);
-  const inflationSignal = getAxisSignal(inflationGap, threshold);
+  const growthMA7Y = mean(growth.slice(-lookbackMonths));
+  const inflationMA7Y = mean(inflation.slice(-lookbackMonths));
+  const growthSignal = getAxisSignal(x, threshold);
+  const inflationSignal = getAxisSignal(y, threshold);
   const quadrant = getQuadrant(growthSignal, inflationSignal);
 
   return {
     status: "OK",
     countryCode,
-    date: last.date,
+    date: valid[last].date,
     threshold,
     lookbackMonths,
-    growthRatio: last.growth,
-    inflationRatio: last.inflation,
+    growthRatio: growth[last],
+    inflationRatio: inflation[last],
     growthMA7Y,
     inflationMA7Y,
-    growthGap,
-    inflationGap,
+    growthGap: growth[last] - growthMA7Y,
+    inflationGap: inflation[last] - inflationMA7Y,
+    x,
+    y,
     growthSignal,
     inflationSignal,
     quadrant,
     quadrantLabel: QUADRANT_LABELS[quadrant],
     regimeName: QUADRANT_REGIME[quadrant],
     quadrantDescription: QUADRANT_DESCRIPTIONS[quadrant],
-    convictionLevel: getConvictionLevel(growthGap, inflationGap),
+    convictionLevel: getConvictionLevel(x, y),
   };
 }
 
@@ -286,10 +312,9 @@ export type QuadrantHistoryResult =
     };
 
 /**
- * Régime de chaque mois pour lequel on dispose d'au moins `lookbackMonths` mois
- * d'antériorité. Même règle que `computeQuadrant` appliquée glissante : pour le
- * mois i, la MM7Y porte sur les 84 mois AVANT i. Moyenne mobile en somme
- * glissante (O(n)). Le dernier point est identique à `computeQuadrant`.
+ * Régime de chaque mois pour lequel on dispose d'assez d'antériorité (≥ 2·84−1
+ * mois). Même normalisation que `computeQuadrant`, appliquée glissante via
+ * `robustDeviationSeries`. Le dernier point est identique à `computeQuadrant`.
  */
 export function computeQuadrantHistory(input: ComputeQuadrantInput): QuadrantHistoryResult {
   const { countryCode } = input;
@@ -315,35 +340,25 @@ export function computeQuadrantHistory(input: ComputeQuadrantInput): QuadrantHis
   );
   const valid = aligned.filter((p) => p.equity > 0 && p.oil > 0 && p.gold > 0 && p.bond > 0);
   if (valid.length === 0) return fail("INVALID_VALUE");
-  if (valid.length < lookbackMonths + 1) return fail("INSUFFICIENT_HISTORY");
+  if (valid.length < minMonthsForScore(lookbackMonths)) return fail("INSUFFICIENT_HISTORY");
 
-  const ratios = valid.map((p) => ({
-    date: p.date,
-    growth: Math.log(p.equity / p.oil),
-    inflation: Math.log(p.gold / p.bond),
-  }));
+  const growth = valid.map((p) => Math.log(p.equity / p.oil));
+  const inflation = valid.map((p) => Math.log(p.gold / p.bond));
+  const { x: xs, y: ys } = coordinateSeries(growth, inflation);
 
   const points: QuadrantHistoryPoint[] = [];
-  let growthSum = 0;
-  let inflationSum = 0;
-  for (let j = 0; j < lookbackMonths; j++) {
-    growthSum += ratios[j].growth;
-    inflationSum += ratios[j].inflation;
-  }
-  for (let i = lookbackMonths; i < ratios.length; i++) {
-    const growthGap = ratios[i].growth - growthSum / lookbackMonths;
-    const inflationGap = ratios[i].inflation - inflationSum / lookbackMonths;
-    const growthSignal = getAxisSignal(growthGap, threshold);
-    const inflationSignal = getAxisSignal(inflationGap, threshold);
+  for (let i = 0; i < valid.length; i++) {
+    const x = xs[i];
+    const y = ys[i];
+    if (x === null || y === null) continue;
+    const growthSignal = getAxisSignal(x, threshold);
+    const inflationSignal = getAxisSignal(y, threshold);
     points.push({
-      date: ratios[i].date,
+      date: valid[i].date,
       growthSignal,
       inflationSignal,
       quadrant: getQuadrant(growthSignal, inflationSignal),
     });
-    // Fait glisser la fenêtre [i-lookback, i-1] → [i-lookback+1, i] pour i+1.
-    growthSum += ratios[i].growth - ratios[i - lookbackMonths].growth;
-    inflationSum += ratios[i].inflation - ratios[i - lookbackMonths].inflation;
   }
 
   return { status: "OK", countryCode, threshold, lookbackMonths, points };

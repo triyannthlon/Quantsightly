@@ -1,13 +1,8 @@
 import { describe, it, expect } from "vitest";
 import type { EconomicDataPoint } from "./types";
-import {
-  getAxisSignal,
-  getQuadrant,
-  getConvictionLevel,
-  computeQuadrant,
-} from "./quadrant";
+import { getAxisSignal, getQuadrant, getConvictionLevel, computeQuadrant } from "./quadrant";
 
-// 85 dates mensuelles consécutives (84 d'historique + 1 point courant).
+// `n` dates mensuelles consécutives à partir de 2019-01 (≥ 167 pour un score valide).
 function months(n: number): string[] {
   const out: string[] = [];
   let y = 2019;
@@ -22,17 +17,20 @@ function months(n: number): string[] {
   return out;
 }
 
-// Série constante `base` sur les 84 premiers mois, puis `last` au mois courant.
+// Série constante `base`, puis `last` au seul dernier mois (clôturé). Avec des
+// résidus tous nuls sauf le dernier, la dispersion robuste tombe sur son plancher
+// → la coordonnée sature à ±100 (signal net) ; `base === last` → coordonnée 0.
 function series(dates: string[], base: number, last: number): EconomicDataPoint[] {
   return dates.map((date, i) => ({ date, value: i < dates.length - 1 ? base : last }));
 }
 
 describe("getAxisSignal", () => {
-  it("classe selon la bande neutre ±0,05", () => {
-    expect(getAxisSignal(0.06)).toBe("ACCELERATING");
-    expect(getAxisSignal(-0.06)).toBe("DECELERATING");
-    expect(getAxisSignal(0.02)).toBe("NEUTRAL");
-    expect(getAxisSignal(-0.05)).toBe("NEUTRAL"); // borne incluse dans le neutre
+  it("classe selon la bande neutre ±T (T = 20, coords normalisées)", () => {
+    expect(getAxisSignal(25)).toBe("ACCELERATING");
+    expect(getAxisSignal(-25)).toBe("DECELERATING");
+    expect(getAxisSignal(10)).toBe("NEUTRAL");
+    expect(getAxisSignal(20)).toBe("NEUTRAL"); // borne incluse dans le neutre
+    expect(getAxisSignal(-20)).toBe("NEUTRAL");
   });
 });
 
@@ -48,22 +46,22 @@ describe("getQuadrant", () => {
 });
 
 describe("getConvictionLevel", () => {
-  it("prend la distance du plus faible des deux axes", () => {
-    expect(getConvictionLevel(0.5, 0.05)).toBe("LOW"); // min 0,05 < 0,10
-    expect(getConvictionLevel(0.5, 0.2)).toBe("MEDIUM"); // min 0,20
-    expect(getConvictionLevel(0.4, 0.35)).toBe("HIGH"); // min 0,35 ≥ 0,30
+  it("prend la distance normalisée du plus faible des deux axes", () => {
+    expect(getConvictionLevel(80, 10)).toBe("LOW"); // min 10 < 20
+    expect(getConvictionLevel(80, 35)).toBe("MEDIUM"); // min 35 < 50
+    expect(getConvictionLevel(70, 60)).toBe("HIGH"); // min 60 ≥ 50
   });
 });
 
 describe("computeQuadrant", () => {
-  const dates = months(85);
+  const dates = months(170);
 
   it("classe un boom inflationniste (croissance + inflation accélèrent)", () => {
     const r = computeQuadrant({
       countryCode: "XX",
-      equity: series(dates, 100, 120), // actions/pétrole : ln(12) vs ln(10)
+      equity: series(dates, 100, 120), // actions/pétrole en hausse
       oil: series(dates, 10, 10),
-      gold: series(dates, 50, 60), // or/oblig : ln(6) vs ln(5)
+      gold: series(dates, 50, 60), // or/oblig en hausse
       bond: series(dates, 10, 10),
     });
     expect(r.status).toBe("OK");
@@ -72,10 +70,10 @@ describe("computeQuadrant", () => {
     expect(r.inflationSignal).toBe("ACCELERATING");
     expect(r.quadrant).toBe("GROWTH_UP_INFLATION_UP");
     expect(r.regimeName).toBe("Boom inflationniste");
-    expect(r.growthGap).toBeCloseTo(Math.log(1.2), 6);
-    expect(r.inflationGap).toBeCloseTo(Math.log(1.2), 6);
-    expect(r.convictionLevel).toBe("MEDIUM");
-    expect(r.date).toBe("2026-01-15");
+    expect(r.x).toBeCloseTo(100, 5); // coordonnée saturée (dispersion au plancher)
+    expect(r.y).toBeCloseTo(100, 5);
+    expect(r.convictionLevel).toBe("HIGH");
+    expect(r.date).toBe(dates[dates.length - 1]);
   });
 
   it("classe une contraction déflationniste (les deux décélèrent)", () => {
@@ -92,7 +90,7 @@ describe("computeQuadrant", () => {
   it("renvoie TRANSITION si un axe reste dans la bande neutre", () => {
     const r = computeQuadrant({
       countryCode: "XX",
-      equity: series(dates, 100, 101), // gap ≈ ln(1,01) ≈ 0,01 → neutre
+      equity: series(dates, 100, 100), // actions/pétrole plat → coordonnée 0 → neutre
       oil: series(dates, 10, 10),
       gold: series(dates, 50, 60),
       bond: series(dates, 10, 10),
@@ -104,7 +102,7 @@ describe("computeQuadrant", () => {
     expect(
       computeQuadrant({ countryCode: "XX", equity: [], oil: [], gold: [], bond: [] }).status,
     ).toBe("MISSING_SERIES");
-    const short = months(50);
+    const short = months(100); // < 167 mois
     expect(
       computeQuadrant({
         countryCode: "XX",

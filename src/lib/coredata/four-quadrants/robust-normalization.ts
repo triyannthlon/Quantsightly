@@ -12,8 +12,9 @@
 //   MAD_t   = MAD(d_{t-83}, …, d_t)                           (MAD sur les écarts de la fenêtre)
 //   z_t     = d_t / max(1,4826 · MAD_t, s_min)
 //
-// (Diffère de `quadrant.ts` — page Régimes macro — qui EXCLUT le mois courant de
-//  sa MM7. La convergence éventuelle des deux pages est une dette conditionnelle.)
+// (Aujourd'hui `quadrant.ts` — page Régimes macro — EXCLUT encore le mois courant
+//  de sa MM7. Décision Yann : les 2 moteurs doivent converger sur CETTE convention
+//  — mois courant inclus, aucune divergence — dette à exécuter à la finalisation 4Q.)
 //
 // Le MAD porte sur les écarts roulants : un score valide exige donc ≈ 2·window − 1
 // mois d'historique (167 avec le défaut). En deçà → `null` (« ne pas produire
