@@ -210,7 +210,7 @@ export function HistoryMatrix({ data, region }: { data: HistoryMatrixData; regio
                         key,
                         growth: SIG_LABEL[g],
                         inflation: SIG_LABEL[inf],
-                        signal: g !== "N" && inf !== "N" ? "confirmé" : "en transition",
+                        signal: g !== "N" && inf !== "N" ? "confirmé" : "en zone neutre",
                         colX: GUTTER + i * CELL + CELL / 2,
                         x: e.clientX,
                         y: e.clientY,

@@ -11,6 +11,7 @@ export const routes = {
 
   models: {
     browne: "/modeles/browne",
+    quadrants: "/modeles/quadrants",
   },
 
   screener: {

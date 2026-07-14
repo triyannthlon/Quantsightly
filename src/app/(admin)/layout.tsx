@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import AppHeader from "@/components/custom/app-shell/app-header";
 import { SidebarProvider } from "@/hooks/sidebar";
 import { PeriodProvider } from "@/hooks/period/period-context";
+import { TransitionProvider } from "@/hooks/model-settings/transition-context";
 import AppSidebar from "@/components/custom/app-shell/app-sidebar";
 import { ReactNode } from "react";
 
@@ -29,6 +30,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   return (
     <DashboardMotionLayout>
       <PeriodProvider>
+        <TransitionProvider>
         <SidebarProvider>
           <div className="flex h-screen w-full bg-background">
             <AppSidebar />
@@ -43,6 +45,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             </div>
           </div>
         </SidebarProvider>
+        </TransitionProvider>
       </PeriodProvider>
     </DashboardMotionLayout>
   );

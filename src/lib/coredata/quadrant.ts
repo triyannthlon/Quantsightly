@@ -290,6 +290,9 @@ export function computeQuadrant(input: ComputeQuadrantInput): QuadrantResult {
 export interface QuadrantHistoryPoint {
   /** Fin de mois `YYYY-MM-DD`. */
   date: string;
+  /** Coordonnées normalisées [-100,100] — permettent une reclassification client-side avec un autre `T`. */
+  x: number;
+  y: number;
   growthSignal: AxisSignal;
   inflationSignal: AxisSignal;
   quadrant: Quadrant;
@@ -355,6 +358,8 @@ export function computeQuadrantHistory(input: ComputeQuadrantInput): QuadrantHis
     const inflationSignal = getAxisSignal(y, threshold);
     points.push({
       date: valid[i].date,
+      x,
+      y,
       growthSignal,
       inflationSignal,
       quadrant: getQuadrant(growthSignal, inflationSignal),

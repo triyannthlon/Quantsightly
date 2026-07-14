@@ -1,8 +1,7 @@
 import { computeAllCountryQuadrantHistory } from "@/lib/coredata/quadrant-service";
 import { getReferenceData } from "@/lib/coredata";
 import type { QuadrantHistoryResult } from "@/lib/coredata/quadrant";
-import type { QuadrantPoint } from "./quadrant-map";
-import { buildHistoryMatrix } from "./history";
+import type { CoordSeries } from "./history";
 import { QuadrantsView } from "./quadrants-view";
 import { Lexique } from "@/components/custom/lexique/lexique";
 
@@ -53,25 +52,21 @@ export default async function QuadrantsPage() {
     getReferenceData(),
   ]);
 
-  const nameByIso = new Map(ref.countries.map((c) => [c.iso, c.nameFr]));
+  const nameByIso: Record<string, string> = Object.fromEntries(
+    ref.countries.map((c) => [c.iso, c.nameFr]),
+  );
   const ok = results.filter((r): r is OkHistory => r.status === "OK" && r.points.length > 0);
 
-  // Régime courant = dernier point de l'historique (identique à computeAllCountryQuadrants).
-  const points: QuadrantPoint[] = ok.map((r) => {
-    const last = r.points[r.points.length - 1];
-    return {
-      countryCode: r.countryCode,
-      name: nameByIso.get(r.countryCode) ?? r.countryCode,
-      growthSignal: last.growthSignal,
-      inflationSignal: last.inflationSignal,
-    };
-  });
-  const asOf = ok.reduce<string | null>((mx, r) => {
-    const d = r.points[r.points.length - 1].date;
+  // Payload léger : coordonnées mensuelles par pays. Le CLASSEMENT (signaux,
+  // quadrant, matrice) est fait CÔTÉ CLIENT avec le T utilisateur (réactif).
+  const series: CoordSeries[] = ok.map((r) => ({
+    countryCode: r.countryCode,
+    points: r.points.map((p) => ({ date: p.date, x: p.x, y: p.y })),
+  }));
+  const asOf = series.reduce<string | null>((mx, s) => {
+    const d = s.points[s.points.length - 1].date;
     return !mx || d > mx ? d : mx;
   }, null);
-
-  const history = buildHistoryMatrix(results, nameByIso);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 p-6">
@@ -84,13 +79,13 @@ export default async function QuadrantsPage() {
             {asOf && <> — données à fin {formatMonth(asOf)}</>}.
           </p>
         </div>
-        <Lexique terms={LEXIQUE_TERMS} />
+        <Lexique terms={LEXIQUE_TERMS} className="w-28" />
       </header>
 
       <QuadrantsView
-        points={points}
+        series={series}
+        nameByIso={nameByIso}
         asOfLabel={asOf ? formatMonth(asOf) : null}
-        history={history}
       />
     </div>
   );

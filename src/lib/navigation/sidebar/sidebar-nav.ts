@@ -82,9 +82,9 @@ export const NAV: NavSection[] = [
     title: "Modèles",
     items: [
       { key: "browne", label: "Browne", href: routes.models.browne, icon: Shield },
-      // Futur portefeuille MODÈLE : allocation de référence dérivée des régimes
-      // macro (≠ la page de diagnostic « Régime macro » sous Exploration).
-      { key: "quadrants-modele", label: "4 Quadrants", icon: Layers, disabled: true },
+      // Portefeuille MODÈLE : allocation de référence pilotée par les régimes
+      // macro (≠ la page de diagnostic « Régimes macro » sous Exploration).
+      { key: "quadrants-modele", label: "4 Quadrants", href: routes.models.quadrants, icon: Layers },
     ],
   },
   {

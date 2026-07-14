@@ -27,7 +27,23 @@ export interface BacktestMetrics {
   volatility: number | null;
   /** Pire drawdown, en % (≤ 0). */
   maxDrawdown: number | null;
+  /** Recul depuis le pic historique à la dernière date, en % (≤ 0). */
+  currentDrawdown: number | null;
+  /** Sharpe = (annualisé − rendement du cash) / volatilité (excédent sur le cash). */
+  sharpe: number | null;
+  /** Meilleur rendement d'une année civile, en %. */
+  bestYear: number | null;
+  /** Pire rendement d'une année civile, en %. */
+  worstYear: number | null;
+  /** Plus longue durée passée sous le dernier sommet, en mois. */
+  maxUnderwaterMonths: number | null;
 }
+
+/** Clés des poches (Énergie incluse pour plus tard). */
+export type BacktestSleeve = "equities" | "bonds" | "gold" | "cash" | "energy";
+
+/** Contribution cumulée arithmétique par poche (Σ wₜ·rₜ₊₁, en %) — somme ≈ perf cumulée. */
+export type SleeveContributions = Record<BacktestSleeve, number>;
 
 export type BacktestStatus = "OK" | "MISSING_SERIES" | "INVALID_VALUE" | "INSUFFICIENT_HISTORY";
 
@@ -35,8 +51,26 @@ export type BacktestResult =
   | {
       status: "OK";
       countryCode: string;
-      series: { nominal: TimeSeries; real: TimeSeries | null };
-      metrics: { nominal: BacktestMetrics; real: BacktestMetrics | null };
+      /** Période effective du backtest (fenêtre commune). */
+      start: string;
+      end: string;
+      series: {
+        nominal: TimeSeries;
+        real: TimeSeries | null;
+        /** Indice actions rebasé 100 sur la même fenêtre (référence interne). */
+        equityBenchmark: TimeSeries;
+        /** Indice actions RÉEL (déflaté), base 100 — `null` sans CPI. */
+        equityReal: TimeSeries | null;
+      };
+      metrics: {
+        nominal: BacktestMetrics;
+        real: BacktestMetrics | null;
+        /** Métriques de l'indice actions (référence interne, comme Browne vs Actions). */
+        equity: BacktestMetrics;
+        equityReal: BacktestMetrics | null;
+      };
+      /** Contributions cumulées par poche (rendements NOMINAUX, sans look-ahead). */
+      contributions: SleeveContributions;
     }
   | { status: Exclude<BacktestStatus, "OK">; countryCode: string };
 
@@ -116,6 +150,24 @@ function maxDrawdownPct(index: EconomicDataPoint[]): number | null {
   return mdd;
 }
 
+/** Plus longue série de mois consécutifs sous le dernier sommet. */
+function maxUnderwaterMonths(index: EconomicDataPoint[]): number | null {
+  if (index.length < 2) return null;
+  let peak = -Infinity;
+  let run = 0;
+  let maxRun = 0;
+  for (const p of index) {
+    if (p.value >= peak) {
+      peak = p.value;
+      run = 0;
+    } else {
+      run += 1;
+      if (run > maxRun) maxRun = run;
+    }
+  }
+  return maxRun;
+}
+
 /** Déflate une courbe par le CPI (base 100, rebasée à la 1ʳᵉ date où le CPI existe). */
 function deflateByCpi(index: EconomicDataPoint[], cpiByMonth: Map<string, number>): EconomicDataPoint[] | null {
   const pts = index
@@ -127,16 +179,43 @@ function deflateByCpi(index: EconomicDataPoint[], cpiByMonth: Map<string, number
   return pts.map((x) => ({ date: x.date, value: (100 * (x.v / v0)) / (x.c / c0) }));
 }
 
-function metricsOf(index: EconomicDataPoint[]): BacktestMetrics {
+/** Rendements par année civile (valeur fin d'année Y / fin d'année Y−1), en %. */
+function calendarYearReturns(index: EconomicDataPoint[]): number[] {
+  const byYear = new Map<string, number>();
+  for (const p of index) byYear.set(p.date.slice(0, 4), p.value);
+  const years = [...byYear.keys()].sort();
+  const out: number[] = [];
+  for (let i = 1; i < years.length; i++) {
+    const prev = byYear.get(years[i - 1])!;
+    const cur = byYear.get(years[i])!;
+    if (prev > 0) out.push((cur / prev - 1) * 100);
+  }
+  return out;
+}
+
+/** Métriques d'une courbe. `riskFree` = rendement annualisé du cash (excédent → Sharpe). */
+function metricsOf(index: EconomicDataPoint[], riskFree: number): BacktestMetrics {
   const k = computeKpis(index);
-  const cumulative =
-    index.length >= 2 && index[0].value > 0 ? (index[index.length - 1].value / index[0].value - 1) * 100 : null;
+  const first = index[0]?.value;
+  const last = index[index.length - 1]?.value;
+  const cumulative = index.length >= 2 && first > 0 && last > 0 ? (last / first - 1) * 100 : null;
+  const maxDrawdown = maxDrawdownPct(index);
+  const peak = index.length ? index.reduce((mx, p) => (p.value > mx ? p.value : mx), -Infinity) : 0;
+  const currentDrawdown = index.length >= 2 && peak > 0 && last > 0 ? (last / peak - 1) * 100 : null;
+  const sharpe =
+    k.annualized !== null && k.volatility !== null && k.volatility > 0 ? (k.annualized - riskFree) / k.volatility : null;
+  const yearly = calendarYearReturns(index);
   return {
     months: index.length,
     cumulative,
     annualized: k.annualized,
     volatility: k.volatility,
-    maxDrawdown: maxDrawdownPct(index),
+    maxDrawdown,
+    currentDrawdown,
+    sharpe,
+    bestYear: yearly.length ? Math.max(...yearly) : null,
+    worstYear: yearly.length ? Math.min(...yearly) : null,
+    maxUnderwaterMonths: maxUnderwaterMonths(index),
   };
 }
 
@@ -179,35 +258,69 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
 
   let p = 100;
   const nominal: EconomicDataPoint[] = [{ date: rows[start].date, value: 100 }];
+  const contrib: SleeveContributions = { equities: 0, bonds: 0, gold: 0, cash: 0, energy: 0 };
   for (let j = start + 1; j < rows.length; j++) {
-    // Poids figés à la clôture du mois j-1 → appliqués au rendement du mois j.
+    // Poids figés à la clôture du mois j-1 → appliqués au rendement du mois j (t → t+1).
     const w = wByMonth.get(rows[j - 1].date.slice(0, 7));
     if (!w) break;
     const prev = rows[j - 1];
     const cur = rows[j];
-    let rp =
-      w.equities * (cur.equity / prev.equity - 1) +
-      w.bonds * (cur.bond / prev.bond - 1) +
-      w.cash * (cur.cash / prev.cash - 1) +
-      w.gold * (cur.gold / prev.gold - 1);
+    const rEq = cur.equity / prev.equity - 1;
+    const rBd = cur.bond / prev.bond - 1;
+    const rCa = cur.cash / prev.cash - 1;
+    const rGo = cur.gold / prev.gold - 1;
+    contrib.equities += w.equities * rEq;
+    contrib.bonds += w.bonds * rBd;
+    contrib.cash += w.cash * rCa;
+    contrib.gold += w.gold * rGo;
+    let rp = w.equities * rEq + w.bonds * rBd + w.cash * rCa + w.gold * rGo;
     if (hasEnergy && prev.energy !== null && cur.energy !== null) {
-      rp += w.energy * (cur.energy / prev.energy - 1);
+      const rEn = cur.energy / prev.energy - 1;
+      contrib.energy += w.energy * rEn;
+      rp += w.energy * rEn;
     }
     p *= 1 + rp;
     nominal.push({ date: cur.date, value: p });
   }
   if (nominal.length < 2) return fail("INSUFFICIENT_HISTORY");
 
-  let real: EconomicDataPoint[] | null = null;
-  if (input.cpi?.length) {
-    const cpiByMonth = new Map(toMonthly(input.cpi).map((c) => [c.date.slice(0, 7), c.value]));
-    real = deflateByCpi(nominal, cpiByMonth);
-  }
+  // Référence interne = indice ACTIONS, rebasé 100 sur la MÊME fenêtre.
+  const eq0 = rows[start].equity;
+  const equityBenchmark = rows.slice(start).map((r) => ({ date: r.date, value: (100 * r.equity) / eq0 }));
+
+  // Taux sans risque = rendement annualisé du cash sur la MÊME période (Sharpe = excédent).
+  const cashSeries = rows.slice(start).map((r) => ({ date: r.date, value: r.cash }));
+  const riskFreeNominal = computeKpis(cashSeries).annualized ?? 0;
+
+  const cpiByMonth = input.cpi?.length
+    ? new Map(toMonthly(input.cpi).map((c) => [c.date.slice(0, 7), c.value]))
+    : null;
+  const real = cpiByMonth ? deflateByCpi(nominal, cpiByMonth) : null;
+  const equityReal = cpiByMonth ? deflateByCpi(equityBenchmark, cpiByMonth) : null;
+  const cashReal = cpiByMonth ? deflateByCpi(cashSeries, cpiByMonth) : null;
+  const riskFreeReal = cashReal ? (computeKpis(cashReal).annualized ?? 0) : 0;
+
+  // Contributions cumulées en % (× 100).
+  const contributions: SleeveContributions = {
+    equities: contrib.equities * 100,
+    bonds: contrib.bonds * 100,
+    gold: contrib.gold * 100,
+    cash: contrib.cash * 100,
+    energy: contrib.energy * 100,
+  };
 
   return {
     status: "OK",
     countryCode,
-    series: { nominal, real },
-    metrics: { nominal: metricsOf(nominal), real: real ? metricsOf(real) : null },
+    start: nominal[0].date,
+    end: nominal[nominal.length - 1].date,
+    series: { nominal, real, equityBenchmark, equityReal },
+    metrics: {
+      nominal: metricsOf(nominal, riskFreeNominal),
+      real: real ? metricsOf(real, riskFreeReal) : null,
+      equity: metricsOf(equityBenchmark, riskFreeNominal),
+      equityReal: equityReal ? metricsOf(equityReal, riskFreeReal) : null,
+    },
+    contributions,
   };
 }

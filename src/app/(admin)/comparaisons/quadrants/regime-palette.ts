@@ -74,7 +74,7 @@ export const REGIME: Record<RegimeKey, RegimeStyle> = {
     text: "text-blue-600 dark:text-[#71a1ea]",
   },
   transition: {
-    label: "Transition",
+    label: "Zone neutre",
     hex: "#aab3c0",
     area: "fill-[#8794a6] stroke-[#8794a6]",
     dot: "bg-[#8794a6]",

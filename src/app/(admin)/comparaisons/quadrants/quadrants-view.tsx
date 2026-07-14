@@ -1,13 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Grid2x2, Map, History } from "lucide-react";
+import { Grid2x2, Map, History, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { getAxisSignal } from "@/lib/coredata/quadrant";
+import { useTransitionWidth } from "@/hooks/model-settings/transition-context";
+import { ModelSettingsDialog } from "@/components/custom/model-settings/settings-dialog";
 import { QuadrantMap, cellOf, type QuadrantPoint } from "./quadrant-map";
 import { WorldMap, REGION_LABELS, type Region } from "./world-map";
 import { HistoryMatrix } from "./history-matrix";
 import { REGIME, REGIME_ORDER } from "./regime-palette";
-import type { HistoryMatrixData } from "./history";
+import { buildHistoryMatrix, type CoordSeries } from "./history";
 
 type View = "map" | "quadrants" | "history";
 
@@ -46,16 +50,34 @@ const COUNTERS = REGIME_ORDER.map((key) => ({
 }));
 
 export function QuadrantsView({
-  points,
+  series,
+  nameByIso,
   asOfLabel,
-  history,
 }: {
-  points: QuadrantPoint[];
+  series: CoordSeries[];
+  nameByIso: Record<string, string>;
   asOfLabel: string | null;
-  history: HistoryMatrixData;
 }) {
   const [view, setView] = useState<View>("quadrants");
   const [region, setRegion] = useState<Region>("monde");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { transitionWidth: T } = useTransitionWidth(); // partagé + persisté (cf. Réglages)
+
+  // Régime courant + historique RECLASSÉS avec le T utilisateur (partagé, réactif).
+  const points = useMemo<QuadrantPoint[]>(
+    () =>
+      series.map((s) => {
+        const last = s.points[s.points.length - 1];
+        return {
+          countryCode: s.countryCode,
+          name: nameByIso[s.countryCode] ?? s.countryCode,
+          growthSignal: getAxisSignal(last.x, T),
+          inflationSignal: getAxisSignal(last.y, T),
+        };
+      }),
+    [series, nameByIso, T],
+  );
+  const history = useMemo(() => buildHistoryMatrix(series, nameByIso, T), [series, nameByIso, T]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { TR: 0, BR: 0, TL: 0, BL: 0, transition: 0 };
@@ -70,7 +92,7 @@ export function QuadrantsView({
     <div className="space-y-4">
       {/* Onglets — navigation principale de la page (sticky au scroll) */}
       <div className="sticky top-0 z-20 -mx-6 bg-background/85 px-6 backdrop-blur-sm">
-        <nav className="flex flex-wrap gap-1 border-b border-border/60">
+        <nav className="flex flex-wrap items-center gap-1 border-b border-border/60">
           <Tab
             active={view === "quadrants"}
             icon={Grid2x2}
@@ -84,16 +106,28 @@ export function QuadrantsView({
             label="Historique"
             onClick={() => setView("history")}
           />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSettingsOpen(true)}
+            className="mb-1 ml-auto w-28 shrink-0 cursor-pointer gap-1.5"
+          >
+            <SlidersHorizontal className="size-3.5" />
+            Réglages
+          </Button>
         </nav>
       </div>
 
-      {/* Compteurs de régimes (légende globale) */}
+      {/* Compteurs de régimes (légende globale). L'item gris affiche le PARAMÈTRE
+          « Largeur de la zone neutre » en % (T), pas un décompte de pays. */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
         {COUNTERS.map((r) => (
           <span key={r.key} className="inline-flex items-center gap-1.5 text-muted-foreground">
             <span className={cn("size-2.5 rounded-full", r.dot)} />
-            {r.label}
-            <span className="font-semibold tabular-nums text-foreground">{counts[r.key]}</span>
+            {r.key === "transition" ? "Largeur de la zone neutre" : r.label}
+            <span className="font-semibold tabular-nums text-foreground">
+              {r.key === "transition" ? `${T} %` : counts[r.key]}
+            </span>
           </span>
         ))}
       </div>
@@ -154,6 +188,8 @@ export function QuadrantsView({
           </div>
         </div>
       )}
+
+      <ModelSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

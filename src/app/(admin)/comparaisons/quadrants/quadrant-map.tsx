@@ -125,7 +125,7 @@ export function countryHover(p: QuadrantPoint): CountryHover {
   const growth = signalWord(p.growthSignal);
   const inflation = signalWord(p.inflationSignal);
   const signal =
-    p.growthSignal !== "NEUTRAL" && p.inflationSignal !== "NEUTRAL" ? "confirmé" : "en transition";
+    p.growthSignal !== "NEUTRAL" && p.inflationSignal !== "NEUTRAL" ? "confirmé" : "en zone neutre";
   if (isQuadrant(cell)) {
     return {
       name: p.name,
@@ -141,7 +141,7 @@ export function countryHover(p: QuadrantPoint): CountryHover {
     name: p.name,
     dot: REGIME.transition.dot,
     hasData: true,
-    regime: "En transition",
+    regime: "Zone neutre",
     growth,
     inflation,
     signal,

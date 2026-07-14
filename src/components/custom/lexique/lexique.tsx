@@ -13,7 +13,15 @@ import { getGroupedGlossaryEntries } from "@/lib/glossary/glossary";
  * montre son TITRE + sa définition COURTE (2-3 lignes) ; un clic déplie le
  * détail (un seul ouvert à la fois → le panneau reste court et lisible).
  */
-export function Lexique({ terms, label = "Lexique" }: { terms: string[]; label?: string }) {
+export function Lexique({
+  terms,
+  label = "Lexique",
+  className,
+}: {
+  terms: string[];
+  label?: string;
+  className?: string;
+}) {
   const groups = getGroupedGlossaryEntries(terms);
   const [open, setOpen] = useState<string | null>(null);
   if (groups.length === 0) return null;
@@ -21,7 +29,7 @@ export function Lexique({ terms, label = "Lexique" }: { terms: string[]; label?:
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="shrink-0 cursor-pointer gap-1.5">
+        <Button variant="outline" size="sm" className={cn("shrink-0 cursor-pointer gap-1.5", className)}>
           <BookOpen className="size-3.5" />
           {label}
         </Button>
