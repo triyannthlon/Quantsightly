@@ -1,20 +1,25 @@
 // « Écart normalisé robuste à la moyenne mobile sur sept ans » — le cœur du
 // modèle. Ce N'EST PAS un z-score robuste académique : le point zéro est calé
-// sur la MOYENNE MOBILE ANTÉRIEURE (le franchissement de la tendance = le côté
-// du quadrant), pas sur la médiane historique.
+// sur la MOYENNE MOBILE (le franchissement de la tendance = le côté du quadrant),
+// pas sur la médiane historique.
 //
-// Benchmark = les 84 mois ANTÉRIEURS (le mois courant est comparé à ce repère
-// mais NE contribue PAS à son propre benchmark — aligné avec `quadrant.ts`) :
-//   μ_{t-1} = (1/84) · Σ_{i=1..84} r_{t-i}                 (MM7 antérieure, hors mois courant)
-//   d_t     = r_t − μ_{t-1}                                (écart courant à la tendance)
-//   s_{t-1} = max(1,4826 · MAD(d_{t-84}, …, d_{t-1}), s_min)   (MAD sur les ÉCARTS antérieurs)
-//   z_t     = d_t / s_{t-1}
+// ⚠️ Quantsightly ne travaille QUE sur des mois CLÔTURÉS : le moteur tourne après
+// disponibilité des données définitives du dernier mois. Ce mois est donc complet
+// et ENTRE dans la moyenne mobile et la dispersion (aucun biais d'anticipation).
+// Fenêtre = [t-83 … t] (84 observations, mois courant INCLUS) :
+//   MM84_t  = (1/84) · Σ_{i=0..83} r_{t-i}                    (MM7, mois courant inclus)
+//   d_t     = r_t − MM84_t                                    (écart courant à la tendance)
+//   MAD_t   = MAD(d_{t-83}, …, d_t)                           (MAD sur les écarts de la fenêtre)
+//   z_t     = d_t / max(1,4826 · MAD_t, s_min)
 //
-// Le MAD porte sur les écarts roulants antérieurs : un score valide exige donc
-// ≈ 2·window + 1 mois d'historique (169 avec le défaut). En deçà → `null`
-// (« ne pas produire artificiellement un score complet »).
+// (Diffère de `quadrant.ts` — page Régimes macro — qui EXCLUT le mois courant de
+//  sa MM7. La convergence éventuelle des deux pages est une dette conditionnelle.)
+//
+// Le MAD porte sur les écarts roulants : un score valide exige donc ≈ 2·window − 1
+// mois d'historique (167 avec le défaut). En deçà → `null` (« ne pas produire
+// artificiellement un score complet »).
 
-/** Fenêtre commune (MM7 antérieure ET fenêtre du MAD) = 7 ans = 84 mois. */
+/** Fenêtre commune (MM7 ET fenêtre du MAD) = 7 ans = 84 mois, mois courant inclus. */
 export const DEFAULT_WINDOW = 84;
 /** Constante rendant le MAD comparable à un écart-type sous loi ≈ normale. */
 export const MAD_TO_SIGMA = 1.4826;
@@ -42,14 +47,14 @@ export function medianAbsoluteDeviation(values: number[]): number {
 }
 
 export interface RobustDeviationOptions {
-  /** Fenêtre de la MM7 antérieure et du MAD des écarts (défaut 84). */
+  /** Fenêtre de la MM7 et du MAD des écarts (défaut 84, mois courant inclus). */
   window?: number;
   sigmaFloor?: number;
 }
 
-/** Nombre minimal de mois pour un score valide, avec cette fenêtre (2·window + 1). */
+/** Nombre minimal de mois pour un score valide, avec cette fenêtre (2·window − 1). */
 export function minMonthsForScore(window = DEFAULT_WINDOW): number {
-  return 2 * window + 1;
+  return 2 * window - 1;
 }
 
 /**
@@ -64,24 +69,24 @@ export function robustDeviationSeries(
   const floor = options.sigmaFloor ?? DEFAULT_SIGMA_FLOOR;
   const n = logRatios.length;
 
-  // 1) Écarts antérieurs d_i = r_i − μ_{i-1}, μ_{i-1} = moyenne des W mois AVANT i.
-  //    Somme glissante O(n) : à l'entrée de l'itération i, `sum` = r[i-W .. i-1].
+  // 1) Écarts d_i = r_i − MM84_i, MM84_i = moyenne des W mois SE TERMINANT à i
+  //    (mois courant inclus). Somme glissante O(n) : sum = r[i-W+1 .. i].
   const d: (number | null)[] = new Array(n).fill(null);
   let sum = 0;
   for (let i = 0; i < n; i++) {
-    if (i >= W) d[i] = logRatios[i] - sum / W; // sum = r[i-W .. i-1] à ce point
     sum += logRatios[i];
     if (i >= W) sum -= logRatios[i - W];
+    if (i >= W - 1) d[i] = logRatios[i] - sum / W;
   }
 
-  // 2) z_t = d_t / max(1,4826 · MAD(d[t-W .. t-1]), s_min).
+  // 2) z_t = d_t / max(1,4826 · MAD(d[t-W+1 .. t]), s_min).
   const out: (number | null)[] = new Array(n).fill(null);
-  for (let t = 2 * W; t < n; t++) {
+  for (let t = 2 * W - 2; t < n; t++) {
     const dt = d[t];
     if (dt === null) continue;
     const windowResiduals: number[] = [];
     let complete = true;
-    for (let k = t - W; k < t; k++) {
+    for (let k = t - W + 1; k <= t; k++) {
       const e = d[k];
       if (e === null) {
         complete = false;

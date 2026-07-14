@@ -23,13 +23,13 @@ describe("mean, median & MAD", () => {
 });
 
 describe("robustDeviationSeries", () => {
-  it("null avant l'historique minimal (2·window + 1), un nombre ensuite", () => {
-    const need = minMonthsForScore(); // 169 avec le défaut
-    expect(need).toBe(2 * DEFAULT_WINDOW + 1);
-    // 168 mois → aucun score possible.
+  it("null avant l'historique minimal (2·window − 1), un nombre ensuite", () => {
+    const need = minMonthsForScore(); // 167 avec le défaut
+    expect(need).toBe(2 * DEFAULT_WINDOW - 1);
+    // 166 mois → aucun score possible.
     const short = Array.from({ length: need - 1 }, (_, t) => t * 0.01);
     expect(robustDeviationSeries(short).every((v) => v === null)).toBe(true);
-    // 169 mois → seul le tout dernier point est scoré.
+    // 167 mois → seul le tout dernier point est scoré.
     const exact = Array.from({ length: need }, (_, t) => t * 0.01);
     const s = robustDeviationSeries(exact);
     expect(s[need - 1]).not.toBeNull();
@@ -52,14 +52,14 @@ describe("robustDeviationSeries", () => {
   });
 
   it("pipeline exact sur petite fenêtre (calcul à la main)", () => {
-    // r = t², window = 3 → premier score à t = 2·3 = 6.
-    // Écarts antérieurs d_i = r_i − moyenne(r[i-3..i-1]) :
-    //   d₃=7,3333 · d₄=11,3333 · d₅=15,3333 · d₆=19,3333 · d₇=23,3333.
-    // À t=6 : MAD({7,3333;11,3333;15,3333}) = 4 → s = 1,4826·4 = 5,9304
-    //         → z = 19,3333 / 5,9304 ≈ 3,260.
+    // r = t², window = 3 (mois courant inclus) → premier score à t = 2·3 − 2 = 4.
+    // Écarts d_i = r_i − moyenne(r[i-2..i]) :
+    //   d₂=2,3333 · d₃=4,3333 · d₄=6,3333 · …
+    // À t=4 : MAD({2,3333;4,3333;6,3333}) = 2 → s = 1,4826·2 = 2,9652
+    //         → z = 6,3333 / 2,9652 ≈ 2,136.
     const r = [0, 1, 4, 9, 16, 25, 36, 49];
     const s = robustDeviationSeries(r, { window: 3, sigmaFloor: 1e-9 });
-    expect(s[5]).toBeNull(); // t < 2·window
-    expect(s[6]).toBeCloseTo(3.26, 2);
+    expect(s[3]).toBeNull(); // t < 2·window − 2
+    expect(s[4]).toBeCloseTo(2.136, 2);
   });
 });
