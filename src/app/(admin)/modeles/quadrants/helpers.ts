@@ -13,7 +13,7 @@ import type { EconomicDataPoint } from "@/lib/coredata/types";
 import { REGIME, type RegimeStyle } from "@/app/(admin)/comparaisons/quadrants/regime-palette";
 import type { ChartPoint } from "@/app/(admin)/exploration/exploration-chart";
 
-export type PerfMode = "nominal" | "real";
+export type PerfMode = "nominal" | "real" | "nominal_vs_inflation";
 
 /** Libellés des stratégies (badge DQAE géré séparément dans l'UI). */
 export const STRATEGY_LABELS: Record<Strategy, string> = {
@@ -69,6 +69,9 @@ export const fmtPctN = (v: number | null): string => (v === null ? "—" : `${v.
 export const fmtRatio = (v: number | null): string => (v === null ? "—" : v.toFixed(2));
 /** Nombre de mois, « — » si null. */
 export const fmtMonths = (v: number | null): string => (v === null ? "—" : `${Math.round(v)} mois`);
+/** Multiple « ×N,N », « — » si null. */
+export const fmtMultiple = (v: number | null): string =>
+  v === null ? "—" : `×${v.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
 
 /** Couleurs des trois courbes du module. */
 export const SERIES_COLOR = { q4: "#E8833A", browne: "#6C93C7", actions: "#94A3B8" } as const;

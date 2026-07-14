@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import type { EconomicDataPoint } from "../types";
 import type { FinalAllocation } from "./types";
-import { backtestQuadrants, type WeightPoint } from "./backtest";
+import {
+  backtestQuadrants,
+  computePreRebalanceWeights,
+  computeMonthlyTurnover,
+  type WeightPoint,
+} from "./backtest";
 
 const D = ["2020-01-15", "2020-02-15", "2020-03-15"];
 const alloc = (equities: number, bonds: number, gold: number, cash: number, energy = 0): FinalAllocation => ({
@@ -96,5 +101,47 @@ describe("backtestQuadrants", () => {
         gold: [],
       }).status,
     ).toBe("MISSING_SERIES");
+  });
+});
+
+describe("turnover", () => {
+  it("aucun changement → turnover 0", () => {
+    const w = alloc(0.4, 0.3, 0.2, 0.1);
+    expect(computeMonthlyTurnover(w, w)).toBeCloseTo(0, 12);
+  });
+
+  it("réallocation de 10 % → turnover 10 %", () => {
+    // Actions 40→50, Obligations 30→20 : Σ|Δ| = 20 %, turnover unidirectionnel = 10 %.
+    expect(computeMonthlyTurnover(alloc(0.4, 0.3, 0.2, 0.1), alloc(0.5, 0.2, 0.2, 0.1))).toBeCloseTo(0.1, 12);
+  });
+
+  it("bascule complète entre actifs → turnover 100 %", () => {
+    // 50 % Actions / 50 % Or → 50 % Cash / 50 % Obligations : Σ|Δ| = 200 %, turnover = 100 %.
+    expect(computeMonthlyTurnover(alloc(0.5, 0, 0.5, 0), alloc(0, 0.5, 0, 0.5))).toBeCloseTo(1, 12);
+  });
+
+  it("poids dérivés : somment à 1 ; même cible → turnover positif", () => {
+    const post = alloc(0.25, 0.25, 0.25, 0.25);
+    const pre = computePreRebalanceWeights(post, alloc(0.2, -0.1, 0, 0)); // actions +20 %, oblig −10 %
+    expect(pre.equities + pre.bonds + pre.gold + pre.cash + pre.energy).toBeCloseTo(1, 12);
+    // Revenir à la MÊME cible après dérive coûte un turnover > 0.
+    expect(computeMonthlyTurnover(pre, post)).toBeGreaterThan(0);
+  });
+
+  it("via le backtest : 1er mois exclu (turnover null), annualisée = 12 × moyenne", () => {
+    const weights: WeightPoint[] = D.map((date) => ({ date, allocation: alloc(1, 0, 0, 0) }));
+    const res = backtestQuadrants({
+      countryCode: "XX",
+      weights,
+      equityTotalReturn: ser([100, 110, 121]),
+      bondTotalReturn: flat(100),
+      cashTotalReturn: flat(100),
+      gold: flat(50),
+    });
+    if (res.status !== "OK") return;
+    expect(res.turnover.monthly[0].turnover).toBeNull(); // constitution initiale
+    expect(res.turnover.annualized).toBeCloseTo(res.turnover.averageMonthly * 12, 12);
+    // 100 % Actions maintenu chaque mois → aucun rééquilibrage → turnover ~0.
+    expect(res.turnover.annualized).toBeCloseTo(0, 6);
   });
 });

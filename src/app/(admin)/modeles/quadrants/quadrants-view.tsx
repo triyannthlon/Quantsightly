@@ -48,6 +48,7 @@ const DEVISE_ITEMS: SelectItem[] = [{ value: "local", label: "Locale" }];
 const MODE_ITEMS: SelectItem[] = [
   { value: "nominal", label: "Nominal" },
   { value: "real", label: "Réel" },
+  { value: "nominal_vs_inflation", label: "Nominal vs Inflation" },
 ];
 const STRATEGY_ITEMS: SelectItem[] = [
   { value: "binary", label: "Binaire" },

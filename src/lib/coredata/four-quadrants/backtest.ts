@@ -45,6 +45,25 @@ export type BacktestSleeve = "equities" | "bonds" | "gold" | "cash" | "energy";
 /** Contribution cumulée arithmétique par poche (Σ wₜ·rₜ₊₁, en %) — somme ≈ perf cumulée. */
 export type SleeveContributions = Record<BacktestSleeve, number>;
 
+/** Rotation mensuelle (turnover unidirectionnel) — fractions [0,1]. */
+export interface TurnoverPoint {
+  date: string;
+  /** Turnover unidirectionnel = ½·Σ|cible − poids dérivés| ; `null` = constitution initiale. */
+  turnover: number | null;
+  /** Volume brut échangé = 2·turnover (pour de futurs coûts de transaction). */
+  grossTradedWeight: number | null;
+}
+
+export interface TurnoverResult {
+  monthly: TurnoverPoint[];
+  /** Moyenne des turnovers mensuels valides (hors 1er mois). */
+  averageMonthly: number;
+  /** Rotation annualisée = 12 × moyenne mensuelle (fraction, ×100 = % / an). */
+  annualized: number;
+  /** Somme des 12 derniers turnovers mensuels ; `null` si < 12 disponibles. */
+  trailing12Months: number | null;
+}
+
 export type BacktestStatus = "OK" | "MISSING_SERIES" | "INVALID_VALUE" | "INSUFFICIENT_HISTORY";
 
 export type BacktestResult =
@@ -61,6 +80,8 @@ export type BacktestResult =
         equityBenchmark: TimeSeries;
         /** Indice actions RÉEL (déflaté), base 100 — `null` sans CPI. */
         equityReal: TimeSeries | null;
+        /** Inflation cumulée base 100 (mode Nominal vs Inflation) — `null` sans CPI. */
+        inflationIndex: TimeSeries | null;
       };
       metrics: {
         nominal: BacktestMetrics;
@@ -71,6 +92,8 @@ export type BacktestResult =
       };
       /** Contributions cumulées par poche (rendements NOMINAUX, sans look-ahead). */
       contributions: SleeveContributions;
+      /** Rotation du portefeuille (indépendante du mode nominal/réel). */
+      turnover: TurnoverResult;
     }
   | { status: Exclude<BacktestStatus, "OK">; countryCode: string };
 
@@ -93,6 +116,46 @@ export interface BacktestInput {
 export function weightsFromModel(model: QuadrantModel): WeightPoint[] {
   if (model.status !== "OK") return [];
   return model.monthlyResults.map((r) => ({ date: r.date, allocation: r.finalAllocation }));
+}
+
+// ─── Rotation du portefeuille (turnover) ─────────────────────────────────────
+
+const TURNOVER_ASSETS = ["equities", "bonds", "gold", "cash", "energy"] as const;
+
+/**
+ * Poids RÉELLEMENT détenus juste avant rééquilibrage : les poids post-rééquilibrage
+ * du mois précédent DÉRIVÉS par les rendements du mois, renormalisés à 1. C'est la
+ * base du turnover (jamais la simple différence entre deux cibles successives).
+ */
+export function computePreRebalanceWeights(
+  previousPostRebalanceWeights: Partial<FinalAllocation>,
+  assetReturns: Partial<FinalAllocation>,
+): FinalAllocation {
+  const values: Record<string, number> = {};
+  for (const a of TURNOVER_ASSETS) {
+    values[a] = (previousPostRebalanceWeights[a] ?? 0) * (1 + (assetReturns[a] ?? 0));
+  }
+  const total = TURNOVER_ASSETS.reduce((s, a) => s + values[a], 0);
+  if (!Number.isFinite(total) || total <= 0) throw new Error("Invalid portfolio value before rebalancing.");
+  return {
+    equities: values.equities / total,
+    bonds: values.bonds / total,
+    gold: values.gold / total,
+    cash: values.cash / total,
+    energy: values.energy / total,
+  };
+}
+
+/** Turnover mensuel unidirectionnel = ½·Σ|cible − poids dérivés| ∈ [0,1]. */
+export function computeMonthlyTurnover(
+  preRebalanceWeights: Partial<FinalAllocation>,
+  targetWeights: Partial<FinalAllocation>,
+): number {
+  const sum = TURNOVER_ASSETS.reduce(
+    (s, a) => s + Math.abs((targetWeights[a] ?? 0) - (preRebalanceWeights[a] ?? 0)),
+    0,
+  );
+  return 0.5 * sum;
 }
 
 // ─── Helpers locaux ──────────────────────────────────────────────────────────
@@ -193,6 +256,16 @@ function calendarYearReturns(index: EconomicDataPoint[]): number[] {
   return out;
 }
 
+/** Inflation cumulée (base 100) sur les dates de `index` où le CPI existe. */
+function cumulativeInflation(index: EconomicDataPoint[], cpiByMonth: Map<string, number>): EconomicDataPoint[] | null {
+  const pts = index
+    .map((n) => ({ date: n.date, c: cpiByMonth.get(n.date.slice(0, 7)) }))
+    .filter((x): x is { date: string; c: number } => x.c !== undefined && x.c > 0);
+  if (pts.length < 2) return null;
+  const c0 = pts[0].c;
+  return pts.map((x) => ({ date: x.date, value: (100 * x.c) / c0 }));
+}
+
 /** Métriques d'une courbe. `riskFree` = rendement annualisé du cash (excédent → Sharpe). */
 function metricsOf(index: EconomicDataPoint[], riskFree: number): BacktestMetrics {
   const k = computeKpis(index);
@@ -259,6 +332,8 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
   let p = 100;
   const nominal: EconomicDataPoint[] = [{ date: rows[start].date, value: 100 }];
   const contrib: SleeveContributions = { equities: 0, bonds: 0, gold: 0, cash: 0, energy: 0 };
+  // Rotation : la constitution initiale (1er mois) n'est PAS un rééquilibrage.
+  const turnoverMonthly: TurnoverPoint[] = [{ date: rows[start].date, turnover: null, grossTradedWeight: null }];
   for (let j = start + 1; j < rows.length; j++) {
     // Poids figés à la clôture du mois j-1 → appliqués au rendement du mois j (t → t+1).
     const w = wByMonth.get(rows[j - 1].date.slice(0, 7));
@@ -269,20 +344,38 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     const rBd = cur.bond / prev.bond - 1;
     const rCa = cur.cash / prev.cash - 1;
     const rGo = cur.gold / prev.gold - 1;
+    const rEn = hasEnergy && prev.energy !== null && cur.energy !== null ? cur.energy / prev.energy - 1 : 0;
     contrib.equities += w.equities * rEq;
     contrib.bonds += w.bonds * rBd;
     contrib.cash += w.cash * rCa;
     contrib.gold += w.gold * rGo;
     let rp = w.equities * rEq + w.bonds * rBd + w.cash * rCa + w.gold * rGo;
     if (hasEnergy && prev.energy !== null && cur.energy !== null) {
-      const rEn = cur.energy / prev.energy - 1;
       contrib.energy += w.energy * rEn;
       rp += w.energy * rEn;
     }
     p *= 1 + rp;
     nominal.push({ date: cur.date, value: p });
+
+    // Turnover : poids détenus (dérivés par les rendements) → nouvelle cible du mois j.
+    const target = wByMonth.get(cur.date.slice(0, 7));
+    if (target) {
+      const pre = computePreRebalanceWeights(w, { equities: rEq, bonds: rBd, gold: rGo, cash: rCa, energy: rEn });
+      const to = computeMonthlyTurnover(pre, target);
+      turnoverMonthly.push({ date: cur.date, turnover: to, grossTradedWeight: 2 * to });
+    }
   }
   if (nominal.length < 2) return fail("INSUFFICIENT_HISTORY");
+
+  const toValid = turnoverMonthly.filter((t) => t.turnover !== null).map((t) => t.turnover as number);
+  const averageMonthly = toValid.length ? toValid.reduce((s, v) => s + v, 0) / toValid.length : 0;
+  const last12 = toValid.slice(-12);
+  const turnover: TurnoverResult = {
+    monthly: turnoverMonthly,
+    averageMonthly,
+    annualized: averageMonthly * 12,
+    trailing12Months: last12.length === 12 ? last12.reduce((s, v) => s + v, 0) : null,
+  };
 
   // Référence interne = indice ACTIONS, rebasé 100 sur la MÊME fenêtre.
   const eq0 = rows[start].equity;
@@ -297,6 +390,7 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     : null;
   const real = cpiByMonth ? deflateByCpi(nominal, cpiByMonth) : null;
   const equityReal = cpiByMonth ? deflateByCpi(equityBenchmark, cpiByMonth) : null;
+  const inflationIndex = cpiByMonth ? cumulativeInflation(nominal, cpiByMonth) : null;
   const cashReal = cpiByMonth ? deflateByCpi(cashSeries, cpiByMonth) : null;
   const riskFreeReal = cashReal ? (computeKpis(cashReal).annualized ?? 0) : 0;
 
@@ -314,7 +408,7 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     countryCode,
     start: nominal[0].date,
     end: nominal[nominal.length - 1].date,
-    series: { nominal, real, equityBenchmark, equityReal },
+    series: { nominal, real, equityBenchmark, equityReal, inflationIndex },
     metrics: {
       nominal: metricsOf(nominal, riskFreeNominal),
       real: real ? metricsOf(real, riskFreeReal) : null,
@@ -322,5 +416,6 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
       equityReal: equityReal ? metricsOf(equityReal, riskFreeReal) : null,
     },
     contributions,
+    turnover,
   };
 }

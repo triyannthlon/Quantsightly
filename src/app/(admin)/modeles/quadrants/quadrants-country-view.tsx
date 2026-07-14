@@ -9,8 +9,15 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Dialog, DialogTitle } from "@/components/ui/dialog";
 import { FrostedDialogContent } from "@/components/custom/ui/frosted-dialog";
 import { cn } from "@/lib/utils";
+import { computeKpis } from "@/lib/coredata/compute";
 import type { EconomicDataPoint } from "@/lib/coredata/types";
-import type { QuadrantModel, Strategy, BacktestResult, BacktestMetrics } from "@/lib/coredata/four-quadrants";
+import type {
+  QuadrantModel,
+  Strategy,
+  BacktestResult,
+  BacktestMetrics,
+  TurnoverResult,
+} from "@/lib/coredata/four-quadrants";
 import type { QuadrantModelConfig, QuadrantDataQuality } from "@/lib/coredata/four-quadrants-service";
 import { ExplorationChart, type ChartLine } from "../../exploration/exploration-chart";
 import {
@@ -24,6 +31,7 @@ import {
   fmtPctN,
   fmtRatio,
   fmtMonths,
+  fmtMultiple,
   type PerfMode,
 } from "./helpers";
 
@@ -38,17 +46,20 @@ function formatMonth(iso: string): string {
 
 // ─── KPI ─────────────────────────────────────────────────────────────────────
 
-type KpiFamily = "performance" | "risque" | "rendement-risque" | "resilience";
+type KpiFamily = "performance" | "risque" | "rendement-risque" | "resilience" | "pouvoir-achat" | "inflation";
 const FAMILY_CARD: Record<KpiFamily, string> = {
   performance: "border-emerald-500/25 bg-gradient-to-b from-emerald-500/[0.06] to-transparent",
   risque: "border-orange-500/25 bg-gradient-to-b from-orange-500/[0.06] to-transparent",
   "rendement-risque": "border-violet-500/25 bg-gradient-to-b from-violet-500/[0.06] to-transparent",
   resilience: "border-cyan-500/25 bg-gradient-to-b from-cyan-500/[0.06] to-transparent",
+  "pouvoir-achat": "border-amber-500/25 bg-gradient-to-b from-amber-500/[0.07] to-transparent",
+  inflation: "border-foreground/15 bg-gradient-to-b from-foreground/[0.035] to-transparent",
 };
-type BadgeTone = "positive" | "info";
+type BadgeTone = "positive" | "info" | "negative";
 const BADGE_TONE: Record<BadgeTone, string> = {
   positive: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   info: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  negative: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
 };
 
 function fmtEcart(diff: number, unit: "pts" | "ratio" | "mois"): string {
@@ -169,17 +180,84 @@ function buildKpis(pm: BacktestMetrics, am: BacktestMetrics, real: boolean): Kpi
   ];
 }
 
+/** KPI du mode « Nominal vs Inflation » (cartes à valeur unique, sans comparaison). */
+function buildInflationKpis(bt: OkBacktest): KpiData[] {
+  const m = bt.metrics.nominal;
+  const r = bt.metrics.real;
+  const infl = bt.series.inflationIndex;
+  const realS = bt.series.real;
+  const inflAnnualized = infl && infl.length >= 2 ? computeKpis(infl).annualized : null;
+  const surperf = m.annualized !== null && inflAnnualized !== null ? m.annualized - inflAnnualized : null;
+
+  let mNom: number | null = null;
+  let mInfl: number | null = null;
+  let mReal: number | null = null;
+  if (infl?.length && realS?.length) {
+    const nomByDate = new Map(bt.series.nominal.map((p) => [p.date, p.value]));
+    const n0 = nomByDate.get(infl[0].date);
+    const n1 = nomByDate.get(infl[infl.length - 1].date);
+    mNom = n0 && n1 && n0 > 0 ? n1 / n0 : null;
+    mInfl = infl[infl.length - 1].value / infl[0].value;
+    mReal = realS[realS.length - 1].value / realS[0].value;
+  }
+
+  const card = (title: string, tooltip: string, value: string, family: KpiFamily, badge?: string, badgeTone?: BadgeTone): KpiData => ({
+    title,
+    tooltip,
+    value,
+    family,
+    badge,
+    badgeTone,
+  });
+
+  return [
+    card("Perf. nominale annualisée", "Performance annualisée brute, sans correction de l’inflation.", fmtPctN(m.annualized), "performance"),
+    card("Perf. réelle annualisée", "Performance corrigée de l’inflation : gain de pouvoir d’achat.", fmtPctN(r?.annualized ?? null), "pouvoir-achat"),
+    card("Inflation annualisée", "Inflation locale annualisée sur la période (indice des prix).", fmtPctN(inflAnnualized), "inflation"),
+    card(
+      "Écart annuel vs inflation",
+      "Écart annualisé, en points, entre la performance nominale et l’inflation.",
+      surperf === null ? "—" : `${surperf > 0 ? "+" : "−"}${Math.abs(surperf).toFixed(1)} pts`,
+      "pouvoir-achat",
+      surperf === null ? undefined : surperf > 0 ? "Bat l’inflation" : "Sous l’inflation",
+      surperf !== null && surperf < 0 ? "negative" : "positive",
+    ),
+    card("Multiple portefeuille", "Capital final rapporté au capital initial (nominal).", fmtMultiple(mNom), "performance"),
+    card("Multiple inflation", "Hausse cumulée du coût de la vie sur la période.", fmtMultiple(mInfl), "inflation"),
+    card("Multiple réel", "Gain de pouvoir d’achat cumulé (multiple réel).", fmtMultiple(mReal), "pouvoir-achat"),
+    card("Max drawdown nominal", "Perte maximale nominale entre un sommet et un point bas.", fmtPctN(m.maxDrawdown), "risque"),
+  ];
+}
+
 // ─── Graphiques (performance + drawdown) ─────────────────────────────────────
 
-function PerfChart({ title, portfolio, actions, months }: { title: string; portfolio: EconomicDataPoint[]; actions: EconomicDataPoint[]; months: number }) {
+function PerfChart({
+  title,
+  portfolio,
+  actions,
+  inflation,
+  months,
+}: {
+  title: string;
+  portfolio: EconomicDataPoint[];
+  actions?: EconomicDataPoint[] | null;
+  inflation?: EconomicDataPoint[] | null;
+  months: number;
+}) {
   const [userScale, setUserScale] = useState<"linear" | "log" | null>(null);
   const scale = userScale ?? (months > 120 ? "log" : "linear");
   const [zoom, setZoom] = useState(false);
-  const data = useMemo(() => mergeChart([{ key: "q4", data: portfolio }, { key: "actions", data: actions }]), [portfolio, actions]);
-  const lines: ChartLine[] = [
-    { key: "actions", label: "Actions", color: COLOR.actions, width: 1.4 },
-    { key: "q4", label: "4 Quadrants", color: COLOR.portfolio, width: 2.6 },
-  ];
+  const { data, lines } = useMemo(() => {
+    const parts: { line: ChartLine; data: EconomicDataPoint[] }[] = [];
+    if (actions?.length) parts.push({ line: { key: "actions", label: "Actions", color: COLOR.actions, width: 1.4 }, data: actions });
+    if (inflation?.length)
+      parts.push({ line: { key: "inflation", label: "Inflation cumulée", color: "#E87386", width: 1.4, dashed: true }, data: inflation });
+    parts.push({ line: { key: "q4", label: "4 Quadrants", color: COLOR.portfolio, width: 2.6 }, data: portfolio });
+    return {
+      data: mergeChart(parts.map((p) => ({ key: p.line.key, data: p.data }))),
+      lines: parts.map((p) => p.line),
+    };
+  }, [portfolio, actions, inflation]);
   const render = (height: number | string) => (
     <ExplorationChart data={data} lines={lines} height={height} logScale={scale === "log"} showLegend={false} markLast gridOpacity={0.22} cumulativeTooltip axisLine />
   );
@@ -255,7 +333,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 // ─── Composition + Sources + Qualité ─────────────────────────────────────────
 
-function CompositionCard({ alloc }: { alloc: OkModel["latest"]["finalAllocation"] }) {
+function CompositionCard({
+  alloc,
+  turnover,
+}: {
+  alloc: OkModel["latest"]["finalAllocation"];
+  turnover: TurnoverResult | null;
+}) {
   const sleeves = [...CORE_SLEEVES].sort((a, b) => alloc[b] - alloc[a]);
   return (
     <Card className="p-4">
@@ -281,6 +365,17 @@ function CompositionCard({ alloc }: { alloc: OkModel["latest"]["finalAllocation"
           );
         })}
       </div>
+
+      {turnover && (
+        <div className="mt-4 border-t border-border/50 pt-3">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Gestion de l’allocation</p>
+          <div className="mt-2 flex items-baseline justify-between">
+            <span className="text-sm font-medium">Rotation annualisée</span>
+            <span className="text-sm font-semibold tabular-nums">{Math.round(turnover.annualized * 100)} % / an</span>
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">Part moyenne du portefeuille réallouée chaque année.</p>
+        </div>
+      )}
     </Card>
   );
 }
@@ -384,13 +479,18 @@ export function QuadrantsCountryView({
   const regime = displayRegime(latest);
   const bt = backtest && backtest.status === "OK" ? backtest : null;
 
+  const isNvI = displayMode === "nominal_vs_inflation";
   const real = displayMode === "real" && bt?.metrics.real != null;
   const pm = bt ? (real ? bt.metrics.real! : bt.metrics.nominal) : null;
   const am = bt ? (real ? bt.metrics.equityReal! : bt.metrics.equity) : null;
+  // Courbes : portefeuille (nominal en NvI) ; Actions masquées en NvI, remplacées
+  // par l'inflation cumulée. Le drawdown reste porté par Actions.
   const ps = bt ? (real ? bt.series.real! : bt.series.nominal) : null;
-  const as = bt ? (real ? bt.series.equityReal! : bt.series.equityBenchmark) : null;
+  const asDD = bt ? (real ? bt.series.equityReal! : bt.series.equityBenchmark) : null;
+  const asChart = isNvI ? null : asDD;
+  const infl = bt && isNvI ? bt.series.inflationIndex : null;
 
-  const kpis = pm && am ? buildKpis(pm, am, real) : [];
+  const kpis = !bt ? [] : isNvI ? buildInflationKpis(bt) : pm && am ? buildKpis(pm, am, real) : [];
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -424,10 +524,10 @@ export function QuadrantsCountryView({
               <Badge variant="secondary">{dataQuality}</Badge>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-x-8 gap-y-1 text-sm">
+          <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-4">
             <Info2 label="Devise" value={config.currency} />
             <Info2 label="Fréquence" value="Mensuelle" />
-            <Info2 label="Mode" value={real ? "Réel" : "Nominal"} />
+            <Info2 label="Mode" value={isNvI ? "Nominal vs Inflation" : real ? "Réel" : "Nominal"} />
             {bt && <Info2 label="Période" value={`${formatMonth(bt.start)} → ${formatMonth(bt.end)}`} />}
             <Info2 label="Largeur de la zone neutre" value={`${transitionWidth} %`} />
           </div>
@@ -445,15 +545,15 @@ export function QuadrantsCountryView({
         )}
 
         {/* Performance + Drawdown */}
-        {bt && ps && as && (
+        {bt && ps && (
           <>
-            <PerfChart title="Performance cumulée" portfolio={ps} actions={as} months={pm?.months ?? 0} />
-            {pm && am && <DrawdownCard portfolio={ps} actions={as} pm={pm} am={am} />}
+            <PerfChart title="Performance cumulée" portfolio={ps} actions={asChart} inflation={infl} months={pm?.months ?? 0} />
+            {pm && am && asDD && <DrawdownCard portfolio={ps} actions={asDD} pm={pm} am={am} />}
           </>
         )}
 
         {/* Composition */}
-        <CompositionCard alloc={latest.finalAllocation} />
+        <CompositionCard alloc={latest.finalAllocation} turnover={bt ? bt.turnover : null} />
 
         {/* Sources + Qualité */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -467,8 +567,8 @@ export function QuadrantsCountryView({
 
 function Info2({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-1.5 whitespace-nowrap">
-      <span className="text-muted-foreground">{label} :</span>
+    <div className="grid grid-cols-[auto_1fr] items-baseline gap-2">
+      <span className="text-right whitespace-nowrap text-muted-foreground">{label} :</span>
       <span className="font-medium">{value}</span>
     </div>
   );
