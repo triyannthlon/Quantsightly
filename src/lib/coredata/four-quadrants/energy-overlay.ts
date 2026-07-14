@@ -1,4 +1,5 @@
 import type { CoreAllocation, FinalAllocation } from "./types";
+import type { FourQuadrantsModelSettings } from "./settings";
 
 // Surcouche Énergie, appliquée APRÈS l'allocation des quatre poches principales.
 // v1 : le moteur accepte un `energyScore ∈ [-100, +100]` FOURNI par la couche
@@ -33,4 +34,29 @@ export function applyEnergyOverlay(base: CoreAllocation, energyWeight: number): 
     cash: base.cash * multiplier,
     energy,
   };
+}
+
+/** Alias au nom d'interface cible (identique à `applyEnergyOverlay`). */
+export const computeEnergyOverlay = applyEnergyOverlay;
+
+/**
+ * Résout le poids de la poche Énergie selon le MODE du modèle, sans figer la
+ * formule du score (différée) :
+ *   • `disabled`  → 0 (défaut V1) ;
+ *   • `fixed`     → `energyFixedWeight` (borné [0,1]) ;
+ *   • `automatic` → `energyScoreToWeight(energyScore, energyMaxWeight)` (score injecté).
+ * L'architecture est prête ; l'activation ne changera pas la structure.
+ */
+export function resolveEnergyWeight(
+  settings: FourQuadrantsModelSettings,
+  energyScore: number | null,
+): number {
+  switch (settings.energyMode) {
+    case "disabled":
+      return 0;
+    case "fixed":
+      return Math.max(0, Math.min(1, settings.energyFixedWeight ?? 0));
+    case "automatic":
+      return energyScoreToWeight(energyScore ?? 0, settings.energyMaxWeight);
+  }
 }

@@ -48,6 +48,29 @@ export function velocitySeries(coords: number[], window = DEFAULT_VELOCITY_WINDO
 }
 
 /**
+ * Pente Theil–Sen glissante d'une série potentiellement TROUÉE (`null`) : slope[t]
+ * = pente sur les `window` derniers points si TOUS sont définis, sinon `null`.
+ * Sert à empiler vitesse (sur les coords) puis accélération (sur la vitesse).
+ */
+export function rollingSlope(values: (number | null)[], window: number): (number | null)[] {
+  const out: (number | null)[] = new Array(values.length).fill(null);
+  for (let t = window - 1; t < values.length; t++) {
+    const win: number[] = [];
+    let complete = true;
+    for (let k = t - window + 1; k <= t; k++) {
+      const v = values[k];
+      if (v === null) {
+        complete = false;
+        break;
+      }
+      win.push(v);
+    }
+    if (complete) out[t] = theilSenSlope(win);
+  }
+  return out;
+}
+
+/**
  * Accélération = pente Theil–Sen de la série de vitesse sur les `accelWindow`
  * derniers points. `null` si l'on ne dispose pas d'assez de vitesses.
  */

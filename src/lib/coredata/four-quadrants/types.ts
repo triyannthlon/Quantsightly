@@ -6,6 +6,11 @@
 // La normalisation est un « écart normalisé robuste à la moyenne mobile 7 ans »
 // (cf. `robust-normalization.ts`), PAS un z-score robuste académique.
 
+import type { EconomicDataPoint } from "../types";
+
+/** Série temporelle datée (convention coredata : `{ date, value }[]`). */
+export type TimeSeries = EconomicDataPoint[];
+
 /** Quadrant (information pédagogique ; l'allocation dépend des coordonnées, pas du quadrant). */
 export type Quadrant =
   | "inflationary-boom" // x > 0, y > 0 — Boom inflationniste (haut-droite)

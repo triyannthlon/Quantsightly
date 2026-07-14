@@ -1,5 +1,7 @@
 // Transformation des scores robustes en coordonnées bornées du plan, + intensité.
 
+import { robustDeviationSeries, type RobustDeviationOptions } from "./robust-normalization";
+
 /** Aplatissement de la sigmoïde tanh. Plus κ est grand, plus la montée est douce. */
 export const DEFAULT_KAPPA = 2;
 
@@ -32,4 +34,34 @@ export function monetaryCoordinate(monetaryScore: number, kappa = DEFAULT_KAPPA)
  */
 export function regimeIntensity(x: number, y: number): number {
   return Math.hypot(x, y) / Math.SQRT2;
+}
+
+/** Séries de coordonnées + scores robustes, alignées sur les log-ratios (null tant que l'historique est insuffisant). */
+export interface CoordinateSeries {
+  x: (number | null)[];
+  y: (number | null)[];
+  activityScore: (number | null)[];
+  monetaryScore: (number | null)[];
+}
+
+/**
+ * Façade : log-ratios d'activité et monétaires → coordonnées `x, y` + scores
+ * robustes, en une passe. `x = 100·tanh(z_A/κ)`, `y = 100·tanh(z_M/κ)` (les deux
+ * en convention directe — l'orientation « inflation en haut » vient du ratio
+ * or/oblig, pas d'un signe). Source unique du calcul des coordonnées.
+ */
+export function computeCoordinates(
+  activityLogRatios: number[],
+  monetaryLogRatios: number[],
+  kappa = DEFAULT_KAPPA,
+  options?: RobustDeviationOptions,
+): CoordinateSeries {
+  const zA = robustDeviationSeries(activityLogRatios, options);
+  const zM = robustDeviationSeries(monetaryLogRatios, options);
+  return {
+    activityScore: zA,
+    monetaryScore: zM,
+    x: zA.map((z) => (z === null ? null : activityCoordinate(z, kappa))),
+    y: zM.map((z) => (z === null ? null : monetaryCoordinate(z, kappa))),
+  };
 }
