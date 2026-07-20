@@ -8,7 +8,8 @@
 
 import { listSeries, getReferenceData, getFxRates, getSeriesData } from "./db";
 import type { EconomicSeries, EconomicDataPoint, FxRate, CoredataCountry } from "./types";
-import { usdPerUnitMap, convertCurrency } from "./compute";
+import { usdPerUnitMap, convertCurrency, computeKpis } from "./compute";
+import { rollingPositiveShare, rollingOutperformanceShare } from "./browne";
 import {
   buildModel,
   backtestQuadrants,
@@ -20,6 +21,7 @@ import {
   type QuadrantModelStatus,
   type QuadrantModelResult,
   type BacktestResult,
+  type BacktestStatus,
   type BacktestMetrics,
 } from "./four-quadrants";
 
@@ -29,6 +31,9 @@ const GLOBAL_GOLD_ID = "XAU Comdty-XX-5-1"; // Or
 
 /** En deçà de cette profondeur de série mensuelle scorée, l'historique est « court ». */
 export const SHORT_HISTORY_MONTHS = 120; // 10 ans de coordonnées
+
+/** Horizons glissants de la heatmap de régularité (mois) — mêmes que Browne. */
+const HEATMAP_HORIZONS = [12, 36, 60, 120, 240];
 
 export type QuadrantDataQuality = "Complet" | "Historique court" | "Indisponible";
 
@@ -73,12 +78,34 @@ export interface CountryQuadrantModel {
 export interface QuadrantModelRow {
   countryCode: string;
   countryFr: string | null;
+  /** Statut du MODÈLE (régime/coords/allocation) — calculé sur l'historique COMPLET. */
   status: QuadrantModelStatus;
+  /** Snapshot courant (régime, coords, allocation) — indépendant de la fenêtre choisie. */
   latest: Pick<
     QuadrantModelResult,
     "date" | "x" | "y" | "quadrant" | "transitionState" | "regimeIntensity" | "finalAllocation"
   > | null;
+  /** Statut du BACKTEST sur la FENÊTRE (perf/risque/rotation) — « INSUFFICIENT_HISTORY » ≠ 0. */
+  metricsStatus: BacktestStatus;
+  /** Métriques fenêtrées (nominal + réel), `null` si la fenêtre est trop courte. */
   metrics: { nominal: BacktestMetrics; real: BacktestMetrics | null } | null;
+  /** Inflation locale annualisée sur la fenêtre (mode Nominal vs Inflation). */
+  inflationAnnualized: number | null;
+  /** Multiple réel cumulé sur la fenêtre (pouvoir d'achat final / initial), `null` sans CPI. */
+  realMultiple: number | null;
+  /** Rotation annualisée sur la fenêtre (turnover unidirectionnel), `null` si indisponible. */
+  turnover: number | null;
+  /** Métriques RÉELLES de l'indice actions national (onglet 4Q vs Actions), `null` sans CPI. */
+  equityReal: BacktestMetrics | null;
+  /** Régularité par horizon (`HEATMAP_HORIZONS`) — part des fenêtres favorables, `null` sans CPI. */
+  heatmap: {
+    /** % de fenêtres où le 4Q réel a progressé (bat l'inflation). */
+    beatsInflation: (number | null)[];
+    /** % de fenêtres où le 4Q réel surperforme les actions réelles. */
+    beatsEquity: (number | null)[];
+  } | null;
+  /** Fenêtre effective du backtest (auditabilité), `null` si indisponible. */
+  effectivePeriod: { start: string; end: string; months: number } | null;
 }
 
 // ─── Dérivation de la config ─────────────────────────────────────────────────
@@ -196,6 +223,26 @@ function dataQualityOf(model: QuadrantModel): QuadrantDataQuality {
   return model.monthlyResults.length < SHORT_HISTORY_MONTHS ? "Historique court" : "Complet";
 }
 
+/**
+ * Restreint les séries de PERFORMANCE aux `years` dernières années (mirror serveur
+ * du `clipPerf` client). ⚠️ N'affecte QUE la perf/le backtest : le SIGNAL (donc le
+ * régime, les coords et l'allocation) reste calculé sur l'historique complet.
+ */
+function clipPerfByYears(perf: QuadrantPerfInput, years: number | null): QuadrantPerfInput {
+  if (!years) return perf;
+  const last = perf.equityTotalReturn.at(-1)?.date;
+  if (!last) return perf;
+  const from = `${Number(last.slice(0, 4)) - years}${last.slice(4)}`;
+  const clip = (a: EconomicDataPoint[]) => a.filter((p) => p.date >= from);
+  return {
+    equityTotalReturn: clip(perf.equityTotalReturn),
+    bondTotalReturn: clip(perf.bondTotalReturn),
+    cashTotalReturn: clip(perf.cashTotalReturn),
+    gold: clip(perf.gold),
+    cpi: perf.cpi ? clip(perf.cpi) : undefined,
+  };
+}
+
 function runBacktest(
   countryCode: string,
   model: QuadrantModel,
@@ -243,9 +290,36 @@ export async function getCountryQuadrantModel(
   return { config, dataQuality: dataQualityOf(model), signal, perf, model, backtest };
 }
 
-/** Modèle de tous les vrais pays — snapshot + métriques uniquement (aucune série). */
+/** Ligne « vide » (config absente ou modèle non OK) — régime ET métriques indisponibles. */
+function emptyRow(code: string, countryFr: string | null, status: QuadrantModelStatus): QuadrantModelRow {
+  return {
+    countryCode: code,
+    countryFr,
+    status,
+    latest: null,
+    metricsStatus: status === "OK" ? "INSUFFICIENT_HISTORY" : "MISSING_SERIES",
+    metrics: null,
+    inflationAnnualized: null,
+    realMultiple: null,
+    turnover: null,
+    equityReal: null,
+    heatmap: null,
+    effectivePeriod: null,
+  };
+}
+
+/**
+ * Modèle de tous les vrais pays — snapshot + métriques uniquement (aucune série).
+ *
+ * ⚠️ Le régime, les coordonnées et l'allocation (`latest`) sont TOUJOURS calculés
+ * sur l'historique COMPLET (signal) → ils ne changent PAS avec `years`. La fenêtre
+ * `years` ne s'applique qu'aux perfs / risques / drawdowns / rotation (backtest).
+ * Si la fenêtre est trop courte, `metrics`/`turnover` sont `null` avec
+ * `metricsStatus = "INSUFFICIENT_HISTORY"` (jamais `0`).
+ */
 export async function computeAllCountryQuadrantModels(
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
+  years: number | null = null,
 ): Promise<QuadrantModelRow[]> {
   const ctx = await loadContext();
   const codes = [
@@ -257,28 +331,78 @@ export async function computeAllCountryQuadrantModels(
   return Promise.all(
     codes.map(async (code): Promise<QuadrantModelRow> => {
       const config = deriveQuadrantConfig(code, ctx.series, ctx.countries);
-      if (!config) return { countryCode: code, countryFr: null, status: "MISSING_SERIES", latest: null, metrics: null };
+      if (!config) return emptyRow(code, null, "MISSING_SERIES");
+
       const { signal, perf } = await loadSeries(config, ctx);
-      const model = buildModel(signal, settings);
-      if (model.status !== "OK") {
-        return { countryCode: code, countryFr: config.countryFr, status: model.status, latest: null, metrics: null };
-      }
-      const backtest = runBacktest(code, model, perf);
+      const model = buildModel(signal, settings); // historique COMPLET → régime/coords/alloc
+      if (model.status !== "OK") return emptyRow(code, config.countryFr, model.status);
+
       const r = model.latest;
+      const latest = {
+        date: r.date,
+        x: r.x,
+        y: r.y,
+        quadrant: r.quadrant,
+        transitionState: r.transitionState,
+        regimeIntensity: r.regimeIntensity,
+        finalAllocation: r.finalAllocation,
+      };
+
+      // Backtest FENÊTRÉ : perf clippée aux `years`, poids issus du modèle complet.
+      const backtest = backtestQuadrants({
+        countryCode: code,
+        weights: weightsFromModel(model),
+        ...clipPerfByYears(perf, years),
+      });
+      if (backtest.status !== "OK") {
+        return {
+          countryCode: code,
+          countryFr: config.countryFr,
+          status: "OK",
+          latest,
+          metricsStatus: backtest.status,
+          metrics: null,
+          inflationAnnualized: null,
+          realMultiple: null,
+          turnover: null,
+          equityReal: null,
+          heatmap: null,
+          effectivePeriod: null,
+        };
+      }
+
+      const realSeries = backtest.series.real;
+      const equityRealSeries = backtest.series.equityReal;
+      const realMultiple =
+        realSeries && realSeries.length >= 2 && realSeries[0].value > 0
+          ? realSeries[realSeries.length - 1].value / realSeries[0].value
+          : null;
+      const heatmap = realSeries
+        ? {
+            beatsInflation: HEATMAP_HORIZONS.map((w) => rollingPositiveShare(realSeries, w)),
+            beatsEquity: equityRealSeries
+              ? HEATMAP_HORIZONS.map((w) => rollingOutperformanceShare(realSeries, equityRealSeries, w))
+              : HEATMAP_HORIZONS.map(() => null),
+          }
+        : null;
+
       return {
         countryCode: code,
         countryFr: config.countryFr,
         status: "OK",
-        latest: {
-          date: r.date,
-          x: r.x,
-          y: r.y,
-          quadrant: r.quadrant,
-          transitionState: r.transitionState,
-          regimeIntensity: r.regimeIntensity,
-          finalAllocation: r.finalAllocation,
+        latest,
+        metricsStatus: "OK",
+        metrics: { nominal: backtest.metrics.nominal, real: backtest.metrics.real },
+        inflationAnnualized: computeKpis(backtest.series.inflationIndex ?? []).annualized,
+        realMultiple,
+        turnover: backtest.turnover.annualized,
+        equityReal: backtest.metrics.equityReal,
+        heatmap,
+        effectivePeriod: {
+          start: backtest.start,
+          end: backtest.end,
+          months: backtest.metrics.nominal.months,
         },
-        metrics: backtest.status === "OK" ? backtest.metrics : null,
       };
     }),
   );

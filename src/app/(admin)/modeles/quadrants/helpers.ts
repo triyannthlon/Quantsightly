@@ -10,7 +10,8 @@ import {
   type Acceleration,
 } from "@/lib/coredata/four-quadrants";
 import type { EconomicDataPoint } from "@/lib/coredata/types";
-import { REGIME, type RegimeStyle } from "@/app/(admin)/comparaisons/quadrants/regime-palette";
+import type { QuadrantModelRow } from "@/lib/coredata/four-quadrants-service";
+import { REGIME, type RegimeStyle, type RegimeKey } from "@/app/(admin)/comparaisons/quadrants/regime-palette";
 import type { ChartPoint } from "@/app/(admin)/exploration/exploration-chart";
 
 export type PerfMode = "nominal" | "real" | "nominal_vs_inflation";
@@ -34,13 +35,152 @@ export function regimeStyleOf(quadrant: Quadrant): RegimeStyle {
 }
 
 /**
- * Régime AFFICHÉ, cohérent avec la page Régimes macro : « Régime en transition »
- * dès qu'un axe est dans la bande neutre (|x|≤T ou |y|≤T), sinon le quadrant.
+ * Régime AFFICHÉ à partir d'un snapshot (quadrant + état de transition) :
+ * « Zone neutre » dès qu'un axe est dans la bande neutre, sinon le quadrant.
+ * Cohérent avec la page Régimes macro et la Vue pays.
  */
-export function displayRegime(r: QuadrantModelResult): { label: string; style: RegimeStyle } {
-  if (r.transitionState !== "none") return { label: REGIME.transition.label, style: REGIME.transition };
-  const style = regimeStyleOf(r.quadrant);
+export function regimeFromLatest(latest: {
+  quadrant: Quadrant;
+  transitionState: TransitionState;
+}): { label: string; style: RegimeStyle } {
+  if (latest.transitionState !== "none") return { label: REGIME.transition.label, style: REGIME.transition };
+  const style = regimeStyleOf(latest.quadrant);
   return { label: style.label, style };
+}
+
+/** Régime affiché d'un résultat mensuel complet (délègue à `regimeFromLatest`). */
+export function displayRegime(r: QuadrantModelResult): { label: string; style: RegimeStyle } {
+  return regimeFromLatest(r);
+}
+
+/** Clé de régime (palette) d'un snapshot : « transition » si un axe est neutre, sinon le quadrant. */
+export function regimeKeyFromLatest(latest: {
+  quadrant: Quadrant;
+  transitionState: TransitionState;
+}): RegimeKey {
+  return latest.transitionState !== "none" ? "transition" : QUADRANT_TO_REGIME_CODE[latest.quadrant];
+}
+
+// ─── Régions (mirror de la page Régimes / Browne — évite d'importer la carte) ──
+
+export type QuadrantRegion = "monde" | "amerique" | "europe" | "asie";
+export type GeoRegion = Exclude<QuadrantRegion, "monde">;
+
+export const REGION_ITEMS = [
+  { value: "monde", label: "Monde" },
+  { value: "amerique", label: "Amérique" },
+  { value: "europe", label: "Europe" },
+  { value: "asie", label: "Asie-Pacifique" },
+];
+
+/** Assignation région par pays (choix éditorial, aligné sur Browne / la page Régimes). */
+export const COUNTRY_REGION: Record<string, GeoRegion> = {
+  US: "amerique", CA: "amerique", MX: "amerique", BR: "amerique",
+  DE: "europe", FR: "europe", IT: "europe", ES: "europe",
+  GB: "europe", CH: "europe", NO: "europe", SE: "europe", DK: "europe",
+  JP: "asie", CN: "asie", KR: "asie", IN: "asie", TW: "asie",
+  ID: "asie", AU: "asie", HK: "asie", SG: "asie",
+};
+
+export const REGION_LABEL: Record<GeoRegion, string> = {
+  amerique: "Amérique",
+  europe: "Europe",
+  asie: "Asie-Pacifique",
+};
+
+// ─── 4 Quadrants vs Actions (écarts + profil) — règles verrouillées de Browne ──
+
+export type QuadrantsVerdict =
+  | "Supérieur aux actions"
+  | "Excellent compromis"
+  | "Protecteur"
+  | "Protection limitée"
+  | "Profil atypique"
+  | "Compromis modéré";
+
+/** Écarts RELATIFS 4 Quadrants réel − Actions réelles + profil. */
+export interface QuadrantsVsEquity {
+  /** CAGR 4Q − CAGR Actions (pts). */
+  ecartReturn: number | null;
+  /** Volatilité 4Q − Volatilité Actions (pts). */
+  ecartVol: number | null;
+  /** |Max DD Actions| − |Max DD 4Q| (pts) : > 0 = 4Q protège mieux. */
+  drawdownReduction: number | null;
+  /** Sharpe 4Q − Sharpe Actions. */
+  ecartSharpe: number | null;
+  verdict: QuadrantsVerdict | null;
+}
+
+/** Ordre d'affichage (meilleur → moins bon, atypique/repli en fin). */
+export const VERDICT_ORDER: QuadrantsVerdict[] = [
+  "Supérieur aux actions",
+  "Excellent compromis",
+  "Protecteur",
+  "Compromis modéré",
+  "Protection limitée",
+  "Profil atypique",
+];
+
+export const VERDICT_HEX: Record<QuadrantsVerdict, string> = {
+  "Supérieur aux actions": "#34d399", // emerald-400
+  "Excellent compromis": "#22d3ee", // cyan-400
+  Protecteur: "#fbbf24", // amber-400
+  "Protection limitée": "#f87171", // red-400
+  "Profil atypique": "#a78bfa", // violet-400
+  "Compromis modéré": "#94a3b8", // slate-400
+};
+
+export const VERDICT_TONE: Record<QuadrantsVerdict, string> = {
+  "Supérieur aux actions": "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  "Excellent compromis": "border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
+  Protecteur: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  "Protection limitée": "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
+  "Profil atypique": "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  "Compromis modéré": "border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400",
+};
+
+export const VERDICT_DESC: Record<QuadrantsVerdict, string> = {
+  "Supérieur aux actions": "Le 4 Quadrants fait mieux que les actions en rendement tout en réduisant le risque.",
+  "Excellent compromis": "Le 4 Quadrants fait presque aussi bien que les actions, avec une baisse maximale nettement plus faible.",
+  Protecteur: "Le 4 Quadrants fait moins bien que les actions en rendement, mais réduit fortement les pertes maximales.",
+  "Compromis modéré": "Le 4 Quadrants apporte une amélioration partielle, sans remplir les critères des profils les plus favorables.",
+  "Protection limitée": "Le 4 Quadrants sous-performe les actions et ne réduit pas suffisamment le drawdown.",
+  "Profil atypique": "Le 4 Quadrants présente un comportement inhabituel, par exemple plus de rendement mais aussi plus de risque.",
+};
+
+/**
+ * Écarts relatifs 4 Quadrants réel − Actions réelles + profil, à partir d'une
+ * ligne. Règles verrouillées identiques à Browne ; « Compromis modéré » = repli.
+ * `verdict` = null si données insuffisantes.
+ */
+export function quadrantsVsEquity(row: QuadrantModelRow): QuadrantsVsEquity {
+  const b = row.metrics?.real ?? null;
+  const e = row.equityReal;
+  const none: QuadrantsVsEquity = {
+    ecartReturn: null,
+    ecartVol: null,
+    drawdownReduction: null,
+    ecartSharpe: null,
+    verdict: null,
+  };
+  if (!b || !e) return none;
+
+  const ecartReturn = b.annualized != null && e.annualized != null ? b.annualized - e.annualized : null;
+  const ecartVol = b.volatility != null && e.volatility != null ? b.volatility - e.volatility : null;
+  const drawdownReduction =
+    b.maxDrawdown != null && e.maxDrawdown != null ? Math.abs(e.maxDrawdown) - Math.abs(b.maxDrawdown) : null;
+  const ecartSharpe = b.sharpe != null && e.sharpe != null ? b.sharpe - e.sharpe : null;
+
+  let verdict: QuadrantsVerdict | null = null;
+  if (ecartReturn != null && drawdownReduction != null && ecartVol != null) {
+    if (ecartReturn >= 0 && drawdownReduction >= 5 && ecartVol <= 0) verdict = "Supérieur aux actions";
+    else if (ecartReturn >= -1.5 && drawdownReduction >= 20 && ecartVol <= -3) verdict = "Excellent compromis";
+    else if (ecartReturn < -1.5 && drawdownReduction >= 20) verdict = "Protecteur";
+    else if (ecartReturn > 0 && (drawdownReduction < 0 || ecartVol > 0)) verdict = "Profil atypique";
+    else if (ecartReturn < 0 && drawdownReduction < 10) verdict = "Protection limitée";
+    else verdict = "Compromis modéré";
+  }
+  return { ecartReturn, ecartVol, drawdownReduction, ecartSharpe, verdict };
 }
 
 /** Métadonnées d'affichage des poches (couleurs alignées sur SLEEVE_PALETTE de Browne). */

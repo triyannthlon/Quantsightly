@@ -342,6 +342,8 @@ export interface BrowneComparisonRow {
   inflationAnnualized: number | null;
   /** Multiple réel cumulé (pouvoir d'achat final / initial), `null` sans CPI. */
   realMultiple: number | null;
+  /** Rotation annualisée (turnover unidirectionnel), `null` si indisponible. */
+  turnover: number | null;
   /** Métriques RÉELLES de l'indice actions national (comparaison Browne vs actions). */
   equityReal: {
     annualized: number | null;
@@ -411,6 +413,7 @@ export async function computeBrowneComparison(
           real: null,
           inflationAnnualized: null,
           realMultiple: null,
+          turnover: null,
           equityReal: null,
           heatmap: null,
         };
@@ -466,6 +469,7 @@ export async function computeBrowneComparison(
           : null,
         inflationAnnualized: computeKpis(ok?.series.inflationIndex ?? []).annualized,
         realMultiple,
+        turnover: ok?.turnover.annualized ?? null,
         equityReal: em
           ? {
               annualized: em.annualized,

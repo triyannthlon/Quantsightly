@@ -25,6 +25,8 @@ export interface RegimeStyle {
   area: string;
   /** Pastille pleine (légende, liste, tooltip, barre, point carte), INTERMÉDIAIRE. */
   dot: string;
+  /** Même teinte INTERMÉDIAIRE que `dot`, en hex brut (styles inline : bord de pastille, points du nuage). */
+  dotHex: string;
   /** Anneau du 2×2 : bordure, INTERMÉDIAIRE. */
   ring: string;
   /** Anneau du 2×2 : fond intérieur léger, INTERMÉDIAIRE. */
@@ -42,6 +44,7 @@ export const REGIME: Record<RegimeKey, RegimeStyle> = {
     hex: "#dcc08a",
     area: "fill-[#e9af4b] stroke-[#e9af4b]",
     dot: "bg-[#e9af4b]",
+    dotHex: "#e9af4b",
     ring: "border-[#e9af4b]/40",
     ringBg: "bg-[#e9af4b]/10",
     text: "text-amber-600 dark:text-[#e9af4b]",
@@ -51,6 +54,7 @@ export const REGIME: Record<RegimeKey, RegimeStyle> = {
     hex: "#9ec9ae",
     area: "fill-[#57c198] stroke-[#57c198]",
     dot: "bg-[#57c198]",
+    dotHex: "#57c198",
     ring: "border-[#57c198]/40",
     ringBg: "bg-[#57c198]/10",
     text: "text-emerald-600 dark:text-[#57c198]",
@@ -60,6 +64,7 @@ export const REGIME: Record<RegimeKey, RegimeStyle> = {
     hex: "#dba7ad",
     area: "fill-[#e87386] stroke-[#e87386]",
     dot: "bg-[#e87386]",
+    dotHex: "#e87386",
     ring: "border-[#e87386]/40",
     ringBg: "bg-[#e87386]/10",
     text: "text-rose-600 dark:text-[#e87386]",
@@ -69,6 +74,7 @@ export const REGIME: Record<RegimeKey, RegimeStyle> = {
     hex: "#a7c0dd",
     area: "fill-[#71a1ea] stroke-[#71a1ea]",
     dot: "bg-[#71a1ea]",
+    dotHex: "#71a1ea",
     ring: "border-[#71a1ea]/40",
     ringBg: "bg-[#71a1ea]/10",
     text: "text-blue-600 dark:text-[#71a1ea]",
@@ -78,6 +84,7 @@ export const REGIME: Record<RegimeKey, RegimeStyle> = {
     hex: "#aab3c0",
     area: "fill-[#8794a6] stroke-[#8794a6]",
     dot: "bg-[#8794a6]",
+    dotHex: "#8794a6",
     ring: "border-[#8794a6]/40",
     ringBg: "bg-[#8794a6]/10",
     text: "text-slate-600 dark:text-[#8794a6]",

@@ -40,6 +40,16 @@ const SCORE_COL: NumCol = {
   better: "desc",
 };
 
+// Colonne rotation : toujours présente (turnover unidirectionnel annualisé).
+const TURNOVER_COL: NumCol = {
+  key: "turnover",
+  label: "Rotation",
+  tip: "Rotation annualisée (turnover unidirectionnel : ½·Σ|écart de poids| à chaque rééquilibrage, hors constitution initiale).",
+  get: (r) => r.turnover,
+  fmt: (r) => (r.turnover === null ? "—" : `${Math.round(r.turnover * 100)} %/an`),
+  better: "asc",
+};
+
 const ecartInflation = (r: BrowneComparisonRow): number | null =>
   r.nominal?.annualized != null && r.inflationAnnualized != null
     ? r.nominal.annualized - r.inflationAnnualized
@@ -87,7 +97,7 @@ export function BrowneComparisonView({
   region: BrowneRegion;
 }) {
   const numCols = useMemo(() => columnsFor(displayMode), [displayMode]);
-  const allCols = useMemo(() => [SCORE_COL, ...numCols], [numCols]);
+  const allCols = useMemo(() => [SCORE_COL, ...numCols, TURNOVER_COL], [numCols]);
   const [sortKey, setSortKey] = useState("score");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
 

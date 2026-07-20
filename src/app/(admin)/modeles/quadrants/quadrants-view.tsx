@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { LineChart, Table2, Swords, BookOpen, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CountryFlag } from "@/components/ui/CountryFlag";
@@ -21,28 +21,31 @@ import type {
   QuadrantModelConfig,
   QuadrantDataQuality,
   QuadrantPerfInput,
+  QuadrantModelRow,
 } from "@/lib/coredata/four-quadrants-service";
 import { QuadrantsCountryView } from "./quadrants-country-view";
+import { QuadrantsComparisonView } from "./quadrants-comparison-view";
+import { QuadrantsVsEquityView } from "./quadrants-vs-equity-view";
 import { ModelSettingsDialog } from "@/components/custom/model-settings/settings-dialog";
 import {
   ModelStickyControls,
   type StickyNavSection,
   type StickySummaryItem,
 } from "@/components/custom/model-shell/model-sticky-controls";
-import { loadCountryQuadrantModel } from "./actions";
-import type { PerfMode } from "./helpers";
+import { loadCountryQuadrantModel, loadQuadrantComparison } from "./actions";
+import { REGION_ITEMS, type PerfMode, type QuadrantRegion } from "./helpers";
 
-type Tab = "country" | "comparison" | "vs_browne" | "methodology";
+type Tab = "country" | "comparison" | "vs_actions" | "methodology";
 type Period = "MAX" | "20A" | "10A" | "5A";
 
 const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[] = [
   { key: "country", label: "Vue pays", icon: LineChart, ready: true },
-  { key: "comparison", label: "Comparaison pays", icon: Table2, ready: false },
-  { key: "vs_browne", label: "4 Quadrants vs Browne", icon: Swords, ready: false },
+  { key: "comparison", label: "Comparaison pays", icon: Table2, ready: true },
+  { key: "vs_actions", label: "4 Quadrants vs Actions", icon: Swords, ready: true },
   { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: false },
 ];
 
-// Navigation interne par onglet (seule la Vue pays est construite pour l'instant).
+// Navigation interne par onglet.
 const SECTIONS: Record<Tab, StickyNavSection[]> = {
   country: [
     { id: "resume", label: "Résumé" },
@@ -52,8 +55,17 @@ const SECTIONS: Record<Tab, StickyNavSection[]> = {
     { id: "composition", label: "Composition" },
     { id: "sources-qualite", label: "Sources & qualité" },
   ],
-  comparison: [],
-  vs_browne: [],
+  comparison: [
+    { id: "positionnement", label: "Positionnement" },
+    { id: "tableau", label: "Tableau" },
+  ],
+  vs_actions: [
+    { id: "synthese", label: "Synthèse" },
+    { id: "compromis", label: "Compromis" },
+    { id: "detail", label: "Détail" },
+    { id: "regularite", label: "Régularité" },
+    { id: "carte", label: "Carte" },
+  ],
   methodology: [],
 };
 
@@ -138,9 +150,14 @@ export function QuadrantsView({
   const { transitionWidth } = useTransitionWidth(); // persistant + partagé (réglé via Réglages)
   const [perfMode, setPerfMode] = useState<PerfMode>("real");
   const [period, setPeriod] = useState<Period>("MAX");
+  const [region, setRegion] = useState<QuadrantRegion>("monde");
   const [tab, setTab] = useState<Tab>("country");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // Comparaison pays (calcul serveur) — snapshot + métriques uniquement.
+  const [comparison, setComparison] = useState<QuadrantModelRow[] | null>(null);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
 
   const settings = useMemo<FourQuadrantsModelSettings>(
     () => ({ ...DEFAULT_FOUR_QUADRANTS_SETTINGS, strategy, transitionWidth }),
@@ -173,18 +190,54 @@ export function QuadrantsView({
     });
   }
 
+  // Comparaison + vs Actions : recalcul SERVEUR au changement de stratégie / zone
+  // neutre (settings) ou de période. Le mode et la région restent client-side
+  // (la ligne porte déjà toutes les métriques + écarts + heatmap). Batch PARTAGÉ :
+  // `needsBatch` (booléen) → pas de rechargement en basculant entre les 2 onglets.
+  const needsBatch = tab === "comparison" || tab === "vs_actions";
+  useEffect(() => {
+    if (!needsBatch) return;
+    let ignore = false;
+    setComparisonLoading(true);
+    loadQuadrantComparison(settings, PERIOD_YEARS[period])
+      .then((rows) => {
+        if (!ignore) setComparison(rows);
+      })
+      .finally(() => {
+        if (!ignore) setComparisonLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [needsBatch, settings, period]);
+
+  // Depuis la comparaison → Vue pays : conserve stratégie / T / période / mode (état).
+  function onPickCountry(iso: string) {
+    setTab("country");
+    onCountry(iso);
+  }
+
   const countryItems: SelectItem[] = countries.map((c) => ({
     value: c.iso,
     label: c.nameFr,
     icon: <CountryFlag code={c.iso} countryName={c.nameFr} size={18} />,
   }));
 
-  // Contrôles complets (bloc initial + panneau « Modifier »).
+  // Onglets orientés « groupe de pays » (filtre région, calcul serveur partagé).
+  const isRegionTab = tab === "comparison" || tab === "vs_actions";
+
+  // Contrôles complets (bloc initial + panneau « Modifier ») — 1er champ contextuel.
   const renderControls = () => (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      <Control label="Pays">
-        <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
-      </Control>
+      {isRegionTab ? (
+        <Control label="Région">
+          <SelectDropdown items={REGION_ITEMS} value={region} onChange={(i) => setRegion(i.value as QuadrantRegion)} width="w-full" />
+        </Control>
+      ) : (
+        <Control label="Pays">
+          <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
+        </Control>
+      )}
       <Control label="Période">
         <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as Period)} width="w-full" />
       </Control>
@@ -202,7 +255,9 @@ export function QuadrantsView({
 
   // Résumé compact des valeurs actives (barre condensée).
   const summary: StickySummaryItem[] = [
-    { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
+    isRegionTab
+      ? { label: "Région", value: REGION_ITEMS.find((i) => i.value === region)?.label ?? region }
+      : { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
     { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
     { label: "Devise", value: "Locale" },
     { label: "Mode", value: MODE_ITEMS.find((i) => i.value === perfMode)?.label ?? perfMode },
@@ -253,9 +308,20 @@ export function QuadrantsView({
             )}
           </div>
         ) : tab === "comparison" ? (
-          <Placeholder label="Comparaison pays" />
-        ) : tab === "vs_browne" ? (
-          <Placeholder label="4 Quadrants vs Browne" />
+          <QuadrantsComparisonView
+            rows={comparison}
+            loading={comparisonLoading}
+            onPick={onPickCountry}
+            displayMode={perfMode}
+            region={region}
+          />
+        ) : tab === "vs_actions" ? (
+          <QuadrantsVsEquityView
+            rows={comparison}
+            loading={comparisonLoading}
+            onPick={onPickCountry}
+            region={region}
+          />
         ) : (
           <Placeholder label="Méthodologie" />
         )}
