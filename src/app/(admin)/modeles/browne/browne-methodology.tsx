@@ -70,7 +70,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <Card id={id} className="scroll-mt-20 gap-0 p-5">
+    <Card id={id} className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-5">
       <h2 className="mb-3 flex items-center gap-2 text-base font-semibold">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-xs font-bold text-primary">
           {n}
@@ -134,7 +134,8 @@ function QualityBadge({
   );
 }
 
-const NAV = [
+// Sections de la doc — exposées à la navigation interne sticky de la page.
+export const METHODOLOGY_SECTIONS = [
   { id: "meth-overview", label: "Vue d’ensemble" },
   { id: "meth-formules", label: "Formules" },
   { id: "meth-hypotheses", label: "Hypothèses" },
@@ -145,11 +146,9 @@ const NAV = [
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export function BrowneMethodology() {
-  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-
   return (
     <div className="space-y-4">
-      {/* Résumé + navigation */}
+      {/* Résumé (la navigation par ancres vit dans la barre sticky de la page) */}
       <Card className="gap-0 border-primary/20 bg-gradient-to-b from-primary/[0.06] to-transparent p-5">
         <p className="text-sm leading-relaxed">
           La méthodologie Browne de Quantsightly vise à comparer, pays par pays, la robustesse
@@ -165,18 +164,6 @@ export function BrowneMethodology() {
             meilleure résistance aux régimes économiques difficiles.
           </p>
         </div>
-        <nav className="mt-4 flex flex-wrap gap-1.5">
-          {NAV.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => scrollTo(s.id)}
-              className="cursor-pointer rounded-full border bg-background/60 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {s.label}
-            </button>
-          ))}
-        </nav>
       </Card>
 
       {/* 1 — Méthodologie */}

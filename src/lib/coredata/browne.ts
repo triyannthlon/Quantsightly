@@ -87,6 +87,24 @@ export interface SleeveMetrics {
   maxDrawdown: number | null;
 }
 
+/**
+ * Rotation du portefeuille (turnover), agrégée sur les rééquilibrages — même
+ * définition que les portefeuilles 4 Quadrants : à chaque rééquilibrage,
+ * turnover UNIDIRECTIONNEL = ½·Σ|cible − poids réellement détenus (dérivés)|.
+ * La constitution initiale n'est pas un rééquilibrage. Indépendant du mode
+ * nominal/réel ; suit la fréquence de rééquilibrage choisie.
+ */
+export interface BrowneTurnover {
+  /** Rotation annualisée = rotation cumulée / durée exacte (fraction ; ×100 = % / an). */
+  annualized: number;
+  /** Somme des turnovers unidirectionnels à chaque rééquilibrage (fraction). */
+  cumulative: number;
+  /** Nombre de rééquilibrages effectifs (hors constitution initiale). */
+  rebalances: number;
+  /** Durée exacte du backtest, en années (span calendaire des mois alignés). */
+  years: number;
+}
+
 /** Courbes produites (base 100 à leur première date respective). */
 export interface BrowneSeriesSet {
   /** Portefeuille de Browne nominal, base 100. */
@@ -120,6 +138,8 @@ export type BrowneResult =
         equityReal: BrowneMetrics | null;
         sleeves: Record<SleeveKey, SleeveMetrics>;
       };
+      /** Rotation du portefeuille (indépendante du mode ; suit la fréquence de rééquilibrage). */
+      turnover: BrowneTurnover;
     }
   | {
       status: Exclude<BrowneStatus, "OK">;
@@ -149,6 +169,14 @@ function toMonthly(data: EconomicDataPoint[]): EconomicDataPoint[] {
   const byMonth = new Map<string, EconomicDataPoint>();
   for (const p of data) byMonth.set(p.date.slice(0, 7), p);
   return [...byMonth.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Nombre de mois calendaires entre deux dates `YYYY-MM-DD` (b − a). */
+function monthsBetween(a: string, b: string): number {
+  return (
+    (Number(b.slice(0, 4)) - Number(a.slice(0, 4))) * 12 +
+    (Number(b.slice(5, 7)) - Number(a.slice(5, 7)))
+  );
 }
 
 /** Clé de période de rééquilibrage : un changement de clé ⇒ on remet les poids à l'équilibre. */
@@ -388,8 +416,21 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
   let p = 100;
   const nominal: EconomicDataPoint[] = [{ date: valid[0].date, value: 100 }];
 
+  // Rotation cumulée : ½·Σ|cible − poids détenus| à chaque rééquilibrage (hors constitution).
+  let turnoverCumulative = 0;
+  let rebalanceCount = 0;
+
   for (let i = 1; i < valid.length; i++) {
     if (periodKey(valid[i].date, rebalance) !== periodKey(valid[i - 1].date, rebalance)) {
+      // Rééquilibrage : les poids détenus (dérivés depuis le dernier reset) reviennent
+      // à 25 %. Turnover UNIDIRECTIONNEL = ½·Σ|cible − détenu| (≠ achats + ventes).
+      turnoverCumulative +=
+        0.5 *
+        (Math.abs(SLEEVE_WEIGHT - w[0]) +
+          Math.abs(SLEEVE_WEIGHT - w[1]) +
+          Math.abs(SLEEVE_WEIGHT - w[2]) +
+          Math.abs(SLEEVE_WEIGHT - w[3]));
+      rebalanceCount += 1;
       w = [SLEEVE_WEIGHT, SLEEVE_WEIGHT, SLEEVE_WEIGHT, SLEEVE_WEIGHT];
     }
     const r = SLEEVE_KEYS.map((k) => level(valid[i], k) / level(valid[i - 1], k) - 1);
@@ -438,6 +479,15 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
     rfReal = cashReal ? (computeKpis(cashReal).annualized ?? 0) : 0;
   }
 
+  // Rotation annualisée = rotation cumulée / durée exacte (span calendaire des mois).
+  const years = monthsBetween(valid[0].date, valid[valid.length - 1].date) / 12;
+  const turnover: BrowneTurnover = {
+    annualized: years > 0 ? turnoverCumulative / years : 0,
+    cumulative: turnoverCumulative,
+    rebalances: rebalanceCount,
+    years,
+  };
+
   return {
     status: "OK",
     countryCode,
@@ -446,6 +496,7 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
     end: valid[valid.length - 1].date,
     months: valid.length,
     series: { nominal, real, equityBenchmark, equityReal, inflationIndex, sleeves },
+    turnover,
     metrics: {
       nominal: indexMetrics(nominal, rfNominal),
       real: real ? indexMetrics(real, rfReal) : null,

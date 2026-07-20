@@ -21,8 +21,13 @@ import type {
 import { BrowneCountryView } from "./browne-country-view";
 import { BrowneComparisonView } from "./browne-comparison-view";
 import { BrowneVsEquityView } from "./browne-vs-equity-view";
-import { BrowneMethodology } from "./browne-methodology";
+import { BrowneMethodology, METHODOLOGY_SECTIONS } from "./browne-methodology";
 import { loadCountryBrowne, loadBrowneComparison } from "./actions";
+import {
+  ModelStickyControls,
+  type StickyNavSection,
+  type StickySummaryItem,
+} from "@/components/custom/model-shell/model-sticky-controls";
 import {
   filterInput,
   PERIOD_ITEMS,
@@ -49,6 +54,32 @@ const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[
   { key: "vs_equity", label: "Browne vs Actions", icon: Swords, ready: true },
   { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: true },
 ];
+
+// Sections de navigation interne par onglet (ancres construites depuis les
+// sections réellement présentes dans chaque vue).
+const SECTIONS: Record<Tab, StickyNavSection[]> = {
+  country: [
+    { id: "resume", label: "Résumé" },
+    { id: "indicateurs", label: "Indicateurs" },
+    { id: "performance", label: "Performance" },
+    { id: "drawdown", label: "Drawdown" },
+    { id: "composition", label: "Composition" },
+    { id: "sources-qualite", label: "Sources & qualité" },
+  ],
+  comparison: [
+    { id: "positionnement", label: "Positionnement" },
+    { id: "tableau", label: "Tableau" },
+  ],
+  vs_equity: [
+    { id: "synthese", label: "Synthèse" },
+    { id: "compromis", label: "Compromis" },
+    { id: "detail", label: "Détail" },
+    { id: "regularite", label: "Régularité" },
+    { id: "comparateur", label: "Comparateur" },
+    { id: "carte", label: "Carte" },
+  ],
+  methodology: METHODOLOGY_SECTIONS,
+};
 
 const REBALANCE_ITEMS: SelectItem[] = (
   ["monthly", "quarterly", "annual", "none"] as RebalanceFrequency[]
@@ -134,82 +165,72 @@ export function BrowneView({
     icon: <CountryFlag code={c.iso} countryName={c.nameFr} size={18} />,
   }));
 
-  return (
-    <div className="space-y-4">
-      {/* Onglets — navigation principale de la page (sticky au scroll) */}
-      <div className="sticky top-0 z-20 -mx-6 bg-background/85 px-6 backdrop-blur-sm">
-        <nav className="flex flex-wrap gap-1 border-b border-border/60">
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTab(t.key)}
-                className={cn(
-                  "relative -mb-px inline-flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
-                  active
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <t.icon className={cn("size-4", active ? "text-primary" : "opacity-70")} />
-                {t.label}
-                {!t.ready && (
-                  <span className="ml-0.5 rounded bg-muted px-1 py-px text-[9px] font-medium tracking-wide text-muted-foreground/70 uppercase">
-                    bientôt
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+  const isRegionTab = tab === "comparison" || tab === "vs_equity";
 
-      {/* Barre de paramètres contextuelle (dépend de l'onglet actif ; masquée sur la doc) */}
-      {tab !== "methodology" && (
-      <Card className="p-3">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {tab === "comparison" || tab === "vs_equity" ? (
-            <Control label="Région">
-              <SelectDropdown
-                items={BROWNE_REGION_ITEMS}
-                value={region}
-                onChange={(i) => setRegion(i.value as BrowneRegion)}
-                width="w-full"
-              />
-            </Control>
-          ) : (
-            <Control label="Pays">
-              <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
-            </Control>
-          )}
-          <Control label="Période">
-            <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as BrownePeriod)} width="w-full" />
-          </Control>
-          <Control label="Devise d’analyse">
-            <SelectDropdown items={[{ value: "local", label: "Locale" }]} value="local" width="w-full" />
-          </Control>
-          <Control label="Mode d’analyse">
-            <SelectDropdown
-              items={DISPLAY_ITEMS}
-              value={displayMode}
-              onChange={(i) => setDisplayMode(i.value as BrowneDisplayMode)}
-              width="w-full"
-            />
-          </Control>
-          <Control label="Rééquilibrage">
-            <SelectDropdown
-              items={REBALANCE_ITEMS}
-              value={rebalance}
-              onChange={(i) => setRebalance(i.value as RebalanceFrequency)}
-              width="w-full"
-            />
-          </Control>
-        </div>
-      </Card>
+  // Contrôles complets (bloc initial + panneau « Modifier »).
+  const renderControls = () => (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {isRegionTab ? (
+        <Control label="Région">
+          <SelectDropdown
+            items={BROWNE_REGION_ITEMS}
+            value={region}
+            onChange={(i) => setRegion(i.value as BrowneRegion)}
+            width="w-full"
+          />
+        </Control>
+      ) : (
+        <Control label="Pays">
+          <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
+        </Control>
       )}
+      <Control label="Période">
+        <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as BrownePeriod)} width="w-full" />
+      </Control>
+      <Control label="Devise d’analyse">
+        <SelectDropdown items={[{ value: "local", label: "Locale" }]} value="local" width="w-full" />
+      </Control>
+      <Control label="Mode d’analyse">
+        <SelectDropdown
+          items={DISPLAY_ITEMS}
+          value={displayMode}
+          onChange={(i) => setDisplayMode(i.value as BrowneDisplayMode)}
+          width="w-full"
+        />
+      </Control>
+      <Control label="Rééquilibrage">
+        <SelectDropdown
+          items={REBALANCE_ITEMS}
+          value={rebalance}
+          onChange={(i) => setRebalance(i.value as RebalanceFrequency)}
+          width="w-full"
+        />
+      </Control>
+    </div>
+  );
 
+  // Résumé compact des valeurs actives (barre condensée).
+  const summary: StickySummaryItem[] = [
+    isRegionTab
+      ? { label: "Région", value: BROWNE_REGION_ITEMS.find((i) => i.value === region)?.label ?? region }
+      : { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
+    { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
+    { label: "Devise", value: "Locale" },
+    { label: "Mode", value: DISPLAY_ITEMS.find((i) => i.value === displayMode)?.label ?? displayMode },
+    { label: "Rééquilibrage", value: REBALANCE_LABELS[rebalance] },
+  ];
+
+  return (
+    <ModelStickyControls
+      tabs={TABS}
+      activeTab={tab}
+      onTabChange={(k) => setTab(k as Tab)}
+      showParams={tab !== "methodology"}
+      renderControls={renderControls}
+      summary={summary}
+      sections={SECTIONS[tab]}
+      loading={pending || comparisonLoading}
+    >
       {/* Contenu */}
       {tab === "country" ? (
         <div className={cn(pending && "pointer-events-none opacity-60 transition-opacity")}>
@@ -250,6 +271,6 @@ export function BrowneView({
           Onglet « {TABS.find((t) => t.key === tab)?.label} » — bientôt disponible.
         </Card>
       )}
-    </div>
+    </ModelStickyControls>
   );
 }

@@ -24,6 +24,11 @@ import type {
 } from "@/lib/coredata/four-quadrants-service";
 import { QuadrantsCountryView } from "./quadrants-country-view";
 import { ModelSettingsDialog } from "@/components/custom/model-settings/settings-dialog";
+import {
+  ModelStickyControls,
+  type StickyNavSection,
+  type StickySummaryItem,
+} from "@/components/custom/model-shell/model-sticky-controls";
 import { loadCountryQuadrantModel } from "./actions";
 import type { PerfMode } from "./helpers";
 
@@ -36,6 +41,21 @@ const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[
   { key: "vs_browne", label: "4 Quadrants vs Browne", icon: Swords, ready: false },
   { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: false },
 ];
+
+// Navigation interne par onglet (seule la Vue pays est construite pour l'instant).
+const SECTIONS: Record<Tab, StickyNavSection[]> = {
+  country: [
+    { id: "resume", label: "Résumé" },
+    { id: "indicateurs", label: "Indicateurs" },
+    { id: "performance", label: "Performance" },
+    { id: "drawdown", label: "Drawdown" },
+    { id: "composition", label: "Composition" },
+    { id: "sources-qualite", label: "Sources & qualité" },
+  ],
+  comparison: [],
+  vs_browne: [],
+  methodology: [],
+};
 
 const PERIOD_ITEMS: SelectItem[] = [
   { value: "MAX", label: "Max" },
@@ -159,97 +179,89 @@ export function QuadrantsView({
     icon: <CountryFlag code={c.iso} countryName={c.nameFr} size={18} />,
   }));
 
+  // Contrôles complets (bloc initial + panneau « Modifier »).
+  const renderControls = () => (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <Control label="Pays">
+        <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
+      </Control>
+      <Control label="Période">
+        <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as Period)} width="w-full" />
+      </Control>
+      <Control label="Devise d’analyse">
+        <SelectDropdown items={DEVISE_ITEMS} value="local" width="w-full" />
+      </Control>
+      <Control label="Mode d’analyse">
+        <SelectDropdown items={MODE_ITEMS} value={perfMode} onChange={(i) => setPerfMode(i.value as PerfMode)} width="w-full" />
+      </Control>
+      <Control label="Stratégie">
+        <SelectDropdown items={STRATEGY_ITEMS} value={strategy} onChange={(i) => setStrategy(i.value as Strategy)} width="w-full" />
+      </Control>
+    </div>
+  );
+
+  // Résumé compact des valeurs actives (barre condensée).
+  const summary: StickySummaryItem[] = [
+    { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
+    { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
+    { label: "Devise", value: "Locale" },
+    { label: "Mode", value: MODE_ITEMS.find((i) => i.value === perfMode)?.label ?? perfMode },
+    { label: "Stratégie", value: STRATEGY_ITEMS.find((i) => i.value === strategy)?.label ?? strategy },
+  ];
+
+  const reglagesButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => setSettingsOpen(true)}
+      className="mb-1 ml-auto w-28 shrink-0 cursor-pointer gap-1.5"
+    >
+      <SlidersHorizontal className="size-3.5" />
+      Réglages
+    </Button>
+  );
+
   return (
-    <div className="space-y-4">
-      {/* Onglets — même logique que Browne, + accès aux réglages généraux */}
-      <div className="sticky top-0 z-20 -mx-6 bg-background/85 px-6 backdrop-blur-sm">
-        <nav className="flex flex-wrap items-center gap-1 border-b border-border/60">
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTab(t.key)}
-                className={cn(
-                  "relative -mb-px inline-flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
-                  active
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <t.icon className={cn("size-4", active ? "text-primary" : "opacity-70")} />
-                {t.label}
-                {!t.ready && (
-                  <span className="ml-0.5 rounded bg-muted px-1 py-px text-[9px] font-medium tracking-wide text-muted-foreground/70 uppercase">
-                    bientôt
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSettingsOpen(true)}
-            className="mb-1 ml-auto w-28 shrink-0 cursor-pointer gap-1.5"
-          >
-            <SlidersHorizontal className="size-3.5" />
-            Réglages
-          </Button>
-        </nav>
-      </div>
-
-      {/* Barre de paramètres — clone Browne (Rééquilibrage → Stratégie) */}
-      {tab !== "methodology" && (
-        <Card className="p-3">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            <Control label="Pays">
-              <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
-            </Control>
-            <Control label="Période">
-              <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as Period)} width="w-full" />
-            </Control>
-            <Control label="Devise d’analyse">
-              <SelectDropdown items={DEVISE_ITEMS} value="local" width="w-full" />
-            </Control>
-            <Control label="Mode d’analyse">
-              <SelectDropdown items={MODE_ITEMS} value={perfMode} onChange={(i) => setPerfMode(i.value as PerfMode)} width="w-full" />
-            </Control>
-            <Control label="Stratégie">
-              <SelectDropdown items={STRATEGY_ITEMS} value={strategy} onChange={(i) => setStrategy(i.value as Strategy)} width="w-full" />
-            </Control>
+    <>
+      <ModelStickyControls
+        tabs={TABS}
+        activeTab={tab}
+        onTabChange={(k) => setTab(k as Tab)}
+        headerExtra={reglagesButton}
+        showParams={tab !== "methodology"}
+        renderControls={renderControls}
+        summary={summary}
+        sections={SECTIONS[tab]}
+        loading={pending}
+      >
+        {tab === "country" ? (
+          <div className={cn(pending && "pointer-events-none opacity-60 transition-opacity")}>
+            {config && model && model.status === "OK" ? (
+              <QuadrantsCountryView
+                config={config}
+                dataQuality={dataQuality}
+                model={model}
+                backtest={backtest}
+                strategy={strategy}
+                transitionWidth={transitionWidth}
+                displayMode={perfMode}
+              />
+            ) : (
+              <Card className="p-8 text-center text-sm text-muted-foreground">
+                Données insuffisantes pour ce pays.
+              </Card>
+            )}
           </div>
-        </Card>
-      )}
-
-      {tab === "country" ? (
-        <div className={cn(pending && "pointer-events-none opacity-60 transition-opacity")}>
-          {config && model && model.status === "OK" ? (
-            <QuadrantsCountryView
-              config={config}
-              dataQuality={dataQuality}
-              model={model}
-              backtest={backtest}
-              strategy={strategy}
-              transitionWidth={transitionWidth}
-              displayMode={perfMode}
-            />
-          ) : (
-            <Card className="p-8 text-center text-sm text-muted-foreground">
-              Données insuffisantes pour ce pays.
-            </Card>
-          )}
-        </div>
-      ) : tab === "comparison" ? (
-        <Placeholder label="Comparaison pays" />
-      ) : tab === "vs_browne" ? (
-        <Placeholder label="4 Quadrants vs Browne" />
-      ) : (
-        <Placeholder label="Méthodologie" />
-      )}
+        ) : tab === "comparison" ? (
+          <Placeholder label="Comparaison pays" />
+        ) : tab === "vs_browne" ? (
+          <Placeholder label="4 Quadrants vs Browne" />
+        ) : (
+          <Placeholder label="Méthodologie" />
+        )}
+      </ModelStickyControls>
 
       <ModelSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-    </div>
+    </>
   );
 }

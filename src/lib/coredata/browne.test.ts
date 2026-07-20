@@ -121,6 +121,100 @@ describe("computeBrowne — rééquilibrage", () => {
   });
 });
 
+// ─── Rotation (turnover) ─────────────────────────────────────────────────────
+
+describe("computeBrowne — rotation (turnover)", () => {
+  it("rotation nulle sans dérive (poches plates), mais rééquilibrages comptés", () => {
+    const d = months(37); // 2000-01 → 2003-01 : 3 frontières annuelles
+    const r = ok(
+      computeBrowne({
+        countryCode: "XX",
+        equity: flat(d),
+        bond: flat(d),
+        cash: flat(d),
+        gold: flat(d),
+        rebalance: "annual",
+      }),
+    );
+    expect(r.turnover.cumulative).toBe(0);
+    expect(r.turnover.annualized).toBe(0);
+    expect(r.turnover.rebalances).toBe(3); // les rééquilibrages existent, mais sans écart
+  });
+
+  it("aucun rééquilibrage ⇒ rotation nulle même avec dérive (0 rééquilibrage)", () => {
+    const d = months(60);
+    const r = ok(
+      computeBrowne({
+        countryCode: "XX",
+        equity: growSeries(d, 100, 0.02),
+        bond: flat(d),
+        cash: flat(d),
+        gold: flat(d),
+        rebalance: "none",
+      }),
+    );
+    expect(r.turnover.rebalances).toBe(0);
+    expect(r.turnover.cumulative).toBe(0);
+    expect(r.turnover.annualized).toBe(0);
+  });
+
+  it("turnover UNIDIRECTIONNEL = ½·Σ|écart| (achats = ventes, PAS leur somme)", () => {
+    const d = months(14);
+    // Actions plates sauf un doublement isolé (2000-05 → 2000-06 : 100 → 200) ;
+    // autres poches plates. En mensuel, à la frontière suivante les poids détenus =
+    // dérive de 25/25/25/25 par ce +100 % ⇒ [0,4 ; 0,2 ; 0,2 ; 0,2].
+    // turnover = ½·(|0,25−0,4| + 3·|0,25−0,2|) = ½·(0,15 + 0,15) = 0,15  (et NON 0,30).
+    const eq = rawSeries(d, [100, 100, 100, 100, 100, 200, 200, 200, 200, 200, 200, 200, 200, 200]);
+    const r = ok(
+      computeBrowne({
+        countryCode: "XX",
+        equity: eq,
+        bond: flat(d),
+        cash: flat(d),
+        gold: flat(d),
+        rebalance: "monthly",
+      }),
+    );
+    expect(r.turnover.cumulative).toBeCloseTo(0.15, 10); // sens unique
+    expect(r.turnover.cumulative).not.toBeCloseTo(0.3, 2); // garde-fou : pas de double comptage
+    expect(r.turnover.rebalances).toBe(13); // mensuel : une frontière par mois (14 → 13)
+  });
+
+  it("le nombre de rééquilibrages suit la fréquence choisie", () => {
+    const d = months(37);
+    const base = {
+      countryCode: "XX",
+      equity: growSeries(d, 100, 0.01),
+      bond: flat(d),
+      cash: flat(d),
+      gold: flat(d),
+    } as const;
+    const monthly = ok(computeBrowne({ ...base, rebalance: "monthly" }));
+    const quarterly = ok(computeBrowne({ ...base, rebalance: "quarterly" }));
+    const annual = ok(computeBrowne({ ...base, rebalance: "annual" }));
+    const none = ok(computeBrowne({ ...base, rebalance: "none" }));
+    expect(monthly.turnover.rebalances).toBeGreaterThan(quarterly.turnover.rebalances);
+    expect(quarterly.turnover.rebalances).toBeGreaterThan(annual.turnover.rebalances);
+    expect(none.turnover.rebalances).toBe(0);
+  });
+
+  it("annualisée = rotation cumulée / durée exacte en années", () => {
+    const d = months(37); // span = 36 mois = 3 ans exacts
+    const r = ok(
+      computeBrowne({
+        countryCode: "XX",
+        equity: growSeries(d, 100, 0.02),
+        bond: flat(d),
+        cash: flat(d),
+        gold: flat(d),
+        rebalance: "annual",
+      }),
+    );
+    expect(r.turnover.years).toBeCloseTo(3, 10);
+    expect(r.turnover.annualized).toBeCloseTo(r.turnover.cumulative / 3, 10);
+  });
+});
+
 // ─── Benchmark actions ───────────────────────────────────────────────────────
 
 describe("computeBrowne — benchmark actions", () => {

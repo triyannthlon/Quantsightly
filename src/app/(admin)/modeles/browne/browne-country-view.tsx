@@ -633,7 +633,7 @@ export function BrowneCountryView({
     <TooltipProvider delayDuration={150}>
       <div className="space-y-4">
         {/* Résumé */}
-        <Card className="gap-0 p-4">
+        <Card id="resume" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-center gap-4">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-slate-800 shadow-sm sm:size-12">
@@ -669,32 +669,43 @@ export function BrowneCountryView({
         </Card>
 
         {/* KPI (pilotés par le mode d'analyse) */}
-        {kpis.length ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {kpis.map((k) => (
-              <KpiCard key={k.title} {...k} />
-            ))}
-          </div>
-        ) : (
-          <Card className="p-6 text-center text-sm text-muted-foreground">
-            Donnée d’inflation indisponible : le mode Réel n’est pas calculable pour ce pays.
-          </Card>
-        )}
+        <section id="indicateurs" className="scroll-mt-[var(--model-header-offset,96px)]">
+          {kpis.length ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {kpis.map((k) => (
+                <KpiCard key={k.title} {...k} />
+              ))}
+            </div>
+          ) : (
+            <Card className="p-6 text-center text-sm text-muted-foreground">
+              Donnée d’inflation indisponible : le mode Réel n’est pas calculable pour ce pays.
+            </Card>
+          )}
+        </section>
 
         {/* Performance */}
-        <PerformanceChart result={result} displayMode={displayMode} />
+        <section id="performance" className="scroll-mt-[var(--model-header-offset,96px)]">
+          <PerformanceChart result={result} displayMode={displayMode} />
+        </section>
 
         {/* Drawdown */}
-        <DrawdownCard result={result} displayMode={displayMode} />
+        <section id="drawdown" className="scroll-mt-[var(--model-header-offset,96px)]">
+          <DrawdownCard result={result} displayMode={displayMode} />
+        </section>
 
         {/* Composition */}
-        <CompositionCard config={config} />
+        <section id="composition" className="scroll-mt-[var(--model-header-offset,96px)]">
+          <CompositionCard config={config} turnover={result.turnover} />
+        </section>
 
         {/* Sources de performance + Qualité des données */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section
+          id="sources-qualite"
+          className="grid scroll-mt-[var(--model-header-offset,96px)] grid-cols-1 gap-4 lg:grid-cols-2"
+        >
           <ContributionCard result={result} />
           <DataQualityCard config={config} />
-        </div>
+        </section>
       </div>
     </TooltipProvider>
   );

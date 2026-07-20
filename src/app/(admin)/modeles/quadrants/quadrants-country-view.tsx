@@ -496,7 +496,7 @@ export function QuadrantsCountryView({
     <TooltipProvider delayDuration={150}>
       <div className="space-y-4">
         {/* Résumé */}
-        <Card className="gap-0 p-4">
+        <Card id="resume" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-center gap-4">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-slate-800 shadow-sm sm:size-12">
@@ -534,32 +534,45 @@ export function QuadrantsCountryView({
         </Card>
 
         {/* KPI principaux */}
-        {kpis.length ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {kpis.map((k) => (
-              <KpiCard key={k.title} {...k} />
-            ))}
-          </div>
-        ) : (
-          <Card className="p-6 text-center text-sm text-muted-foreground">Historique insuffisant pour le backtest.</Card>
-        )}
+        <section id="indicateurs" className="scroll-mt-[var(--model-header-offset,96px)]">
+          {kpis.length ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {kpis.map((k) => (
+                <KpiCard key={k.title} {...k} />
+              ))}
+            </div>
+          ) : (
+            <Card className="p-6 text-center text-sm text-muted-foreground">Historique insuffisant pour le backtest.</Card>
+          )}
+        </section>
 
         {/* Performance + Drawdown */}
         {bt && ps && (
           <>
-            <PerfChart title="Performance cumulée" portfolio={ps} actions={asChart} inflation={infl} months={pm?.months ?? 0} />
-            {pm && am && asDD && <DrawdownCard portfolio={ps} actions={asDD} pm={pm} am={am} />}
+            <section id="performance" className="scroll-mt-[var(--model-header-offset,96px)]">
+              <PerfChart title="Performance cumulée" portfolio={ps} actions={asChart} inflation={infl} months={pm?.months ?? 0} />
+            </section>
+            {pm && am && asDD && (
+              <section id="drawdown" className="scroll-mt-[var(--model-header-offset,96px)]">
+                <DrawdownCard portfolio={ps} actions={asDD} pm={pm} am={am} />
+              </section>
+            )}
           </>
         )}
 
         {/* Composition */}
-        <CompositionCard alloc={latest.finalAllocation} turnover={bt ? bt.turnover : null} />
+        <section id="composition" className="scroll-mt-[var(--model-header-offset,96px)]">
+          <CompositionCard alloc={latest.finalAllocation} turnover={bt ? bt.turnover : null} />
+        </section>
 
         {/* Sources + Qualité */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section
+          id="sources-qualite"
+          className="grid scroll-mt-[var(--model-header-offset,96px)] grid-cols-1 gap-4 lg:grid-cols-2"
+        >
           {bt && <ContributionCard bt={bt} />}
           <DataQualityCard config={config} dataQuality={dataQuality} months={model.monthlyResults.length} />
-        </div>
+        </section>
       </div>
     </TooltipProvider>
   );

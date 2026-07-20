@@ -145,7 +145,7 @@ export function BrowneComparisonView({
     <TooltipProvider delayDuration={150}>
       <div className={cn("space-y-4", loading && "opacity-60 transition-opacity")}>
         {/* Nuage risque-rendement */}
-        <Card className="gap-0 p-4">
+        <Card id="positionnement" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-4">
           <div className="mb-2">
             <div className="flex items-center gap-1.5">
               <h3 className="text-sm font-semibold">
@@ -177,7 +177,7 @@ export function BrowneComparisonView({
         </Card>
 
         {/* Tableau */}
-        <Card className="gap-0 overflow-hidden p-0">
+        <Card id="tableau" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 overflow-hidden p-0">
           <div className="border-b p-4">
             <div className="flex items-center gap-1.5">
               <h3 className="text-sm font-semibold">Comparaison des pays</h3>

@@ -264,7 +264,10 @@ export function BrowneVsEquityView({
     <TooltipProvider delayDuration={150}>
       <div className={cn("space-y-4", loading && "opacity-60 transition-opacity")}>
         {/* Cartes de synthèse */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div
+          id="synthese"
+          className="grid scroll-mt-[var(--model-header-offset,96px)] grid-cols-2 gap-3 lg:grid-cols-4"
+        >
           <CountCard
             icon={TrendingUp}
             label="Supérieur aux actions"
@@ -300,7 +303,7 @@ export function BrowneVsEquityView({
         </div>
 
         {/* Matrice */}
-        <Card className="gap-0 p-4">
+        <Card id="compromis" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-4">
           <div className="mb-2 flex items-center gap-1.5">
             <h3 className="text-sm font-semibold">Compromis Browne vs Actions</h3>
             <Tooltip>
@@ -320,7 +323,7 @@ export function BrowneVsEquityView({
         </Card>
 
         {/* Tableau */}
-        <Card className="gap-0 overflow-hidden p-0">
+        <Card id="detail" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 overflow-hidden p-0">
           <div className="border-b p-4">
             <h3 className="text-sm font-semibold">Détail par pays</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -416,7 +419,7 @@ export function BrowneVsEquityView({
         </Card>
 
         {/* Heatmap de régularité */}
-        <Card className="gap-0 p-4">
+        <Card id="regularite" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <h3 className="text-sm font-semibold">Régularité par horizon</h3>
@@ -449,7 +452,7 @@ export function BrowneVsEquityView({
         </Card>
 
         {/* Comparateur multi-pays */}
-        <Card className="gap-0 p-4">
+        <Card id="comparateur" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <Users className="size-4 text-muted-foreground" />
@@ -476,7 +479,7 @@ export function BrowneVsEquityView({
         </Card>
 
         {/* Carte internationale des verdicts (optionnelle, charge la géo à la demande) */}
-        <Card className="gap-0 p-4">
+        <Card id="carte" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <MapIcon className="size-4 text-muted-foreground" />

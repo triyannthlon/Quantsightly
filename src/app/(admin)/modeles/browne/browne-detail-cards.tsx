@@ -17,7 +17,12 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { EconomicDataPoint } from "@/lib/coredata/types";
-import { SLEEVE_KEYS, type BrowneResult, type SleeveKey } from "@/lib/coredata/browne";
+import {
+  SLEEVE_KEYS,
+  type BrowneResult,
+  type BrowneTurnover,
+  type SleeveKey,
+} from "@/lib/coredata/browne";
 import type { CountryBrowneConfig, SleeveConfig, SleeveQuality } from "@/lib/coredata/browne-service";
 import { ExplorationChart, type ChartLine } from "../../exploration/exploration-chart";
 import {
@@ -188,7 +193,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 // ─── Composition ─────────────────────────────────────────────────────────────
 
-export function CompositionCard({ config }: { config: CountryBrowneConfig }) {
+export function CompositionCard({
+  config,
+  turnover,
+}: {
+  config: CountryBrowneConfig;
+  turnover: BrowneTurnover;
+}) {
   const sleeves: SleeveConfig[] = [config.equity, config.bond, config.cash, config.gold];
   return (
     <Card className="p-4">
@@ -223,6 +234,24 @@ export function CompositionCard({ config }: { config: CountryBrowneConfig }) {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Gestion de l'allocation — rotation annualisée (même définition que 4 Quadrants :
+          turnover unidirectionnel ½·Σ|cible − détenu|, cumulé sur les rééquilibrages,
+          divisé par la durée exacte). Suit la fréquence de rééquilibrage sélectionnée. */}
+      <div className="mt-4 border-t border-border/50 pt-3">
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Gestion de l’allocation
+        </p>
+        <div className="mt-2 flex items-baseline justify-between">
+          <span className="text-sm font-medium">Rotation annualisée</span>
+          <span className="text-sm font-semibold tabular-nums">
+            {Math.round(turnover.annualized * 100)} % / an
+          </span>
+        </div>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Part moyenne du portefeuille réallouée chaque année.
+        </p>
       </div>
     </Card>
   );
