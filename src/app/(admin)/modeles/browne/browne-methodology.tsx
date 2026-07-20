@@ -623,24 +623,42 @@ Réduction drawdown = |Max DD actions| − |Max DD Browne|
           utilisée lorsqu’une série directement exploitable n’est pas disponible, notamment pour les
           obligations 10 ans et le cash.
         </p>
-        <DocTable
-          head={["Badge global", "Signification"]}
-          rows={[
-            ["Complet", "Les séries nécessaires sont disponibles avec une qualité suffisante."],
-            [
-              "Complet avec proxy",
-              "Séries principales disponibles, avec des proxys structurels normaux.",
-            ],
-            [
-              "Historique court",
-              "La période disponible est plus courte que celle des autres pays.",
-            ],
-            [
-              "Partiel",
-              "Certaines données importantes sont absentes ou remplacées par des séries de moindre qualité.",
-            ],
-          ]}
-        />
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-foreground">Badge de disponibilité</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <QualityBadge
+              w="min-w-[10rem]"
+              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+            >
+              Complet
+            </QualityBadge>
+            <QualityBadge
+              w="min-w-[10rem]"
+              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+            >
+              Complet avec proxy
+            </QualityBadge>
+            <QualityBadge
+              w="min-w-[10rem]"
+              className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+            >
+              Historique court
+            </QualityBadge>
+            <QualityBadge
+              w="min-w-[10rem]"
+              className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+            >
+              Partiel
+            </QualityBadge>
+          </div>
+          <p className="mt-2 text-xs">
+            <strong>Complet</strong> = les séries nécessaires sont disponibles avec une qualité
+            suffisante ; <strong>Complet avec proxy</strong> ajoute des proxys structurels normaux
+            (obligations, cash) ; <strong>Historique court</strong> = période disponible plus courte
+            que celle des autres pays ; <strong>Partiel</strong> = certaines données importantes
+            sont absentes ou remplacées par des séries de moindre qualité.
+          </p>
+        </div>
       </Section>
 
       {/* 5 — Limites */}
