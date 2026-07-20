@@ -1,0 +1,131 @@
+{
+  "US": {
+    "latest": {
+      "regime": "inflationary-boom",
+      "x": 65.8958,
+      "y": 91.4388,
+      "MAX": {
+        "months": 493,
+        "nomCAGR": 9.3033,
+        "realCAGR": 6.3226,
+        "vol": 7.5043,
+        "mdd": -11.3386,
+        "sharpeReal": 0.724,
+        "turnover": 0.3678
+      },
+      "20A": {
+        "months": 241,
+        "nomCAGR": 8.756,
+        "realCAGR": 6.0507,
+        "vol": 8.4272,
+        "mdd": -11.3386,
+        "sharpeReal": 0.7788,
+        "turnover": 0.4032
+      },
+      "10A": {
+        "months": 121,
+        "nomCAGR": 10.678,
+        "realCAGR": 7.088,
+        "vol": 8.7168,
+        "mdd": -11.3386,
+        "sharpeReal": 0.8935,
+        "turnover": 0.4018
+      },
+      "5A": {
+        "months": 61,
+        "nomCAGR": 12.2561,
+        "realCAGR": 7.6599,
+        "vol": 9.7597,
+        "mdd": -11.3386,
+        "sharpeReal": 0.8212,
+        "turnover": 0.4096
+      }
+    }
+  },
+  "BR": {
+    "latest": {
+      "regime": "inflationary-boom",
+      "x": 8.3166,
+      "y": 84.2156,
+      "MAX": {
+        "months": 213,
+        "nomCAGR": 12.0428,
+        "realCAGR": 6.0115,
+        "vol": 8.0876,
+        "mdd": -12.6508,
+        "sharpeReal": 0.2877,
+        "turnover": 0.5549
+      },
+      "20A": {
+        "months": 213,
+        "nomCAGR": 12.0428,
+        "realCAGR": 6.0115,
+        "vol": 8.0876,
+        "mdd": -12.6508,
+        "sharpeReal": 0.2877,
+        "turnover": 0.5549
+      },
+      "10A": {
+        "months": 121,
+        "nomCAGR": 13.471,
+        "realCAGR": 8.0704,
+        "vol": 8.9188,
+        "mdd": -12.6508,
+        "sharpeReal": 0.4475,
+        "turnover": 0.5661
+      },
+      "5A": {
+        "months": 61,
+        "nomCAGR": 13.133,
+        "realCAGR": 6.9557,
+        "vol": 7.8126,
+        "mdd": -12.6508,
+        "sharpeReal": 0.1435,
+        "turnover": 0.3913
+      }
+    }
+  },
+  "DK": {
+    "latest": {
+      "regime": "inflationary-boom",
+      "x": 14.1392,
+      "y": 83.3226,
+      "MAX": {
+        "months": 21,
+        "nomCAGR": 10.6564,
+        "realCAGR": 8.9769,
+        "vol": 10.1,
+        "mdd": -9.7588,
+        "sharpeReal": 0.8175,
+        "turnover": 0.4555
+      },
+      "20A": {
+        "months": 21,
+        "nomCAGR": 10.6564,
+        "realCAGR": 8.9769,
+        "vol": 10.1,
+        "mdd": -9.7588,
+        "sharpeReal": 0.8175,
+        "turnover": 0.4555
+      },
+      "10A": {
+        "months": 21,
+        "nomCAGR": 10.6564,
+        "realCAGR": 8.9769,
+        "vol": 10.1,
+        "mdd": -9.7588,
+        "sharpeReal": 0.8175,
+        "turnover": 0.4555
+      },
+      "5A": {
+        "months": 21,
+        "nomCAGR": 10.6564,
+        "realCAGR": 8.9769,
+        "vol": 10.1,
+        "mdd": -9.7588,
+        "sharpeReal": 0.8175,
+        "turnover": 0.4555
+      }
+    }
+  }
+}
