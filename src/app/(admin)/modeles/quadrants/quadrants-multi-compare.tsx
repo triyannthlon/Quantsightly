@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogTitle } from "@/components/ui/dialog";
+import { FrostedDialogContent } from "@/components/custom/ui/frosted-dialog";
 import { cn } from "@/lib/utils";
 import type { EconomicDataPoint } from "@/lib/coredata/types";
 import type { FourQuadrantsModelSettings } from "@/lib/coredata/four-quadrants";
@@ -50,6 +52,8 @@ export function QuadrantsMultiCompare({
   const [commonPeriod, setCommonPeriod] = useState(true);
   const [series, setSeries] = useState<QuadrantsRealSeries[]>([]);
   const [loading, setLoading] = useState(false);
+  const [zoomPerf, setZoomPerf] = useState(false);
+  const [zoomDd, setZoomDd] = useState(false);
 
   const rowByIso = useMemo(() => new Map(rows.map((r) => [r.countryCode, r])), [rows]);
   const colorOf = (iso: string) => PALETTE[selected.indexOf(iso) % PALETTE.length];
@@ -157,13 +161,41 @@ export function QuadrantsMultiCompare({
           {/* Performance 4 Quadrants réelle */}
           <div>
             <h4 className="mb-1 text-xs font-semibold text-muted-foreground">Performance 4 Quadrants réelle (base 100)</h4>
-            <ExplorationChart data={perf} lines={chartLines} height={300} gridOpacity={0.22} markLast axisLine cumulativeTooltip />
+            <button
+              type="button"
+              onClick={() => setZoomPerf(true)}
+              className="cursor-zoom-img block w-full text-left"
+              aria-label="Agrandir le graphique"
+            >
+              <ExplorationChart data={perf} lines={chartLines} height={300} gridOpacity={0.22} markLast axisLine cumulativeTooltip />
+            </button>
+            <Dialog open={zoomPerf} onOpenChange={setZoomPerf}>
+              <FrostedDialogContent className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]" showCloseButton>
+                <DialogTitle className="text-center text-base font-medium">
+                  Performance 4 Quadrants réelle (base 100)
+                </DialogTitle>
+                <ExplorationChart data={perf} lines={chartLines} height="78vh" gridOpacity={0.22} markLast axisLine cumulativeTooltip />
+              </FrostedDialogContent>
+            </Dialog>
           </div>
 
           {/* Drawdown 4 Quadrants réel */}
           <div>
             <h4 className="mb-1 text-xs font-semibold text-muted-foreground">Drawdown 4 Quadrants réel</h4>
-            <ExplorationChart data={drawdown} lines={chartLines} height={220} gridOpacity={0.22} axisLine areaFill percentTooltip yDomain={[-60, 0]} />
+            <button
+              type="button"
+              onClick={() => setZoomDd(true)}
+              className="cursor-zoom-img block w-full text-left"
+              aria-label="Agrandir le graphique"
+            >
+              <ExplorationChart data={drawdown} lines={chartLines} height={220} gridOpacity={0.22} axisLine areaFill percentTooltip yDomain={[-60, 0]} />
+            </button>
+            <Dialog open={zoomDd} onOpenChange={setZoomDd}>
+              <FrostedDialogContent className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]" showCloseButton>
+                <DialogTitle className="text-center text-base font-medium">Drawdown 4 Quadrants réel</DialogTitle>
+                <ExplorationChart data={drawdown} lines={chartLines} height="78vh" gridOpacity={0.22} axisLine areaFill percentTooltip yDomain={[-60, 0]} />
+              </FrostedDialogContent>
+            </Dialog>
           </div>
 
           {/* Tableau KPI comparatif */}

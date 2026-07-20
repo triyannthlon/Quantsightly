@@ -24,6 +24,7 @@ import { BrowneVsEquityMatrix } from "./browne-vs-equity-matrix";
 import { BrowneHeatmap } from "./browne-heatmap";
 import { BrowneMultiCompare } from "./browne-multi-compare";
 import { BrowneVerdictMap } from "./browne-verdict-map";
+import { ZoomableSection } from "@/components/custom/model-shell/zoomable-section";
 
 interface Item {
   row: BrowneComparisonRow;
@@ -318,6 +319,18 @@ export function BrowneVsEquityView({
                 Couleur = verdict. Cliquez un point pour ouvrir sa vue pays.
               </TooltipContent>
             </Tooltip>
+            <ZoomableSection className="ml-auto" title="Compromis Browne vs Actions">
+              {(close) => (
+                <BrowneVsEquityMatrix
+                  rows={items.map((it) => it.row)}
+                  onPick={(iso) => {
+                    onPick(iso);
+                    close();
+                  }}
+                  height="72vh"
+                />
+              )}
+            </ZoomableSection>
           </div>
           <BrowneVsEquityMatrix rows={items.map((it) => it.row)} onPick={onPick} />
         </Card>

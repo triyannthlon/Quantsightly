@@ -18,6 +18,7 @@ import {
   type BrowneRegion,
 } from "./helpers";
 import { BrowneScatter } from "./browne-scatter";
+import { ZoomableSection } from "@/components/custom/model-shell/zoomable-section";
 
 // Colonne numérique triable. `get` = valeur de tri (null = toujours en bas) ;
 // `better` = sens « meilleur d'abord » appliqué au 1ᵉʳ clic sur la colonne.
@@ -151,6 +152,11 @@ export function BrowneComparisonView({
     );
   }
 
+  const scatterTitle =
+    displayMode === "nominal_vs_inflation"
+      ? "Pouvoir d’achat vs inflation"
+      : `Risque / rendement ${displayMode === "nominal" ? "nominal" : "réel"}`;
+
   return (
     <TooltipProvider delayDuration={150}>
       <div className={cn("space-y-4", loading && "opacity-60 transition-opacity")}>
@@ -158,11 +164,7 @@ export function BrowneComparisonView({
         <Card id="positionnement" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-4">
           <div className="mb-2">
             <div className="flex items-center gap-1.5">
-              <h3 className="text-sm font-semibold">
-                {displayMode === "nominal_vs_inflation"
-                  ? "Pouvoir d’achat vs inflation"
-                  : `Risque / rendement ${displayMode === "nominal" ? "nominal" : "réel"}`}
-              </h3>
+              <h3 className="text-sm font-semibold">{scatterTitle}</h3>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
@@ -175,6 +177,19 @@ export function BrowneComparisonView({
                     : "Chaque pays positionné par son risque (horizontal) et son rendement annualisé (vertical), selon le mode d’analyse. Couleur = score de robustesse. Cliquez un point pour ouvrir sa vue pays."}
                 </TooltipContent>
               </Tooltip>
+              <ZoomableSection className="ml-auto" title={scatterTitle}>
+                {(close) => (
+                  <BrowneScatter
+                    rows={filtered}
+                    onPick={(iso) => {
+                      onPick(iso);
+                      close();
+                    }}
+                    displayMode={displayMode}
+                    height="72vh"
+                  />
+                )}
+              </ZoomableSection>
             </div>
             {displayMode === "nominal_vs_inflation" && (
               <p className="mt-0.5 text-xs text-muted-foreground">

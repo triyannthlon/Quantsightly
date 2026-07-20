@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { cn } from "@/lib/utils";
 import type { QuadrantModelRow } from "@/lib/coredata/four-quadrants-service";
 import { QuadrantsScatter } from "./quadrants-scatter";
+import { ZoomableSection } from "@/components/custom/model-shell/zoomable-section";
 import {
   regimeFromLatest,
   fmtPctN,
@@ -134,6 +135,11 @@ export function QuadrantsComparisonView({
     return <Card className="p-10 text-center text-sm text-muted-foreground">Aucune donnée de comparaison disponible.</Card>;
   }
 
+  const scatterTitle =
+    displayMode === "nominal_vs_inflation"
+      ? "Pouvoir d’achat vs inflation"
+      : `Risque / rendement ${displayMode === "nominal" ? "nominal" : "réel"}`;
+
   return (
     <TooltipProvider delayDuration={150}>
       <div className={cn("space-y-4", loading && "opacity-60 transition-opacity")}>
@@ -141,11 +147,7 @@ export function QuadrantsComparisonView({
         <section id="positionnement" className="scroll-mt-[var(--model-header-offset,96px)]">
           <Card className="gap-0 p-4">
             <div className="mb-2 flex items-center gap-1.5">
-              <h3 className="text-sm font-semibold">
-                {displayMode === "nominal_vs_inflation"
-                  ? "Pouvoir d’achat vs inflation"
-                  : `Risque / rendement ${displayMode === "nominal" ? "nominal" : "réel"}`}
-              </h3>
+              <h3 className="text-sm font-semibold">{scatterTitle}</h3>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
@@ -158,6 +160,19 @@ export function QuadrantsComparisonView({
                     : "Chaque pays positionné par son risque (horizontal) et son rendement annualisé (vertical), selon le mode. Couleur = régime courant. Cliquez un point pour ouvrir sa vue pays."}
                 </TooltipContent>
               </Tooltip>
+              <ZoomableSection className="ml-auto" title={scatterTitle}>
+                {(close) => (
+                  <QuadrantsScatter
+                    rows={filtered}
+                    onPick={(iso) => {
+                      onPick(iso);
+                      close();
+                    }}
+                    displayMode={displayMode}
+                    height="72vh"
+                  />
+                )}
+              </ZoomableSection>
             </div>
             <QuadrantsScatter rows={filtered} onPick={onPick} displayMode={displayMode} />
           </Card>

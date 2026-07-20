@@ -113,10 +113,13 @@ export function BrowneScatter({
   rows,
   onPick,
   displayMode,
+  height = HEIGHT,
 }: {
   rows: BrowneComparisonRow[];
   onPick: (iso: string) => void;
   displayMode: BrowneDisplayMode;
+  /** Hauteur du cadre de tracé (px ou CSS) — agrandie dans le dialogue de zoom. */
+  height?: number | string;
 }) {
   // Drawdown par défaut : plus pédagogique et fidèle à l'objectif du modèle Browne.
   const [xMode, setXMode] = useState<XMode>("dd");
@@ -230,7 +233,7 @@ export function BrowneScatter({
       )}
 
       {/* Cadre de tracé (overlay HTML — mêmes pastilles que la carte des régimes) */}
-      <div className="relative w-full" style={{ height: HEIGHT }}>
+      <div className="relative w-full" style={{ height }}>
         {/* Titre axe Y (vertical, non miroir via writing-mode) */}
         <div
           className="pointer-events-none absolute flex items-center justify-center text-[11px] text-muted-foreground"

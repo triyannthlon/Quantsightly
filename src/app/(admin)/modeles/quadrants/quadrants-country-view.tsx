@@ -615,6 +615,7 @@ function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMo
   const aMetrics = useReal ? bt.metrics.equityReal! : bt.metrics.equity;
 
   const [shown, setShown] = useState({ q4: true, actions: true });
+  const [zoom, setZoom] = useState(false);
 
   const dd = useMemo(() => {
     const bDD = drawdownSeries(bSeries);
@@ -688,18 +689,45 @@ function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMo
         <Stat label="Réduction" value={reduction === null ? "—" : `+${reduction.toFixed(1)} pts`} />
         <Stat label="Durée max sous l’eau" value={fmtMonths(bMetrics.maxUnderwaterMonths)} />
       </div>
-      <ExplorationChart
-        data={dd.data}
-        lines={dd.lines}
-        height={240}
-        showLegend={false}
-        markLast
-        gridOpacity={0.22}
-        yDomain={dd.yDomain}
-        areaFill
-        percentTooltip
-        axisLine
-      />
+      <button
+        type="button"
+        onClick={() => setZoom(true)}
+        className="cursor-zoom-img block w-full text-left"
+        aria-label="Agrandir le graphique"
+      >
+        <ExplorationChart
+          data={dd.data}
+          lines={dd.lines}
+          height={240}
+          showLegend={false}
+          markLast
+          gridOpacity={0.22}
+          yDomain={dd.yDomain}
+          areaFill
+          percentTooltip
+          axisLine
+        />
+      </button>
+      <Dialog open={zoom} onOpenChange={setZoom}>
+        <FrostedDialogContent
+          className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]"
+          showCloseButton
+        >
+          <DialogTitle className="text-center text-base font-medium">Drawdown</DialogTitle>
+          <ExplorationChart
+            data={dd.data}
+            lines={dd.lines}
+            height="78vh"
+            showLegend={false}
+            markLast
+            gridOpacity={0.22}
+            yDomain={dd.yDomain}
+            areaFill
+            percentTooltip
+            axisLine
+          />
+        </FrostedDialogContent>
+      </Dialog>
     </Card>
   );
 }

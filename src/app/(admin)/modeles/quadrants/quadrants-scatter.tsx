@@ -105,10 +105,13 @@ export function QuadrantsScatter({
   rows,
   onPick,
   displayMode,
+  height = HEIGHT,
 }: {
   rows: QuadrantModelRow[];
   onPick: (iso: string) => void;
   displayMode: PerfMode;
+  /** Hauteur du cadre de tracé (px ou CSS) — agrandie dans le dialogue de zoom. */
+  height?: number | string;
 }) {
   // Drawdown par défaut (ampleur, risque croissant vers la droite → zone favorable haut-gauche).
   const [xMode, setXMode] = useState<XMode>("dd");
@@ -222,7 +225,7 @@ export function QuadrantsScatter({
       )}
 
       {/* Cadre de tracé (overlay HTML — mêmes pastilles que la carte des régimes) */}
-      <div className="relative w-full" style={{ height: HEIGHT }}>
+      <div className="relative w-full" style={{ height }}>
         {/* Titre axe Y (vertical) */}
         <div
           className="pointer-events-none absolute flex items-center justify-center text-[11px] text-muted-foreground"

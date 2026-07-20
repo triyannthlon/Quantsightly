@@ -23,6 +23,7 @@ import { QuadrantsVsEquityMatrix } from "./quadrants-vs-equity-matrix";
 import { QuadrantsHeatmap } from "./quadrants-heatmap";
 import { QuadrantsMultiCompare } from "./quadrants-multi-compare";
 import { QuadrantsVerdictMap } from "./quadrants-verdict-map";
+import { ZoomableSection } from "@/components/custom/model-shell/zoomable-section";
 
 interface Item {
   row: QuadrantModelRow;
@@ -264,6 +265,18 @@ export function QuadrantsVsEquityView({
                 locales. Couleur = profil. Cliquez un point pour ouvrir sa vue pays.
               </TooltipContent>
             </Tooltip>
+            <ZoomableSection className="ml-auto" title="Compromis 4 Quadrants vs Actions">
+              {(close) => (
+                <QuadrantsVsEquityMatrix
+                  rows={items.map((it) => it.row)}
+                  onPick={(iso) => {
+                    onPick(iso);
+                    close();
+                  }}
+                  height="72vh"
+                />
+              )}
+            </ZoomableSection>
           </div>
           <QuadrantsVsEquityMatrix rows={items.map((it) => it.row)} onPick={onPick} />
         </Card>

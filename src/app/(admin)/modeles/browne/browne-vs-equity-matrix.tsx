@@ -48,9 +48,12 @@ function TipRow({ label, value }: { label: string; value: React.ReactNode }) {
 export function BrowneVsEquityMatrix({
   rows,
   onPick,
+  height = HEIGHT,
 }: {
   rows: BrowneComparisonRow[];
   onPick: (iso: string) => void;
+  /** Hauteur du cadre de tracé (px ou CSS) — agrandie dans le dialogue de zoom. */
+  height?: number | string;
 }) {
   const [hover, setHover] = useState<{ p: Point; x: number; y: number } | null>(null);
 
@@ -103,7 +106,7 @@ export function BrowneVsEquityMatrix({
 
   return (
     <div>
-      <div className="relative w-full" style={{ height: HEIGHT }}>
+      <div className="relative w-full" style={{ height }}>
         {/* Titre axe Y */}
         <div
           className="pointer-events-none absolute flex items-center justify-center text-[11px] text-muted-foreground"
