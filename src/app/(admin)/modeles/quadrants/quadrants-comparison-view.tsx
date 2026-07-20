@@ -83,12 +83,15 @@ export function QuadrantsComparisonView({
   onPick,
   displayMode,
   region,
+  years,
 }: {
   rows: QuadrantModelRow[] | null;
   loading: boolean;
   onPick: (iso: string) => void;
   displayMode: PerfMode;
   region: QuadrantRegion;
+  /** Fenêtre en années (null = Max) — pour signaler les périodes hétérogènes. */
+  years: number | null;
 }) {
   const numCols = useMemo(() => columnsFor(displayMode), [displayMode]);
   const allCols = useMemo(() => [...numCols, TURNOVER_COL], [numCols]);
@@ -201,6 +204,12 @@ export function QuadrantsComparisonView({
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {sorted.length} pays · triez les colonnes ou cliquez sur un pays pour ouvrir sa vue détaillée.
               </p>
+              {years === null && (
+                <p className="mt-1 text-xs text-amber-600/90 dark:text-amber-400/90">
+                  Sur « Max », les périodes couvertes peuvent différer d’un pays à l’autre (survolez un
+                  pays pour sa fenêtre).
+                </p>
+              )}
             </div>
 
             <div className="overflow-x-auto">

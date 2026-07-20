@@ -326,6 +326,7 @@ export function QuadrantsView({
             onPick={onPickCountry}
             displayMode={perfMode}
             region={region}
+            years={PERIOD_YEARS[period]}
           />
         ) : tab === "vs_actions" ? (
           <QuadrantsVsEquityView

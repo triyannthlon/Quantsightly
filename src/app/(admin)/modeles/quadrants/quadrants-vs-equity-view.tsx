@@ -32,6 +32,8 @@ interface Item {
 
 const fmtPts = (v: number | null): string => (v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)} pts`);
 const fmtSignedRatio = (v: number | null): string => (v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(2)}`);
+const fmtMonth = (iso: string): string =>
+  new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(new Date(iso));
 
 // ─── Cartes de synthèse ──────────────────────────────────────────────────────
 
@@ -286,8 +288,14 @@ export function QuadrantsVsEquityView({
           <div className="border-b p-4">
             <h3 className="text-sm font-semibold">Détail par pays</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {sorted.length} pays · triez les colonnes ou cliquez sur un pays pour ouvrir sa vue détaillée.
+              {sorted.length} pays, en réel · triez les colonnes ou cliquez sur un pays pour ouvrir sa
+              vue détaillée. Survolez un pays pour sa période effective.
             </p>
+            {years === null && (
+              <p className="mt-1 text-xs text-amber-600/90 dark:text-amber-400/90">
+                Sur « Max », les périodes couvertes peuvent différer d’un pays à l’autre.
+              </p>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -326,13 +334,17 @@ export function QuadrantsVsEquityView({
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((it) => (
+                {sorted.map((it) => {
+                  const windowTitle = it.row.effectivePeriod
+                    ? `Période : ${fmtMonth(it.row.effectivePeriod.start)} → ${fmtMonth(it.row.effectivePeriod.end)} (${it.row.effectivePeriod.months} mois)`
+                    : "Période indisponible";
+                  return (
                   <tr
                     key={it.row.countryCode}
                     onClick={() => onPick(it.row.countryCode)}
                     className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-muted/40"
                   >
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2.5" title={windowTitle}>
                       <div className="flex items-center gap-2">
                         <CountryFlag code={it.row.countryCode} countryName={it.row.countryFr ?? it.row.countryCode} size={18} />
                         <span className="font-medium">{it.row.countryFr ?? it.row.countryCode}</span>
@@ -358,7 +370,8 @@ export function QuadrantsVsEquityView({
                       </td>
                     ))}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

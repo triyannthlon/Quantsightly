@@ -922,8 +922,8 @@ function DataQualityCard({
           </div>
         ))}
         <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-2 text-sm">
-          <span className="font-medium">Profondeur</span>
-          <span className="text-xs text-muted-foreground">{months} mois de signal</span>
+          <span className="font-medium">Profondeur du signal</span>
+          <span className="text-xs text-muted-foreground">{months} mois (historique complet)</span>
         </div>
       </div>
     </Card>
@@ -970,6 +970,12 @@ export function QuadrantsCountryView({
 
   const kpis =
     !bt || cpiMissing ? [] : isNvI ? buildInflationKpis(bt) : pm && am ? buildKpis(pm, am, real) : [];
+
+  // Période RÉELLEMENT couverte par les indicateurs affichés : en mode réel, la
+  // série réelle peut démarrer après la fenêtre nominale si le CPI est plus court.
+  const periodStart = real && bt?.series.real ? bt.series.real[0].date : bt?.start;
+  const periodEnd =
+    real && bt?.series.real ? bt.series.real[bt.series.real.length - 1].date : bt?.end;
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -1023,8 +1029,11 @@ export function QuadrantsCountryView({
               label="Mode"
               value={isNvI ? "Nominal vs Inflation" : displayMode === "real" ? "Réel" : "Nominal"}
             />
-            {bt && (
-              <Info2 label="Période" value={`${formatMonth(bt.start)} → ${formatMonth(bt.end)}`} />
+            {bt && periodStart && periodEnd && (
+              <Info2
+                label="Période"
+                value={`${formatMonth(periodStart)} → ${formatMonth(periodEnd)}`}
+              />
             )}
             <Info2 label="Largeur de la zone neutre" value={`${transitionWidth} %`} />
           </div>
