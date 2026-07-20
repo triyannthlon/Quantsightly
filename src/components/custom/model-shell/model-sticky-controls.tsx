@@ -74,6 +74,9 @@ export function ModelStickyControls({
   // Instant (ms) jusqu'auquel le scrollspy ne réécrit pas la section active
   // (le temps du défilement animé déclenché par un clic sur un raccourci).
   const spyLockUntil = useRef(0);
+  // Saute le premier passage de l'effet « retour en haut au changement d'onglet »
+  // (au montage on ne veut pas contrarier un éventuel hash de deep-link).
+  const tabMountRef = useRef(false);
 
   const [stuck, setStuck] = useState(false); // onglets épinglés
   const [condensed, setCondensed] = useState(false); // barre épinglée → résumé compact
@@ -160,6 +163,25 @@ export function ModelStickyControls({
     // Au montage uniquement.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Changement d'onglet : le contenu du nouvel onglet doit s'afficher depuis le
+  // début, pas à la position de défilement héritée de l'onglet précédent. On
+  // ramène donc le conteneur en haut et on retire le hash de section (celui de
+  // l'onglet quitté n'a plus de sens). Le montage est ignoré (deep-link).
+  useEffect(() => {
+    if (!tabMountRef.current) {
+      tabMountRef.current = true;
+      return;
+    }
+    spyLockUntil.current = 0;
+    getRoot()?.scrollTo({ top: 0 });
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, [activeTab, getRoot]);
+
+  // Nouvel onglet (nouvelles sections) → la 1ʳᵉ pastille redevient active.
+  useEffect(() => {
+    setActiveId(sections[0]?.id ?? null);
+  }, [sections]);
 
   const goToSection = useCallback(
     (id: string, index: number) => {
