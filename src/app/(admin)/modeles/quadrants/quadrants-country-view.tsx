@@ -959,11 +959,17 @@ export function QuadrantsCountryView({
       : "Historique insuffisant pour calculer le backtest.";
 
   const isNvI = displayMode === "nominal_vs_inflation";
-  const real = displayMode === "real" && bt?.metrics.real != null;
-  const pm = bt ? (real ? bt.metrics.real! : bt.metrics.nominal) : null;
-  const am = bt ? (real ? bt.metrics.equityReal! : bt.metrics.equity) : null;
+  const wantsReal = displayMode === "real" || isNvI; // modes qui dépendent du CPI
+  const hasReal = bt != null && bt.series.real != null; // CPI exploitable sur la fenêtre
+  // CPI absent sous un mode qui en dépend : on NE bascule PAS en nominal en silence
+  // (les KPI + graphes concernés sont remplacés par un message ; régime/allocation restent).
+  const cpiMissing = bt != null && wantsReal && !hasReal;
+  const real = displayMode === "real" && hasReal; // affichage réel effectif
+  const pm = bt && !cpiMissing ? (real ? bt.metrics.real! : bt.metrics.nominal) : null;
+  const am = bt && !cpiMissing ? (real ? bt.metrics.equityReal! : bt.metrics.equity) : null;
 
-  const kpis = !bt ? [] : isNvI ? buildInflationKpis(bt) : pm && am ? buildKpis(pm, am, real) : [];
+  const kpis =
+    !bt || cpiMissing ? [] : isNvI ? buildInflationKpis(bt) : pm && am ? buildKpis(pm, am, real) : [];
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -1015,7 +1021,7 @@ export function QuadrantsCountryView({
             <Info2 label="Fréquence" value="Mensuelle" />
             <Info2
               label="Mode"
-              value={isNvI ? "Nominal vs Inflation" : real ? "Réel" : "Nominal"}
+              value={isNvI ? "Nominal vs Inflation" : displayMode === "real" ? "Réel" : "Nominal"}
             />
             {bt && (
               <Info2 label="Période" value={`${formatMonth(bt.start)} → ${formatMonth(bt.end)}`} />
@@ -1034,13 +1040,20 @@ export function QuadrantsCountryView({
             </div>
           ) : (
             <Card className="p-6 text-center text-sm text-muted-foreground">
-              {unavailableMessage}
+              {cpiMissing ? (
+                <>
+                  {availabilityMessage("cpi_unavailable")} Le régime courant et l’allocation cible
+                  restent affichés.
+                </>
+              ) : (
+                unavailableMessage
+              )}
             </Card>
           )}
         </section>
 
-        {/* Performance + Drawdown */}
-        {bt && (
+        {/* Performance + Drawdown — masqués sans CPI en mode réel/NvI (pas de repli nominal) */}
+        {bt && !cpiMissing && (
           <>
             <section id="performance" className="scroll-mt-[var(--model-header-offset,96px)]">
               <PerfChart bt={bt} displayMode={displayMode} />
