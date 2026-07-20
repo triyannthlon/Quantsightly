@@ -327,9 +327,14 @@ Or           = 25 % · (1 + u_y/100)  Obligations  = 25 % · (1 − u_y/100)`}</
           intuition="Base 100, rythme annuel, et correction de l’inflation locale."
         >
           <Formula>{`Indexₜ      = 100 × ∏ (1 + rₜ)
-CAGR        = (Valeur finale / Valeur initiale)^(12 / nombre de mois) − 1
+CAGR        = (Valeur finale / Valeur initiale)^(12 / nombre d'intervalles mensuels) − 1
 Indice réelₜ = Indice nominalₜ / Indice CPIₜ`}</Formula>
-          <p>La performance réelle corrige la performance nominale de l’inflation locale.</p>
+          <p>
+            Pour <span className="font-mono">n</span> observations mensuelles, il existe{" "}
+            <span className="font-mono">n − 1</span> intervalles de performance : c’est ce nombre
+            d’intervalles qui annualise le CAGR. La performance réelle corrige la performance
+            nominale de l’inflation locale.
+          </p>
         </Sub>
 
         <Sub
@@ -351,7 +356,12 @@ Indice réelₜ = Indice nominalₜ / Indice CPIₜ`}</Formula>
             <li>la dérive des poids provoquée par les performances différentes des actifs ;</li>
             <li>le changement d’allocation cible provoqué par l’évolution du régime.</li>
           </ul>
-          <p>La constitution initiale du portefeuille est exclue.</p>
+          <p>
+            La constitution initiale au début de l’historique complet est exclue. Lorsqu’une période
+            plus courte est sélectionnée au sein d’un historique déjà existant, la transaction
+            nécessaire à l’entrée de cette fenêtre est incluse dans la rotation, car elle correspond à
+            une réallocation effectivement requise à cette date.
+          </p>
         </Sub>
 
         <Sub
@@ -362,7 +372,8 @@ Indice réelₜ = Indice nominalₜ / Indice CPIₜ`}</Formula>
             La rotation annualisée représente la part moyenne du portefeuille réallouée chaque année
             :
           </p>
-          <Formula>{`Rotation annualisée = somme des rotations mensuelles × 12 / nombre de mois observés`}</Formula>
+          <Formula>{`Rotation annualisée = moyenne des rotations mensuelles observées × 12
+                    = ( Σ rotations / nombre de mois disposant d'une rotation ) × 12`}</Formula>
           <p>
             Une rotation annualisée de{" "}
             <span className="font-medium text-foreground">37 % / an</span> signifie qu’en moyenne,
