@@ -37,6 +37,7 @@ import {
   fmtMultiple,
   type PerfMode,
 } from "./helpers";
+import { availabilityMessage } from "./availability-message";
 
 type OkModel = Extract<QuadrantModel, { status: "OK" }>;
 type OkBacktest = Extract<BacktestResult, { status: "OK" }>;
@@ -951,6 +952,11 @@ export function QuadrantsCountryView({
   const latest = model.latest;
   const regime = displayRegime(latest);
   const bt = backtest && backtest.status === "OK" ? backtest : null;
+  // Cause précise d'indisponibilité du backtest (message homogène), sinon repli.
+  const unavailableMessage =
+    backtest && backtest.status !== "OK" && backtest.availability.reason
+      ? availabilityMessage(backtest.availability.reason, backtest.availability.firstInvalidMonth)
+      : "Historique insuffisant pour calculer le backtest.";
 
   const isNvI = displayMode === "nominal_vs_inflation";
   const real = displayMode === "real" && bt?.metrics.real != null;
@@ -1028,7 +1034,7 @@ export function QuadrantsCountryView({
             </div>
           ) : (
             <Card className="p-6 text-center text-sm text-muted-foreground">
-              Historique insuffisant pour le backtest.
+              {unavailableMessage}
             </Card>
           )}
         </section>

@@ -18,6 +18,7 @@ import {
   type PerfMode,
   type QuadrantRegion,
 } from "./helpers";
+import { availabilityMessage, availabilityLabel, type AvailabilityReason } from "./availability-message";
 
 const fmtTurnover = (v: number | null): string => (v === null ? "—" : `${Math.round(v * 100)} %/an`);
 const fmtMonth = (iso: string): string =>
@@ -236,7 +237,14 @@ export function QuadrantsComparisonView({
                 <tbody>
                   {sorted.map((r) => {
                     const regime = regimeFromLatest(r.latest!);
-                    const insufficient = r.metricsStatus !== "OK";
+                    // Raison précise d'indisponibilité (métriques KO), sinon CPI absent
+                    // en mode réel/NvI (métriques OK mais série réelle manquante).
+                    const unavailReason: AvailabilityReason | null =
+                      r.metricsStatus !== "OK"
+                        ? (r.availability.reason ?? "insufficient_history")
+                        : displayMode !== "nominal" && !r.metrics?.real
+                          ? "cpi_unavailable"
+                          : null;
                     const windowTitle = r.effectivePeriod
                       ? `Fenêtre : ${fmtMonth(r.effectivePeriod.start)} → ${fmtMonth(r.effectivePeriod.end)} (${r.effectivePeriod.months} mois)`
                       : "Historique insuffisant sur la fenêtre";
@@ -250,10 +258,17 @@ export function QuadrantsComparisonView({
                           <div className="flex items-center gap-2">
                             <CountryFlag code={r.countryCode} countryName={r.countryFr ?? r.countryCode} size={18} />
                             <span className="font-medium">{r.countryFr ?? r.countryCode}</span>
-                            {insufficient && (
-                              <span className="rounded border border-amber-500/40 px-1 text-[10px] leading-tight text-amber-600 dark:text-amber-400">
-                                hist. court
-                              </span>
+                            {unavailReason && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help rounded border border-amber-500/40 px-1 text-[10px] leading-tight text-amber-600 dark:text-amber-400">
+                                    {availabilityLabel(unavailReason)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-64">
+                                  {availabilityMessage(unavailReason, r.availability.firstInvalidMonth)}
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </td>

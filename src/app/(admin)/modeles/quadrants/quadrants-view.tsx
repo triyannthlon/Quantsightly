@@ -15,6 +15,7 @@ import {
   type BuildModelInput,
   type FourQuadrantsModelSettings,
   type Strategy,
+  type QuadrantModelStatus,
 } from "@/lib/coredata/four-quadrants";
 import { useTransitionWidth } from "@/hooks/model-settings/transition-context";
 import type {
@@ -35,6 +36,14 @@ import {
 } from "@/components/custom/model-shell/model-sticky-controls";
 import { loadCountryQuadrantModel, loadQuadrantComparison } from "./actions";
 import { REGION_ITEMS, type PerfMode, type QuadrantRegion } from "./helpers";
+import { availabilityMessage, type AvailabilityReason } from "./availability-message";
+
+// Statut de modèle non-OK → cause d'indisponibilité (message homogène, cf. helper).
+const MODEL_REASON: Record<Exclude<QuadrantModelStatus, "OK">, AvailabilityReason> = {
+  MISSING_SERIES: "missing_series",
+  INVALID_VALUE: "invalid_value",
+  INSUFFICIENT_HISTORY: "insufficient_history",
+};
 
 type Tab = "country" | "comparison" | "vs_actions" | "methodology";
 type Period = "MAX" | "20A" | "10A" | "5A";
@@ -304,7 +313,9 @@ export function QuadrantsView({
               />
             ) : (
               <Card className="p-8 text-center text-sm text-muted-foreground">
-                Données insuffisantes pour ce pays.
+                {model && model.status !== "OK"
+                  ? availabilityMessage(MODEL_REASON[model.status])
+                  : "Données insuffisantes pour ce pays."}
               </Card>
             )}
           </div>
