@@ -78,25 +78,27 @@ const BADGE_TONE: Record<BadgeTone, string> = {
   negative: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
 };
 
-function qualityIsNeutral(q: BrowneDataQuality): boolean {
-  return q === "Complet" || q === "Complet avec proxy structurel";
-}
-
 function formatMonth(iso: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(
+    new Date(iso),
+  );
 }
 
 // ─── Badges ──────────────────────────────────────────────────────────────────
 
+// Teinte du badge de disponibilité — alignée sur la légende de la Méthodologie.
+const DATA_QUALITY_TONE: Record<BrowneDataQuality, string> = {
+  Complet: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  "Complet avec proxy structurel":
+    "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  "Historique court": "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  "Données en repli": "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  Partiel: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+};
+
 function QualityBadge({ quality }: { quality: BrowneDataQuality }) {
   return (
-    <Badge
-      variant="secondary"
-      className={cn(
-        !qualityIsNeutral(quality) &&
-          "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-      )}
-    >
+    <Badge variant="secondary" className={DATA_QUALITY_TONE[quality]}>
       {quality}
     </Badge>
   );
@@ -230,7 +232,10 @@ function CmpBar({
       <span className="text-muted-foreground">{label}</span>
       <span className="h-1.5 overflow-hidden rounded-full bg-slate-700/30">
         <span
-          className={cn("block h-full rounded-full", strong ? "bg-amber-400/70" : "bg-slate-400/55")}
+          className={cn(
+            "block h-full rounded-full",
+            strong ? "bg-amber-400/70" : "bg-slate-400/55",
+          )}
           style={{ width: `${Math.max(0, Math.min(100, width))}%` }}
         />
       </span>
@@ -261,7 +266,10 @@ function KpiCard({
         </span>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
+            <button
+              type="button"
+              className="cursor-help text-muted-foreground/60 hover:text-foreground"
+            >
               <Info className="size-3.5" />
             </button>
           </TooltipTrigger>
@@ -273,8 +281,17 @@ function KpiCard({
       <div className="mt-1.5 text-2xl font-semibold tabular-nums">{value}</div>
       {showBars ? (
         <div className="mt-2.5 space-y-1.5">
-          <CmpBar label="Browne" width={(Math.abs(browneRaw ?? 0) / maxAbs) * 100} value={value} strong />
-          <CmpBar label="Actions" width={(Math.abs(actionsRaw ?? 0) / maxAbs) * 100} value={actions ?? "—"} />
+          <CmpBar
+            label="Browne"
+            width={(Math.abs(browneRaw ?? 0) / maxAbs) * 100}
+            value={value}
+            strong
+          />
+          <CmpBar
+            label="Actions"
+            width={(Math.abs(actionsRaw ?? 0) / maxAbs) * 100}
+            value={actions ?? "—"}
+          />
           {ecart && (
             <div className="pt-0.5 text-xs">
               <span className="text-muted-foreground">Écart : </span>
@@ -305,7 +322,13 @@ function KpiCard({
 
 // ─── Graphique de performance ────────────────────────────────────────────────
 
-type SeriesDef = { key: string; label: string; color: string; dashed?: boolean; defaultOn: boolean };
+type SeriesDef = {
+  key: string;
+  label: string;
+  color: string;
+  dashed?: boolean;
+  defaultOn: boolean;
+};
 
 // Séries disponibles par mode + état par défaut (Browne + Actions actifs ; poches
 // secondaires activables). En « Nominal vs Inflation », Actions est proposé mais off.
@@ -323,7 +346,13 @@ const PERF_SERIES: Record<BrowneDisplayMode, SeriesDef[]> = {
   ],
   nominal_vs_inflation: [
     { key: "browne", label: "Browne nominal", color: COLOR.browne, defaultOn: true },
-    { key: "inflation", label: "Inflation cumulée", color: COLOR.inflation, dashed: true, defaultOn: true },
+    {
+      key: "inflation",
+      label: "Inflation cumulée",
+      color: COLOR.inflation,
+      dashed: true,
+      defaultOn: true,
+    },
     { key: "equity", label: "Actions", color: COLOR.equity, defaultOn: false },
   ],
 };
@@ -373,7 +402,9 @@ function PerformanceChart({
     const withData = defs
       .filter((d) => shown[d.key])
       .map((d) => ({ def: d, data: perfData(displayMode, result.series, d.key) }))
-      .filter((x): x is { def: SeriesDef; data: EconomicDataPoint[] } => !!x.data && x.data.length > 0);
+      .filter(
+        (x): x is { def: SeriesDef; data: EconomicDataPoint[] } => !!x.data && x.data.length > 0,
+      );
     if (!withData.length) return null;
     const lines: ChartLine[] = withData
       .map(({ def }) => ({
@@ -426,7 +457,10 @@ function PerformanceChart({
           <h3 className="text-sm font-semibold">Performance cumulée</h3>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
+              <button
+                type="button"
+                className="cursor-help text-muted-foreground/60 hover:text-foreground"
+              >
                 <Info className="size-3.5" />
               </button>
             </TooltipTrigger>
@@ -434,8 +468,8 @@ function PerformanceChart({
               Base 100 au début de la période sélectionnée.
               {scale === "log" && (
                 <span className="mt-1.5 block text-muted-foreground">
-                  Échelle logarithmique active : les distances verticales représentent des variations
-                  relatives.
+                  Échelle logarithmique active : les distances verticales représentent des
+                  variations relatives.
                 </span>
               )}
             </TooltipContent>
@@ -554,7 +588,8 @@ export function BrowneCountryView({
       real: real[real.length - 1].value / real[0].value,
     };
   })();
-  const surperf = m.annualized !== null && inflAnnualized !== null ? m.annualized - inflAnnualized : null;
+  const surperf =
+    m.annualized !== null && inflAnnualized !== null ? m.annualized - inflAnnualized : null;
 
   // Libellés NEUTRES (le mode est déjà indiqué en tête de carte). Chaque carte
   // compare Browne à l'indice actions (Actions + Écart Browne − Actions) ; en
@@ -586,23 +621,99 @@ export function BrowneCountryView({
 
     // Badges d'interprétation (Browne vs actions du même mode).
     const volRedux =
-      mm.volatility !== null && cmp != null && cmp.volatility !== null && cmp.volatility > 0 && mm.volatility <= 0.7 * cmp.volatility;
+      mm.volatility !== null &&
+      cmp != null &&
+      cmp.volatility !== null &&
+      cmp.volatility > 0 &&
+      mm.volatility <= 0.7 * cmp.volatility;
     const mddRedux =
-      mm.maxDrawdown !== null && cmp != null && cmp.maxDrawdown !== null ? mm.maxDrawdown - cmp.maxDrawdown : null;
-    const betterRR = mm.sharpe !== null && cmp != null && cmp.sharpe !== null && mm.sharpe > cmp.sharpe;
+      mm.maxDrawdown !== null && cmp != null && cmp.maxDrawdown !== null
+        ? mm.maxDrawdown - cmp.maxDrawdown
+        : null;
+    const betterRR =
+      mm.sharpe !== null && cmp != null && cmp.sharpe !== null && mm.sharpe > cmp.sharpe;
     const underwater = mm.currentDrawdown !== null && mm.currentDrawdown < -1;
 
     // Ordre : rendement puis risque appariés, la paire Meilleure/Pire année
     // ensemble. La couleur de famille reste portée par chaque carte.
     return [
-      row("Performance annualisée", "Rendement annualisé (CAGR).", mm.annualized, cmp?.annualized ?? null, fmtPct, "pts", "performance"),
-      row("Volatilité annualisée", "Ampleur des variations mensuelles, annualisée.", mm.volatility, cmp?.volatility ?? null, fmtPct, "pts", "risque", volRedux ? "Risque réduit" : undefined),
-      row("Max drawdown", "Perte maximale entre un sommet et un point bas.", mm.maxDrawdown, cmp?.maxDrawdown ?? null, fmtPct, "pts", "risque", mddRedux !== null && mddRedux >= 20 ? "Protection élevée" : undefined),
-      row("Drawdown courant", "Recul actuel depuis le dernier sommet.", mm.currentDrawdown, cmp?.currentDrawdown ?? null, fmtPct, "pts", "risque", underwater ? "Sous le sommet" : undefined, "info"),
-      row("Sharpe", "Excédent de rendement sur le cash (taux sans risque), rapporté à la volatilité.", mm.sharpe, cmp?.sharpe ?? null, fmtRatio, "ratio", "rendement-risque", betterRR ? "Meilleur rendement/risque" : undefined),
-      row("Meilleure année", "Meilleure performance sur une année civile.", mm.bestYear, cmp?.bestYear ?? null, fmtPct, "pts", "performance"),
-      row("Pire année", "Pire performance sur une année civile.", mm.worstYear, cmp?.worstYear ?? null, fmtPct, "pts", "risque"),
-      row("Durée max sous l’eau", "Plus longue durée passée sous le dernier sommet.", mm.maxUnderwaterMonths, cmp?.maxUnderwaterMonths ?? null, fmtMonths, "mois", "resilience"),
+      row(
+        "Performance annualisée",
+        "Rendement annualisé (CAGR).",
+        mm.annualized,
+        cmp?.annualized ?? null,
+        fmtPct,
+        "pts",
+        "performance",
+      ),
+      row(
+        "Volatilité annualisée",
+        "Ampleur des variations mensuelles, annualisée.",
+        mm.volatility,
+        cmp?.volatility ?? null,
+        fmtPct,
+        "pts",
+        "risque",
+        volRedux ? "Risque réduit" : undefined,
+      ),
+      row(
+        "Max drawdown",
+        "Perte maximale entre un sommet et un point bas.",
+        mm.maxDrawdown,
+        cmp?.maxDrawdown ?? null,
+        fmtPct,
+        "pts",
+        "risque",
+        mddRedux !== null && mddRedux >= 20 ? "Protection élevée" : undefined,
+      ),
+      row(
+        "Drawdown courant",
+        "Recul actuel depuis le dernier sommet.",
+        mm.currentDrawdown,
+        cmp?.currentDrawdown ?? null,
+        fmtPct,
+        "pts",
+        "risque",
+        underwater ? "Sous le sommet" : undefined,
+        "info",
+      ),
+      row(
+        "Sharpe",
+        "Excédent de rendement sur le cash (taux sans risque), rapporté à la volatilité.",
+        mm.sharpe,
+        cmp?.sharpe ?? null,
+        fmtRatio,
+        "ratio",
+        "rendement-risque",
+        betterRR ? "Meilleur rendement/risque" : undefined,
+      ),
+      row(
+        "Meilleure année",
+        "Meilleure performance sur une année civile.",
+        mm.bestYear,
+        cmp?.bestYear ?? null,
+        fmtPct,
+        "pts",
+        "performance",
+      ),
+      row(
+        "Pire année",
+        "Pire performance sur une année civile.",
+        mm.worstYear,
+        cmp?.worstYear ?? null,
+        fmtPct,
+        "pts",
+        "risque",
+      ),
+      row(
+        "Durée max sous l’eau",
+        "Plus longue durée passée sous le dernier sommet.",
+        mm.maxUnderwaterMonths,
+        cmp?.maxUnderwaterMonths ?? null,
+        fmtMonths,
+        "mois",
+        "resilience",
+      ),
     ];
   };
 
@@ -610,9 +721,24 @@ export function BrowneCountryView({
     nominal: perfKpis(m, metrics.equity, false),
     real: r ? perfKpis(r, metrics.equityReal, true) : [],
     nominal_vs_inflation: [
-      { title: "Perf. nominale annualisée", value: fmtPct(m.annualized), tooltip: "Performance annualisée brute, sans correction de l’inflation.", family: "performance" },
-      { title: "Perf. réelle annualisée", value: fmtPct(r?.annualized ?? null), tooltip: "Performance corrigée de l’inflation : gain de pouvoir d’achat.", family: "pouvoir-achat" },
-      { title: "Inflation annualisée", value: fmtPct(inflAnnualized), tooltip: "Inflation locale annualisée sur la période (indice des prix à la consommation).", family: "inflation" },
+      {
+        title: "Perf. nominale annualisée",
+        value: fmtPct(m.annualized),
+        tooltip: "Performance annualisée brute, sans correction de l’inflation.",
+        family: "performance",
+      },
+      {
+        title: "Perf. réelle annualisée",
+        value: fmtPct(r?.annualized ?? null),
+        tooltip: "Performance corrigée de l’inflation : gain de pouvoir d’achat.",
+        family: "pouvoir-achat",
+      },
+      {
+        title: "Inflation annualisée",
+        value: fmtPct(inflAnnualized),
+        tooltip: "Inflation locale annualisée sur la période (indice des prix à la consommation).",
+        family: "inflation",
+      },
       {
         title: "Écart annuel vs inflation",
         value: fmtPts(surperf),
@@ -621,10 +747,30 @@ export function BrowneCountryView({
         badge: surperf === null ? undefined : surperf > 0 ? "Bat l’inflation" : "Sous l’inflation",
         badgeTone: surperf !== null && surperf < 0 ? "negative" : "positive",
       },
-      { title: "Multiple portefeuille", value: fmtMultiple(multiples.nom), tooltip: "Capital final rapporté au capital initial (nominal).", family: "performance" },
-      { title: "Multiple inflation", value: fmtMultiple(multiples.infl), tooltip: "Hausse cumulée du coût de la vie sur la période.", family: "inflation" },
-      { title: "Multiple réel", value: fmtMultiple(multiples.real), tooltip: "Gain de pouvoir d’achat cumulé (multiple réel).", family: "pouvoir-achat" },
-      { title: "Max drawdown nominal", value: fmtPct(m.maxDrawdown), tooltip: "Perte maximale nominale entre un sommet et un point bas.", family: "risque" },
+      {
+        title: "Multiple portefeuille",
+        value: fmtMultiple(multiples.nom),
+        tooltip: "Capital final rapporté au capital initial (nominal).",
+        family: "performance",
+      },
+      {
+        title: "Multiple inflation",
+        value: fmtMultiple(multiples.infl),
+        tooltip: "Hausse cumulée du coût de la vie sur la période.",
+        family: "inflation",
+      },
+      {
+        title: "Multiple réel",
+        value: fmtMultiple(multiples.real),
+        tooltip: "Gain de pouvoir d’achat cumulé (multiple réel).",
+        family: "pouvoir-achat",
+      },
+      {
+        title: "Max drawdown nominal",
+        value: fmtPct(m.maxDrawdown),
+        tooltip: "Perte maximale nominale entre un sommet et un point bas.",
+        family: "risque",
+      },
     ],
   };
   const kpis = KPIS[displayMode];
@@ -645,7 +791,9 @@ export function BrowneCountryView({
               </span>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-semibold">{config.countryFr ?? config.countryCode}</h2>
+                  <h2 className="text-lg font-semibold">
+                    {config.countryFr ?? config.countryCode}
+                  </h2>
                   <RobustnessPill robustness={robustness} />
                 </div>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
@@ -664,7 +812,10 @@ export function BrowneCountryView({
             <Info2 label="Devise" value={config.currency} />
             <Info2 label="Fréquence" value="Mensuelle" />
             <Info2 label="Mode" value={DISPLAY_LABEL[displayMode]} />
-            <Info2 label="Période" value={`${formatMonth(result.start)} → ${formatMonth(result.end)}`} />
+            <Info2
+              label="Période"
+              value={`${formatMonth(result.start)} → ${formatMonth(result.end)}`}
+            />
           </div>
         </Card>
 

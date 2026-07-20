@@ -35,7 +35,7 @@ export const SHORT_HISTORY_MONTHS = 120; // 10 ans de coordonnées
 /** Horizons glissants de la heatmap de régularité (mois) — mêmes que Browne. */
 const HEATMAP_HORIZONS = [12, 36, 60, 120, 240];
 
-export type QuadrantDataQuality = "Complet" | "Historique court" | "Indisponible";
+export type QuadrantDataQuality = "Complet" | "Historique court" | "Données en repli" | "Partiel";
 
 /** Séries de PERFORMANCE (total-return, devise locale) pour le backtest. */
 export interface QuadrantPerfInput {
@@ -229,9 +229,18 @@ async function loadSeries(
   };
 }
 
-function dataQualityOf(model: QuadrantModel): QuadrantDataQuality {
-  if (model.status !== "OK") return "Indisponible";
-  return model.monthlyResults.length < SHORT_HISTORY_MONTHS ? "Historique court" : "Complet";
+// Badge global de disponibilité — MÊME logique que `deriveDataQuality` de Browne :
+// on combine les défauts par série (repli actions, CPI absent, historique court).
+function dataQualityOf(config: QuadrantModelConfig, model: QuadrantModel): QuadrantDataQuality {
+  if (model.status !== "OK") return "Partiel";
+  const flags: QuadrantDataQuality[] = [];
+  if (config.equityTotalReturnFallback) flags.push("Données en repli"); // actions en prix nu
+  const months = model.monthlyResults.length;
+  if (months > 0 && months < SHORT_HISTORY_MONTHS) flags.push("Historique court");
+  if (!config.cpiId) flags.push("Partiel"); // pas de courbe réelle (inflation absente)
+  if (flags.length >= 2) return "Partiel";
+  if (flags.length === 1) return flags[0];
+  return "Complet";
 }
 
 function runBacktest(
@@ -314,7 +323,7 @@ export async function getCountryQuadrantModel(
   if (!config) {
     return {
       config: null,
-      dataQuality: "Indisponible",
+      dataQuality: "Partiel",
       signal: null,
       perf: null,
       model: { status: "MISSING_SERIES", countryCode, settings },
@@ -325,7 +334,7 @@ export async function getCountryQuadrantModel(
   const { signal, perf } = await loadSeries(config, ctx);
   const model = buildModel(signal, settings);
   const backtest = runBacktest(countryCode, model, perf);
-  return { config, dataQuality: dataQualityOf(model), signal, perf, model, backtest };
+  return { config, dataQuality: dataQualityOf(config, model), signal, perf, model, backtest };
 }
 
 /** Ligne « vide » (config absente ou modèle non OK) — régime ET métriques indisponibles. */

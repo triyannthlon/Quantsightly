@@ -18,7 +18,10 @@ import type {
   BacktestMetrics,
   TurnoverResult,
 } from "@/lib/coredata/four-quadrants";
-import type { QuadrantModelConfig, QuadrantDataQuality } from "@/lib/coredata/four-quadrants-service";
+import type {
+  QuadrantModelConfig,
+  QuadrantDataQuality,
+} from "@/lib/coredata/four-quadrants-service";
 import { ExplorationChart, type ChartLine } from "../../exploration/exploration-chart";
 import {
   displayRegime,
@@ -48,12 +51,20 @@ const COLOR = {
 };
 
 function formatMonth(iso: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(
+    new Date(iso),
+  );
 }
 
 // ─── KPI ─────────────────────────────────────────────────────────────────────
 
-type KpiFamily = "performance" | "risque" | "rendement-risque" | "resilience" | "pouvoir-achat" | "inflation";
+type KpiFamily =
+  | "performance"
+  | "risque"
+  | "rendement-risque"
+  | "resilience"
+  | "pouvoir-achat"
+  | "inflation";
 const FAMILY_CARD: Record<KpiFamily, string> = {
   performance: "border-emerald-500/25 bg-gradient-to-b from-emerald-500/[0.06] to-transparent",
   risque: "border-orange-500/25 bg-gradient-to-b from-orange-500/[0.06] to-transparent",
@@ -75,13 +86,26 @@ function fmtEcart(diff: number, unit: "pts" | "ratio" | "mois"): string {
   return `${diff > 0 ? "+" : ""}${diff.toFixed(1)} pts`;
 }
 
-function CmpBar({ label, width, value, strong }: { label: string; width: number; value: string; strong?: boolean }) {
+function CmpBar({
+  label,
+  width,
+  value,
+  strong,
+}: {
+  label: string;
+  width: number;
+  value: string;
+  strong?: boolean;
+}) {
   return (
     <div className="grid grid-cols-[4.6rem_1fr_3.4rem] items-center gap-2 text-xs">
       <span className="text-muted-foreground">{label}</span>
       <span className="h-1.5 overflow-hidden rounded-full bg-slate-700/30">
         <span
-          className={cn("block h-full rounded-full", strong ? "bg-amber-400/70" : "bg-slate-400/55")}
+          className={cn(
+            "block h-full rounded-full",
+            strong ? "bg-amber-400/70" : "bg-slate-400/55",
+          )}
           style={{ width: `${Math.max(0, Math.min(100, width))}%` }}
         />
       </span>
@@ -103,16 +127,32 @@ interface KpiData {
   badgeTone?: BadgeTone;
 }
 
-function KpiCard({ title, tooltip, value, actions, ecart, portfolioRaw, actionsRaw, family, badge, badgeTone = "positive" }: KpiData) {
+function KpiCard({
+  title,
+  tooltip,
+  value,
+  actions,
+  ecart,
+  portfolioRaw,
+  actionsRaw,
+  family,
+  badge,
+  badgeTone = "positive",
+}: KpiData) {
   const showBars = portfolioRaw != null && actionsRaw != null;
   const maxAbs = Math.max(Math.abs(portfolioRaw ?? 0), Math.abs(actionsRaw ?? 0)) || 1;
   return (
     <Card className={cn("gap-0 p-4", FAMILY_CARD[family])}>
       <div className="flex items-center gap-1.5">
-        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</span>
+        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {title}
+        </span>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
+            <button
+              type="button"
+              className="cursor-help text-muted-foreground/60 hover:text-foreground"
+            >
               <Info className="size-3.5" />
             </button>
           </TooltipTrigger>
@@ -124,8 +164,17 @@ function KpiCard({ title, tooltip, value, actions, ecart, portfolioRaw, actionsR
       <div className="mt-1.5 text-2xl font-semibold tabular-nums">{value}</div>
       {showBars && (
         <div className="mt-2.5 space-y-1.5">
-          <CmpBar label="4 Quadrants" width={(Math.abs(portfolioRaw ?? 0) / maxAbs) * 100} value={value} strong />
-          <CmpBar label="Actions" width={(Math.abs(actionsRaw ?? 0) / maxAbs) * 100} value={actions ?? "—"} />
+          <CmpBar
+            label="4 Quadrants"
+            width={(Math.abs(portfolioRaw ?? 0) / maxAbs) * 100}
+            value={value}
+            strong
+          />
+          <CmpBar
+            label="Actions"
+            width={(Math.abs(actionsRaw ?? 0) / maxAbs) * 100}
+            value={actions ?? "—"}
+          />
           {ecart && (
             <div className="pt-0.5 text-xs">
               <span className="text-muted-foreground">Écart : </span>
@@ -136,7 +185,12 @@ function KpiCard({ title, tooltip, value, actions, ecart, portfolioRaw, actionsR
       )}
       {badge && (
         <div className="mt-2">
-          <span className={cn("inline-block rounded-md border px-1.5 py-0.5 text-[11px] font-medium", BADGE_TONE[badgeTone])}>
+          <span
+            className={cn(
+              "inline-block rounded-md border px-1.5 py-0.5 text-[11px] font-medium",
+              BADGE_TONE[badgeTone],
+            )}
+          >
             {badge}
           </span>
         </div>
@@ -170,20 +224,94 @@ function buildKpis(pm: BacktestMetrics, am: BacktestMetrics, real: boolean): Kpi
     badgeTone,
   });
 
-  const volRedux = pm.volatility !== null && am.volatility !== null && am.volatility > 0 && pm.volatility <= 0.7 * am.volatility;
-  const mddRedux = pm.maxDrawdown !== null && am.maxDrawdown !== null ? pm.maxDrawdown - am.maxDrawdown : null;
+  const volRedux =
+    pm.volatility !== null &&
+    am.volatility !== null &&
+    am.volatility > 0 &&
+    pm.volatility <= 0.7 * am.volatility;
+  const mddRedux =
+    pm.maxDrawdown !== null && am.maxDrawdown !== null ? pm.maxDrawdown - am.maxDrawdown : null;
   const betterRR = pm.sharpe !== null && am.sharpe !== null && pm.sharpe > am.sharpe;
   const underwater = pm.currentDrawdown !== null && pm.currentDrawdown < -1;
 
   return [
-    row("Performance annualisée", "Rendement annualisé (CAGR).", pm.annualized, am.annualized, fmtPctN, "pts", "performance"),
-    row("Volatilité annualisée", "Ampleur des variations mensuelles, annualisée.", pm.volatility, am.volatility, fmtPctN, "pts", "risque", volRedux ? "Risque réduit" : undefined),
-    row("Max drawdown", "Perte maximale entre un sommet et un point bas.", pm.maxDrawdown, am.maxDrawdown, fmtPctN, "pts", "risque", mddRedux !== null && mddRedux >= 20 ? "Protection élevée" : undefined),
-    row("Drawdown courant", "Recul actuel depuis le dernier sommet.", pm.currentDrawdown, am.currentDrawdown, fmtPctN, "pts", "risque", underwater ? "Sous le sommet" : undefined, "info"),
-    row("Sharpe", "Excédent de rendement sur le cash, rapporté à la volatilité.", pm.sharpe, am.sharpe, fmtRatio, "ratio", "rendement-risque", betterRR ? "Meilleur rendement/risque" : undefined),
-    row("Meilleure année", "Meilleure performance sur une année civile.", pm.bestYear, am.bestYear, fmtPctN, "pts", "performance"),
-    row("Pire année", "Pire performance sur une année civile.", pm.worstYear, am.worstYear, fmtPctN, "pts", "risque"),
-    row("Durée max sous l’eau", "Plus longue durée passée sous le dernier sommet.", pm.maxUnderwaterMonths, am.maxUnderwaterMonths, fmtMonths, "mois", "resilience"),
+    row(
+      "Performance annualisée",
+      "Rendement annualisé (CAGR).",
+      pm.annualized,
+      am.annualized,
+      fmtPctN,
+      "pts",
+      "performance",
+    ),
+    row(
+      "Volatilité annualisée",
+      "Ampleur des variations mensuelles, annualisée.",
+      pm.volatility,
+      am.volatility,
+      fmtPctN,
+      "pts",
+      "risque",
+      volRedux ? "Risque réduit" : undefined,
+    ),
+    row(
+      "Max drawdown",
+      "Perte maximale entre un sommet et un point bas.",
+      pm.maxDrawdown,
+      am.maxDrawdown,
+      fmtPctN,
+      "pts",
+      "risque",
+      mddRedux !== null && mddRedux >= 20 ? "Protection élevée" : undefined,
+    ),
+    row(
+      "Drawdown courant",
+      "Recul actuel depuis le dernier sommet.",
+      pm.currentDrawdown,
+      am.currentDrawdown,
+      fmtPctN,
+      "pts",
+      "risque",
+      underwater ? "Sous le sommet" : undefined,
+      "info",
+    ),
+    row(
+      "Sharpe",
+      "Excédent de rendement sur le cash, rapporté à la volatilité.",
+      pm.sharpe,
+      am.sharpe,
+      fmtRatio,
+      "ratio",
+      "rendement-risque",
+      betterRR ? "Meilleur rendement/risque" : undefined,
+    ),
+    row(
+      "Meilleure année",
+      "Meilleure performance sur une année civile.",
+      pm.bestYear,
+      am.bestYear,
+      fmtPctN,
+      "pts",
+      "performance",
+    ),
+    row(
+      "Pire année",
+      "Pire performance sur une année civile.",
+      pm.worstYear,
+      am.worstYear,
+      fmtPctN,
+      "pts",
+      "risque",
+    ),
+    row(
+      "Durée max sous l’eau",
+      "Plus longue durée passée sous le dernier sommet.",
+      pm.maxUnderwaterMonths,
+      am.maxUnderwaterMonths,
+      fmtMonths,
+      "mois",
+      "resilience",
+    ),
   ];
 }
 
@@ -194,7 +322,8 @@ function buildInflationKpis(bt: OkBacktest): KpiData[] {
   const infl = bt.series.inflationIndex;
   const realS = bt.series.real;
   const inflAnnualized = infl && infl.length >= 2 ? computeKpis(infl).annualized : null;
-  const surperf = m.annualized !== null && inflAnnualized !== null ? m.annualized - inflAnnualized : null;
+  const surperf =
+    m.annualized !== null && inflAnnualized !== null ? m.annualized - inflAnnualized : null;
 
   let mNom: number | null = null;
   let mInfl: number | null = null;
@@ -208,7 +337,14 @@ function buildInflationKpis(bt: OkBacktest): KpiData[] {
     mReal = realS[realS.length - 1].value / realS[0].value;
   }
 
-  const card = (title: string, tooltip: string, value: string, family: KpiFamily, badge?: string, badgeTone?: BadgeTone): KpiData => ({
+  const card = (
+    title: string,
+    tooltip: string,
+    value: string,
+    family: KpiFamily,
+    badge?: string,
+    badgeTone?: BadgeTone,
+  ): KpiData => ({
     title,
     tooltip,
     value,
@@ -218,9 +354,24 @@ function buildInflationKpis(bt: OkBacktest): KpiData[] {
   });
 
   return [
-    card("Perf. nominale annualisée", "Performance annualisée brute, sans correction de l’inflation.", fmtPctN(m.annualized), "performance"),
-    card("Perf. réelle annualisée", "Performance corrigée de l’inflation : gain de pouvoir d’achat.", fmtPctN(r?.annualized ?? null), "pouvoir-achat"),
-    card("Inflation annualisée", "Inflation locale annualisée sur la période (indice des prix).", fmtPctN(inflAnnualized), "inflation"),
+    card(
+      "Perf. nominale annualisée",
+      "Performance annualisée brute, sans correction de l’inflation.",
+      fmtPctN(m.annualized),
+      "performance",
+    ),
+    card(
+      "Perf. réelle annualisée",
+      "Performance corrigée de l’inflation : gain de pouvoir d’achat.",
+      fmtPctN(r?.annualized ?? null),
+      "pouvoir-achat",
+    ),
+    card(
+      "Inflation annualisée",
+      "Inflation locale annualisée sur la période (indice des prix).",
+      fmtPctN(inflAnnualized),
+      "inflation",
+    ),
     card(
       "Écart annuel vs inflation",
       "Écart annualisé, en points, entre la performance nominale et l’inflation.",
@@ -229,16 +380,42 @@ function buildInflationKpis(bt: OkBacktest): KpiData[] {
       surperf === null ? undefined : surperf > 0 ? "Bat l’inflation" : "Sous l’inflation",
       surperf !== null && surperf < 0 ? "negative" : "positive",
     ),
-    card("Multiple portefeuille", "Capital final rapporté au capital initial (nominal).", fmtMultiple(mNom), "performance"),
-    card("Multiple inflation", "Hausse cumulée du coût de la vie sur la période.", fmtMultiple(mInfl), "inflation"),
-    card("Multiple réel", "Gain de pouvoir d’achat cumulé (multiple réel).", fmtMultiple(mReal), "pouvoir-achat"),
-    card("Max drawdown nominal", "Perte maximale nominale entre un sommet et un point bas.", fmtPctN(m.maxDrawdown), "risque"),
+    card(
+      "Multiple portefeuille",
+      "Capital final rapporté au capital initial (nominal).",
+      fmtMultiple(mNom),
+      "performance",
+    ),
+    card(
+      "Multiple inflation",
+      "Hausse cumulée du coût de la vie sur la période.",
+      fmtMultiple(mInfl),
+      "inflation",
+    ),
+    card(
+      "Multiple réel",
+      "Gain de pouvoir d’achat cumulé (multiple réel).",
+      fmtMultiple(mReal),
+      "pouvoir-achat",
+    ),
+    card(
+      "Max drawdown nominal",
+      "Perte maximale nominale entre un sommet et un point bas.",
+      fmtPctN(m.maxDrawdown),
+      "risque",
+    ),
   ];
 }
 
 // ─── Graphiques (performance + drawdown) ─────────────────────────────────────
 
-type SeriesDef = { key: string; label: string; color: string; dashed?: boolean; defaultOn: boolean };
+type SeriesDef = {
+  key: string;
+  label: string;
+  color: string;
+  dashed?: boolean;
+  defaultOn: boolean;
+};
 
 // Séries disponibles par mode + état par défaut (4Q + Actions actifs ; poches
 // secondaires activables en nominal ; inflation en NvI). Clone de la Vue pays Browne.
@@ -256,15 +433,31 @@ const PERF_SERIES: Record<PerfMode, SeriesDef[]> = {
   ],
   nominal_vs_inflation: [
     { key: "q4", label: "4 Quadrants nominal", color: COLOR.portfolio, defaultOn: true },
-    { key: "inflation", label: "Inflation cumulée", color: COLOR.inflation, dashed: true, defaultOn: true },
+    {
+      key: "inflation",
+      label: "Inflation cumulée",
+      color: COLOR.inflation,
+      dashed: true,
+      defaultOn: true,
+    },
     { key: "actions", label: "Actions", color: COLOR.actions, defaultOn: false },
   ],
 };
 
-function perfSeriesData(mode: PerfMode, s: OkBacktest["series"], key: string): EconomicDataPoint[] | null {
+function perfSeriesData(
+  mode: PerfMode,
+  s: OkBacktest["series"],
+  key: string,
+): EconomicDataPoint[] | null {
   if (mode === "real") return key === "q4" ? s.real : key === "actions" ? s.equityReal : null;
   if (mode === "nominal_vs_inflation")
-    return key === "q4" ? s.nominal : key === "inflation" ? s.inflationIndex : key === "actions" ? s.equityBenchmark : null;
+    return key === "q4"
+      ? s.nominal
+      : key === "inflation"
+        ? s.inflationIndex
+        : key === "actions"
+          ? s.equityBenchmark
+          : null;
   if (key === "q4") return s.nominal;
   if (key === "actions") return s.equityBenchmark;
   if (key === "bonds") return s.sleeves.bonds;
@@ -292,10 +485,18 @@ function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode 
     const withData = defs
       .filter((d) => shown[d.key])
       .map((d) => ({ def: d, data: perfSeriesData(displayMode, bt.series, d.key) }))
-      .filter((x): x is { def: SeriesDef; data: EconomicDataPoint[] } => !!x.data && x.data.length > 0);
+      .filter(
+        (x): x is { def: SeriesDef; data: EconomicDataPoint[] } => !!x.data && x.data.length > 0,
+      );
     if (!withData.length) return null;
     const lines: ChartLine[] = withData
-      .map(({ def }) => ({ key: def.key, label: def.label, color: def.color, dashed: def.dashed, width: def.key === "q4" ? 2.6 : 1.4 }))
+      .map(({ def }) => ({
+        key: def.key,
+        label: def.label,
+        color: def.color,
+        dashed: def.dashed,
+        width: def.key === "q4" ? 2.6 : 1.4,
+      }))
       .sort((a, b) => (a.key === "q4" ? 1 : b.key === "q4" ? -1 : 0));
     return { data: mergeChart(withData.map(({ def, data }) => ({ key: def.key, data }))), lines };
   }, [defs, shown, displayMode, bt.series]);
@@ -315,7 +516,18 @@ function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode 
 
   const render = (height: number | string) =>
     chart ? (
-      <ExplorationChart data={chart.data} lines={chart.lines} height={height} logScale={scale === "log"} showLegend={false} markLast gridOpacity={0.22} cumulativeTooltip extraTooltipRows={extraRows} axisLine />
+      <ExplorationChart
+        data={chart.data}
+        lines={chart.lines}
+        height={height}
+        logScale={scale === "log"}
+        showLegend={false}
+        markLast
+        gridOpacity={0.22}
+        cumulativeTooltip
+        extraTooltipRows={extraRows}
+        axisLine
+      />
     ) : null;
 
   return (
@@ -331,10 +543,15 @@ function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode 
                 onClick={() => setShown((s) => ({ ...s, [d.key]: !s[d.key] }))}
                 className={cn(
                   "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
-                  shown[d.key] ? "border-foreground/20 text-foreground" : "border-transparent text-muted-foreground/50 hover:text-foreground",
+                  shown[d.key]
+                    ? "border-foreground/20 text-foreground"
+                    : "border-transparent text-muted-foreground/50 hover:text-foreground",
                 )}
               >
-                <span className="size-2 rounded-full transition-opacity" style={{ backgroundColor: d.color, opacity: shown[d.key] ? 1 : 0.35 }} />
+                <span
+                  className="size-2 rounded-full transition-opacity"
+                  style={{ backgroundColor: d.color, opacity: shown[d.key] ? 1 : 0.35 }}
+                />
                 {d.label}
               </button>
             ))}
@@ -345,7 +562,12 @@ function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode 
                 key={sc}
                 type="button"
                 onClick={() => setUserScale(sc)}
-                className={cn("cursor-pointer rounded px-2.5 py-1 font-medium transition-all", scale === sc ? "bg-slate-700/70 text-white shadow-sm ring-1 ring-slate-500/50" : "text-slate-400 hover:text-slate-200")}
+                className={cn(
+                  "cursor-pointer rounded px-2.5 py-1 font-medium transition-all",
+                  scale === sc
+                    ? "bg-slate-700/70 text-white shadow-sm ring-1 ring-slate-500/50"
+                    : "text-slate-400 hover:text-slate-200",
+                )}
               >
                 {sc === "linear" ? "Linéaire" : "Log"}
               </button>
@@ -355,18 +577,30 @@ function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode 
       </div>
       {chart ? (
         <>
-          <button type="button" onClick={() => setZoom(true)} className="cursor-zoom-img block w-full text-left" aria-label="Agrandir le graphique">
+          <button
+            type="button"
+            onClick={() => setZoom(true)}
+            className="cursor-zoom-img block w-full text-left"
+            aria-label="Agrandir le graphique"
+          >
             {render(360)}
           </button>
           <Dialog open={zoom} onOpenChange={setZoom}>
-            <FrostedDialogContent className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]" showCloseButton>
-              <DialogTitle className="text-center text-base font-medium">Performance cumulée</DialogTitle>
+            <FrostedDialogContent
+              className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]"
+              showCloseButton
+            >
+              <DialogTitle className="text-center text-base font-medium">
+                Performance cumulée
+              </DialogTitle>
               {render("78vh")}
             </FrostedDialogContent>
           </Dialog>
         </>
       ) : (
-        <div className="flex h-[360px] items-center justify-center text-sm text-muted-foreground">Donnée indisponible pour ce mode.</div>
+        <div className="flex h-[360px] items-center justify-center text-sm text-muted-foreground">
+          Donnée indisponible pour ce mode.
+        </div>
       )}
     </Card>
   );
@@ -392,16 +626,31 @@ function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMo
     const lines: ChartLine[] = [];
     if (shown.actions) {
       active.push({ key: "actions", data: aDD });
-      lines.push({ key: "actions", label: "Actions", color: COLOR.actions, width: 1.4, fillOpacity: 0.16 });
+      lines.push({
+        key: "actions",
+        label: "Actions",
+        color: COLOR.actions,
+        width: 1.4,
+        fillOpacity: 0.16,
+      });
     }
     if (shown.q4) {
       active.push({ key: "q4", data: bDD });
-      lines.push({ key: "q4", label: "4 Quadrants", color: COLOR.portfolio, width: 2.6, fillOpacity: 0.22 });
+      lines.push({
+        key: "q4",
+        label: "4 Quadrants",
+        color: COLOR.portfolio,
+        width: 2.6,
+        fillOpacity: 0.22,
+      });
     }
     return { data: mergeChart(active), lines, yDomain: [floor, 0] as [number, number] };
   }, [bSeries, aSeries, shown]);
 
-  const reduction = bMetrics.maxDrawdown !== null && aMetrics.maxDrawdown !== null ? bMetrics.maxDrawdown - aMetrics.maxDrawdown : null;
+  const reduction =
+    bMetrics.maxDrawdown !== null && aMetrics.maxDrawdown !== null
+      ? bMetrics.maxDrawdown - aMetrics.maxDrawdown
+      : null;
   const toggles = [
     { key: "q4" as const, label: "4 Quadrants", color: COLOR.portfolio },
     { key: "actions" as const, label: "Actions", color: COLOR.actions },
@@ -419,10 +668,15 @@ function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMo
               onClick={() => setShown((s) => ({ ...s, [t.key]: !s[t.key] }))}
               className={cn(
                 "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
-                shown[t.key] ? "border-foreground/20 text-foreground" : "border-transparent text-muted-foreground/50 hover:text-foreground",
+                shown[t.key]
+                  ? "border-foreground/20 text-foreground"
+                  : "border-transparent text-muted-foreground/50 hover:text-foreground",
               )}
             >
-              <span className="size-2 rounded-full transition-opacity" style={{ backgroundColor: t.color, opacity: shown[t.key] ? 1 : 0.35 }} />
+              <span
+                className="size-2 rounded-full transition-opacity"
+                style={{ backgroundColor: t.color, opacity: shown[t.key] ? 1 : 0.35 }}
+              />
               {t.label}
             </button>
           ))}
@@ -434,7 +688,18 @@ function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMo
         <Stat label="Réduction" value={reduction === null ? "—" : `+${reduction.toFixed(1)} pts`} />
         <Stat label="Durée max sous l’eau" value={fmtMonths(bMetrics.maxUnderwaterMonths)} />
       </div>
-      <ExplorationChart data={dd.data} lines={dd.lines} height={240} showLegend={false} markLast gridOpacity={0.22} yDomain={dd.yDomain} areaFill percentTooltip axisLine />
+      <ExplorationChart
+        data={dd.data}
+        lines={dd.lines}
+        height={240}
+        showLegend={false}
+        markLast
+        gridOpacity={0.22}
+        yDomain={dd.yDomain}
+        areaFill
+        percentTooltip
+        axisLine
+      />
     </Card>
   );
 }
@@ -461,7 +726,9 @@ function CompositionCard({
   return (
     <Card className="p-4">
       <h3 className="mb-1 text-sm font-semibold">Composition du portefeuille</h3>
-      <p className="mb-3 text-xs text-muted-foreground">Allocation cible au dernier mois clôturé (elle évolue avec le régime).</p>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Allocation cible au dernier mois clôturé (elle évolue avec le régime).
+      </p>
       <div className="space-y-2.5">
         {sleeves.map((k) => {
           const w = alloc[k];
@@ -476,7 +743,10 @@ function CompositionCard({
                 <span className="font-semibold tabular-nums">{fmtPct0(w)}</span>
               </div>
               <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted/40">
-                <div className="h-full rounded-full" style={{ width: `${Math.min(100, w * 100)}%`, background: meta.hex }} />
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${Math.min(100, w * 100)}%`, background: meta.hex }}
+                />
               </div>
             </div>
           );
@@ -485,12 +755,18 @@ function CompositionCard({
 
       {turnover && (
         <div className="mt-4 border-t border-border/50 pt-3">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Gestion de l’allocation</p>
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Gestion de l’allocation
+          </p>
           <div className="mt-2 flex items-baseline justify-between">
             <span className="text-sm font-medium">Rotation annualisée</span>
-            <span className="text-sm font-semibold tabular-nums">{Math.round(turnover.annualized * 100)} % / an</span>
+            <span className="text-sm font-semibold tabular-nums">
+              {Math.round(turnover.annualized * 100)} % / an
+            </span>
           </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">Part moyenne du portefeuille réallouée chaque année.</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Part moyenne du portefeuille réallouée chaque année.
+          </p>
         </div>
       )}
     </Card>
@@ -501,7 +777,12 @@ const CONTRIB_TOOLTIP =
   "Les contributions brutes additionnent les effets mensuels poids × rendement. Lorsqu’elles sont toutes positives, elles sont normalisées à 100 % pour faciliter la lecture. Cette mesure indique quelles poches ont le plus porté la performance, sans représenter directement la part du gain final capitalisé.";
 
 function ContributionCard({ bt }: { bt: OkBacktest }) {
-  const rows = CORE_SLEEVES.map((k) => ({ key: k, label: SLEEVE_META[k].label, color: SLEEVE_META[k].hex, raw: bt.contributions[k] }));
+  const rows = CORE_SLEEVES.map((k) => ({
+    key: k,
+    label: SLEEVE_META[k].label,
+    color: SLEEVE_META[k].hex,
+    raw: bt.contributions[k],
+  }));
   const allPositive = rows.every((r) => r.raw > 0);
   const total = allPositive ? rows.reduce((s, r) => s + r.raw, 0) : 0;
   const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.raw)));
@@ -511,7 +792,10 @@ function ContributionCard({ bt }: { bt: OkBacktest }) {
         <h3 className="text-sm font-semibold">Sources de performance</h3>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
+            <button
+              type="button"
+              className="cursor-help text-muted-foreground/60 hover:text-foreground"
+            >
               <Info className="size-3.5" />
             </button>
           </TooltipTrigger>
@@ -520,19 +804,32 @@ function ContributionCard({ bt }: { bt: OkBacktest }) {
           </TooltipContent>
         </Tooltip>
       </div>
-      <p className="mb-3 text-xs text-muted-foreground">Répartition relative des contributions cumulées des quatre poches.</p>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Répartition relative des contributions cumulées des quatre poches.
+      </p>
       <div className="space-y-2.5">
         {rows.map((r) => {
           const share = allPositive && total > 0 ? (r.raw / total) * 100 : null;
           const width = allPositive ? (share ?? 0) : (Math.abs(r.raw) / maxAbs) * 100;
           return (
-            <div key={r.key} className="grid grid-cols-[6rem_1fr_5rem] items-center gap-2.5 text-sm">
+            <div
+              key={r.key}
+              className="grid grid-cols-[6rem_1fr_5rem] items-center gap-2.5 text-sm"
+            >
               <span className="text-muted-foreground">{r.label}</span>
               <span className="h-2.5 overflow-hidden rounded-full bg-muted">
-                <span className="block h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, width))}%`, backgroundColor: r.color }} />
+                <span
+                  className="block h-full rounded-full"
+                  style={{
+                    width: `${Math.max(0, Math.min(100, width))}%`,
+                    backgroundColor: r.color,
+                  }}
+                />
               </span>
               <span className="text-right font-medium tabular-nums">
-                {share !== null ? `${share.toFixed(0)} %` : `${r.raw >= 0 ? "+" : "−"}${Math.abs(r.raw).toFixed(1)} pts`}
+                {share !== null
+                  ? `${share.toFixed(0)} %`
+                  : `${r.raw >= 0 ? "+" : "−"}${Math.abs(r.raw).toFixed(1)} pts`}
               </span>
             </div>
           );
@@ -542,14 +839,16 @@ function ContributionCard({ bt }: { bt: OkBacktest }) {
   );
 }
 
-// Teinte du badge de disponibilité — alignée sur la légende de la Méthodologie.
+// Teinte du badge de disponibilité — alignée sur la légende de la Méthodologie
+// (mêmes 4 niveaux que Browne : Complet / Historique court / Données en repli / Partiel).
 const DATA_QUALITY_TONE: Record<QuadrantDataQuality, string> = {
   Complet: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   "Historique court": "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  Indisponible: "border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400",
+  "Données en repli": "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  Partiel: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
 };
 
-/** Badge de disponibilité coloré (Complet / Historique court / Indisponible). */
+/** Badge de disponibilité coloré (Complet / Historique court / Données en repli / Partiel). */
 function DataQualityBadge({ quality }: { quality: QuadrantDataQuality }) {
   return (
     <Badge variant="secondary" className={DATA_QUALITY_TONE[quality]}>
@@ -558,10 +857,23 @@ function DataQualityBadge({ quality }: { quality: QuadrantDataQuality }) {
   );
 }
 
-function DataQualityCard({ config, dataQuality, months }: { config: QuadrantModelConfig; dataQuality: QuadrantDataQuality; months: number }) {
+function DataQualityCard({
+  config,
+  dataQuality,
+  months,
+}: {
+  config: QuadrantModelConfig;
+  dataQuality: QuadrantDataQuality;
+  months: number;
+}) {
   const rows: { label: string; method: string }[] = [
     { label: "Signal activité", method: "Actions (prix) / pétrole" },
-    { label: "Performance actions", method: config.equityTotalReturnFallback ? "Prix simple (repli, hors dividendes)" : "Indice total-return" },
+    {
+      label: "Performance actions",
+      method: config.equityTotalReturnFallback
+        ? "Prix simple (repli, hors dividendes)"
+        : "Indice total-return",
+    },
     { label: "Obligations 10 ans", method: "Proxy total-return reconstruit du taux 10 ans" },
     { label: "Cash", method: "Indice capitalisé du taux court" },
     { label: "Or", method: "XAU converti en devise locale" },
@@ -627,12 +939,25 @@ export function QuadrantsCountryView({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-center gap-4">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-slate-800 shadow-sm sm:size-12">
-                <CountryFlag code={config.countryCode} countryName={config.countryFr ?? config.countryCode} size={28} />
+                <CountryFlag
+                  code={config.countryCode}
+                  countryName={config.countryFr ?? config.countryCode}
+                  size={28}
+                />
               </span>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-semibold">{config.countryFr ?? config.countryCode}</h2>
-                  <span className={cn("rounded-md border px-2 py-0.5 text-xs font-medium", regime.style.ring, regime.style.ringBg, regime.style.text)}>
+                  <h2 className="text-lg font-semibold">
+                    {config.countryFr ?? config.countryCode}
+                  </h2>
+                  <span
+                    className={cn(
+                      "rounded-md border px-2 py-0.5 text-xs font-medium",
+                      regime.style.ring,
+                      regime.style.ringBg,
+                      regime.style.text,
+                    )}
+                  >
                     {regime.label}
                   </span>
                 </div>
@@ -654,8 +979,13 @@ export function QuadrantsCountryView({
           <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-4">
             <Info2 label="Devise" value={config.currency} />
             <Info2 label="Fréquence" value="Mensuelle" />
-            <Info2 label="Mode" value={isNvI ? "Nominal vs Inflation" : real ? "Réel" : "Nominal"} />
-            {bt && <Info2 label="Période" value={`${formatMonth(bt.start)} → ${formatMonth(bt.end)}`} />}
+            <Info2
+              label="Mode"
+              value={isNvI ? "Nominal vs Inflation" : real ? "Réel" : "Nominal"}
+            />
+            {bt && (
+              <Info2 label="Période" value={`${formatMonth(bt.start)} → ${formatMonth(bt.end)}`} />
+            )}
             <Info2 label="Largeur de la zone neutre" value={`${transitionWidth} %`} />
           </div>
         </Card>
@@ -669,7 +999,9 @@ export function QuadrantsCountryView({
               ))}
             </div>
           ) : (
-            <Card className="p-6 text-center text-sm text-muted-foreground">Historique insuffisant pour le backtest.</Card>
+            <Card className="p-6 text-center text-sm text-muted-foreground">
+              Historique insuffisant pour le backtest.
+            </Card>
           )}
         </section>
 
@@ -696,7 +1028,11 @@ export function QuadrantsCountryView({
           className="grid scroll-mt-[var(--model-header-offset,96px)] grid-cols-1 gap-4 lg:grid-cols-2"
         >
           {bt && <ContributionCard bt={bt} />}
-          <DataQualityCard config={config} dataQuality={dataQuality} months={model.monthlyResults.length} />
+          <DataQualityCard
+            config={config}
+            dataQuality={dataQuality}
+            months={model.monthlyResults.length}
+          />
         </section>
       </div>
     </TooltipProvider>

@@ -480,15 +480,21 @@ Réduction drawdown = |Max DD actions| − |Max DD 4 Quadrants|
             <QualityBadge className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
               Historique court
             </QualityBadge>
-            <QualityBadge className="border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400">
-              Indisponible
+            <QualityBadge className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
+              Données en repli
+            </QualityBadge>
+            <QualityBadge className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
+              Partiel
             </QualityBadge>
           </div>
           <p className="mt-2 text-xs">
-            « Historique court » signale moins de 120 mois de coordonnées. La profondeur est bornée
-            par l’or (série disponible depuis 1971) : les pays les plus longs commencent à être
-            notés vers le milieu des années 1980. Sur une fenêtre trop courte, les métriques sont
-            marquées « historique insuffisant » — jamais ramenées à zéro.
+            <strong>Complet</strong> = les séries nécessaires sont disponibles avec une qualité
+            suffisante ; <strong>Historique court</strong> = moins de 120 mois de coordonnées (la
+            profondeur est bornée par l’or, disponible depuis 1971) ;{" "}
+            <strong>Données en repli</strong> = la performance des actions retombe sur le prix nu
+            (dividendes perdus) ; <strong>Partiel</strong> = données importantes absentes (ex.
+            inflation locale) ou plusieurs limites cumulées. Sur une fenêtre trop courte, les
+            métriques sont marquées « historique insuffisant » — jamais ramenées à zéro.
           </p>
         </div>
       </Section>
