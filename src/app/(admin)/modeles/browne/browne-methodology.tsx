@@ -20,8 +20,10 @@ const RULE_ORDER: BrowneVerdict[] = [
   "Compromis modéré",
 ];
 const PROFILE_RULES: Record<BrowneVerdict, string> = {
-  "Supérieur aux actions": "écart rendement ≥ 0 · réduction drawdown ≥ 5 pts · écart volatilité ≤ 0",
-  "Excellent compromis": "écart rendement ≥ −1,5 pt · réduction drawdown ≥ 20 pts · écart volatilité ≤ −3 pts",
+  "Supérieur aux actions":
+    "écart rendement ≥ 0 · réduction drawdown ≥ 5 pts · écart volatilité ≤ 0",
+  "Excellent compromis":
+    "écart rendement ≥ −1,5 pt · réduction drawdown ≥ 20 pts · écart volatilité ≤ −3 pts",
   Protecteur: "écart rendement < −1,5 pt · réduction drawdown ≥ 20 pts",
   "Profil atypique": "écart rendement > 0 ET (réduction drawdown < 0 OU écart volatilité > 0)",
   "Protection limitée": "écart rendement < 0 · réduction drawdown < 10 pts",
@@ -100,7 +102,10 @@ function DocTable({ head, rows }: { head: string[]; rows: React.ReactNode[][] })
           {rows.map((r, i) => (
             <tr key={i} className="border-b border-border/40 last:border-0">
               {r.map((c, j) => (
-                <td key={j} className={cn("px-3 py-2 align-top", j === 0 && "font-medium text-foreground")}>
+                <td
+                  key={j}
+                  className={cn("px-3 py-2 align-top", j === 0 && "font-medium text-foreground")}
+                >
                   {c}
                 </td>
               ))}
@@ -157,7 +162,9 @@ export function BrowneMethodology() {
           temps.
         </p>
         <div className="mt-4 rounded-lg border border-primary/20 bg-background/40 p-3">
-          <div className="text-xs font-semibold tracking-wide text-primary uppercase">À retenir</div>
+          <div className="text-xs font-semibold tracking-wide text-primary uppercase">
+            À retenir
+          </div>
           <p className="mt-1 text-sm leading-relaxed text-foreground/90">
             Le portefeuille Browne ne cherche pas à battre les actions dans toutes les périodes. Il
             cherche à produire un rendement réel régulier, avec des pertes plus limitées et une
@@ -175,7 +182,10 @@ export function BrowneMethodology() {
         <ul className="ml-4 list-disc space-y-1">
           <li>25 % actions locales</li>
           <li>25 % obligations souveraines 10 ans</li>
-          <li>25 % cash local — c’est-à-dire liquidités ou placement monétaire court terme dans la devise du pays</li>
+          <li>
+            25 % cash local — c’est-à-dire liquidités ou placement monétaire court terme dans la
+            devise du pays
+          </li>
           <li>25 % or converti dans la devise locale</li>
         </ul>
         <p>
@@ -189,9 +199,15 @@ export function BrowneMethodology() {
             head={["Poche", "Rôle économique"]}
             rows={[
               ["Actions", "Captent la croissance économique et les marchés haussiers."],
-              ["Obligations 10 ans", "Protègent surtout dans les phases de désinflation ou de baisse des taux."],
+              [
+                "Obligations 10 ans",
+                "Protègent surtout dans les phases de désinflation ou de baisse des taux.",
+              ],
               ["Cash / liquidités", "Stabilise le portefeuille et réduit la volatilité."],
-              ["Or", "Protège contre la perte de pouvoir d’achat, les crises monétaires et certains chocs inflationnistes."],
+              [
+                "Or",
+                "Protège contre la perte de pouvoir d’achat, les crises monétaires et certains chocs inflationnistes.",
+              ],
             ]}
           />
         </div>
@@ -199,7 +215,10 @@ export function BrowneMethodology() {
 
       {/* 2 — Formules */}
       <Section id="meth-formules" n={2} title="Formules">
-        <Sub title="Rendement mensuel" intuition="Le point de départ : de combien la série a bougé d’un mois à l’autre.">
+        <Sub
+          title="Rendement mensuel"
+          intuition="Le point de départ : de combien la série a bougé d’un mois à l’autre."
+        >
           <Formula>{`rₜ = Pₜ / Pₜ₋₁ − 1`}</Formula>
           <p>
             Pour les séries de prix (ou de prix coupons réinvestis), le rendement mensuel est la
@@ -207,16 +226,84 @@ export function BrowneMethodology() {
           </p>
         </Sub>
 
-        <Sub title="Rendement du portefeuille Browne" intuition="Le portefeuille avance comme la moyenne pondérée de ses quatre poches.">
+        <Sub
+          title="Rendement du portefeuille Browne"
+          intuition="Le portefeuille avance comme la moyenne pondérée de ses quatre poches."
+        >
           <Formula>{`r_Browne,ₜ = w_Actions,ₜ·r_Actions,ₜ + w_Obligations,ₜ·r_Obligations,ₜ + w_Cash,ₜ·r_Cash,ₜ + w_Or,ₜ·r_Or,ₜ`}</Formula>
           <p>
-            Au rééquilibrage, chaque poids wₖ est remis à 25 % ; entre deux rééquilibrages, les poids
-            dérivent selon la performance des actifs. En rééquilibrage mensuel, cela revient à :
+            Au rééquilibrage, chaque poids wₖ est remis à 25 % ; entre deux rééquilibrages, les
+            poids dérivent selon la performance des actifs. En rééquilibrage mensuel, cela revient à
+            :
           </p>
           <Formula>{`r_Browne,ₜ = 0,25·r_Actions,ₜ + 0,25·r_Obligations,ₜ + 0,25·r_Cash,ₜ + 0,25·r_Or,ₜ`}</Formula>
         </Sub>
 
-        <Sub title="Performance cumulée (base 100)" intuition="Une façon de lire toutes les courbes sur la même échelle, en partant de 100.">
+        <Sub
+          title="Rééquilibrage du portefeuille"
+          intuition="À intervalle régulier, on remet chaque poche à sa cible de 25 %."
+        >
+          <p>
+            Entre deux rééquilibrages, les poids des quatre poches évoluent avec leurs performances.
+            À chaque date de rééquilibrage, le portefeuille revient à son allocation cible de 25 %
+            par poche.
+          </p>
+          <p>
+            Concrètement, les actifs dont le poids dépasse 25 % sont partiellement vendus. Le
+            produit de ces ventes sert à acheter les actifs dont le poids est inférieur à 25 %.
+          </p>
+          <p>
+            Le rééquilibrage peut être mensuel, trimestriel, annuel ou désactivé. La constitution
+            initiale du portefeuille n’est pas considérée comme un rééquilibrage.
+          </p>
+        </Sub>
+
+        <Sub
+          title="Rotation au rééquilibrage"
+          intuition="La part du portefeuille réellement déplacée pour revenir aux cibles — sans compter deux fois."
+        >
+          <p>
+            La rotation mesure la part du portefeuille effectivement déplacée pour revenir aux poids
+            cibles.
+          </p>
+          <Formula>{`Rotationₜ = ½ × Σ | poids après rééquilibrage − poids avant rééquilibrage |`}</Formula>
+          <p>
+            Le facteur ½ évite de compter deux fois la même opération : une vente dans une poche
+            correspond à un achat dans une autre.
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Exemple.</span> Si les poids avant
+            rééquilibrage sont de 35 %, 30 %, 20 % et 15 %, il faut vendre 15 % du portefeuille dans
+            les deux premières poches et réinvestir ces 15 % dans les deux autres. La rotation est
+            donc de <span className="font-medium text-foreground">15 %</span>, et non de 30 %.
+          </p>
+        </Sub>
+
+        <Sub
+          title="Rotation annualisée"
+          intuition="La part moyenne du portefeuille réallouée chaque année."
+        >
+          <p>
+            La rotation annualisée représente la part moyenne du portefeuille réallouée chaque
+            année.
+          </p>
+          <Formula>{`Rotation annualisée = somme des rotations / durée effective de la période (en années)`}</Formula>
+          <p>
+            Une rotation annualisée de 37 % / an signifie qu’en moyenne, l’équivalent de 37 % du
+            portefeuille est vendu puis réinvesti chaque année pour restaurer l’allocation
+            25/25/25/25.
+          </p>
+          <p>
+            La constitution initiale est exclue. Lorsque le rééquilibrage est désactivé, la rotation
+            est de 0 %. Les frais, taxes, spreads et coûts de transaction ne sont pas déduits des
+            performances.
+          </p>
+        </Sub>
+
+        <Sub
+          title="Performance cumulée (base 100)"
+          intuition="Une façon de lire toutes les courbes sur la même échelle, en partant de 100."
+        >
           <Formula>{`Indexₜ = 100 × ∏ (1 + rₜ)`}</Formula>
           <p>
             Les courbes sont affichées en base 100. Une valeur de 250 signifie que le capital a été
@@ -224,25 +311,39 @@ export function BrowneMethodology() {
           </p>
         </Sub>
 
-        <Sub title="Performance annualisée (CAGR)" intuition="Cette formule transforme une performance totale en rythme annuel moyen.">
+        <Sub
+          title="Performance annualisée (CAGR)"
+          intuition="Cette formule transforme une performance totale en rythme annuel moyen."
+        >
           <Formula>{`CAGR = (Valeur finale / Valeur initiale)^(12 / nb de mois) − 1`}</Formula>
-          <p>Le rythme moyen de croissance du portefeuille, en tenant compte de la capitalisation.</p>
-        </Sub>
-
-        <Sub title="Performance réelle" intuition="On retire l’effet de l’inflation pour ne garder que le vrai gain de pouvoir d’achat.">
-          <Formula>{`Indice réelₜ = Indice nominalₜ / Indice CPIₜ
-r_réel,ₜ     = (1 + r_nominal,ₜ) / (1 + inflationₜ) − 1`}</Formula>
           <p>
-            La performance réelle corrige la performance nominale de l’inflation locale : elle mesure
-            l’évolution du pouvoir d’achat du portefeuille.
+            Le rythme moyen de croissance du portefeuille, en tenant compte de la capitalisation.
           </p>
         </Sub>
 
-        <Sub title="Inflation annualisée" intuition="Le rythme moyen de hausse des prix sur la période.">
+        <Sub
+          title="Performance réelle"
+          intuition="On retire l’effet de l’inflation pour ne garder que le vrai gain de pouvoir d’achat."
+        >
+          <Formula>{`Indice réelₜ = Indice nominalₜ / Indice CPIₜ
+r_réel,ₜ     = (1 + r_nominal,ₜ) / (1 + inflationₜ) − 1`}</Formula>
+          <p>
+            La performance réelle corrige la performance nominale de l’inflation locale : elle
+            mesure l’évolution du pouvoir d’achat du portefeuille.
+          </p>
+        </Sub>
+
+        <Sub
+          title="Inflation annualisée"
+          intuition="Le rythme moyen de hausse des prix sur la période."
+        >
           <Formula>{`Inflation annualisée = (CPI_final / CPI_initial)^(12 / nb de mois) − 1`}</Formula>
         </Sub>
 
-        <Sub title="Écart annuel vs inflation" intuition="De combien le portefeuille bat (ou non) l’inflation, chaque année.">
+        <Sub
+          title="Écart annuel vs inflation"
+          intuition="De combien le portefeuille bat (ou non) l’inflation, chaque année."
+        >
           <Formula>{`Écart annuel vs inflation = Perf. nominale annualisée − Inflation annualisée   (en points)
 Perf. réelle annualisée   = (1 + perf. nom. ann.) / (1 + inflation ann.) − 1   (calcul exact)`}</Formula>
           <p>
@@ -251,7 +352,10 @@ Perf. réelle annualisée   = (1 + perf. nom. ann.) / (1 + inflation ann.) − 1
           </p>
         </Sub>
 
-        <Sub title="Drawdown" intuition="Cette formule mesure la perte depuis le dernier sommet atteint par le portefeuille.">
+        <Sub
+          title="Drawdown"
+          intuition="Cette formule mesure la perte depuis le dernier sommet atteint par le portefeuille."
+        >
           <Formula>{`Drawdownₜ = Valeurₜ / Plus haut historiqueₜ − 1`}</Formula>
           <p>
             Perte depuis le dernier sommet historique. Le <strong>max drawdown</strong> est la plus
@@ -259,26 +363,39 @@ Perf. réelle annualisée   = (1 + perf. nom. ann.) / (1 + inflation ann.) − 1
           </p>
         </Sub>
 
-        <Sub title="Durée max sous l’eau" intuition="Combien de temps il faut pour effacer une baisse et retrouver un sommet.">
+        <Sub
+          title="Durée max sous l’eau"
+          intuition="Combien de temps il faut pour effacer une baisse et retrouver un sommet."
+        >
           <p>
-            La plus longue période pendant laquelle le portefeuille reste sous son précédent sommet —
-            le temps maximal nécessaire pour retrouver un plus haut historique après une baisse.
+            La plus longue période pendant laquelle le portefeuille reste sous son précédent sommet
+            — le temps maximal nécessaire pour retrouver un plus haut historique après une baisse.
           </p>
         </Sub>
 
-        <Sub title="Volatilité annualisée" intuition="L’amplitude des variations mensuelles, ramenée à l’année.">
+        <Sub
+          title="Volatilité annualisée"
+          intuition="L’amplitude des variations mensuelles, ramenée à l’année."
+        >
           <Formula>{`Volatilité annualisée = écart-type des rendements mensuels × √12`}</Formula>
         </Sub>
 
-        <Sub title="Régularité" intuition="À quelle fréquence Browne atteint son objectif sur les périodes glissantes.">
+        <Sub
+          title="Régularité"
+          intuition="À quelle fréquence Browne atteint son objectif sur les périodes glissantes."
+        >
           <Formula>{`Régularité = nb de périodes positives en réel / nb total de périodes observées`}</Formula>
           <p>
-            Pour la mesure « bat les actions », on compte les périodes où Browne <strong>surperforme
-            l’indice actions local</strong> (au lieu des périodes à rendement réel positif).
+            Pour la mesure « bat les actions », on compte les périodes où Browne{" "}
+            <strong>surperforme l’indice actions local</strong> (au lieu des périodes à rendement
+            réel positif).
           </p>
         </Sub>
 
-        <Sub title="Ratio de Sharpe (excédent sur le cash local)" intuition="Cette formule mesure ce que le portefeuille rapporte au-dessus du cash, par unité de risque.">
+        <Sub
+          title="Ratio de Sharpe (excédent sur le cash local)"
+          intuition="Cette formule mesure ce que le portefeuille rapporte au-dessus du cash, par unité de risque."
+        >
           <p>
             Le ratio de Sharpe mesure le rendement obtenu <strong>au-dessus du cash</strong>, par
             unité de volatilité. Il ne s’agit pas de diviser simplement la performance par la
@@ -289,30 +406,35 @@ Perf. réelle annualisée   = (1 + perf. nom. ann.) / (1 + inflation ann.) − 1
 Sharpe Browne  = (CAGR Browne  − CAGR cash local) / volatilité annualisée du Browne
 Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée des actions`}</Formula>
           <p>
-            Le taux sans risque est le <strong>rendement de la poche cash dans la devise du pays</strong>,
-            sur la même période que le backtest. <strong>En mode nominal</strong>, le Sharpe utilise le
-            cash nominal local ; <strong>en mode réel</strong>, le cash réel local (corrigé de
-            l’inflation). Cette convention permet la comparaison internationale : un pays au cash très
+            Le taux sans risque est le{" "}
+            <strong>rendement de la poche cash dans la devise du pays</strong>, sur la même période
+            que le backtest. <strong>En mode nominal</strong>, le Sharpe utilise le cash nominal
+            local ; <strong>en mode réel</strong>, le cash réel local (corrigé de l’inflation).
+            Cette convention permet la comparaison internationale : un pays au cash très
             rémunérateur n’est pas évalué comme un pays au cash quasi nul.
           </p>
         </Sub>
 
-        <Sub title="Score de robustesse Browne" intuition="Une note de qualité globale : pas seulement la performance, mais aussi la stabilité du chemin.">
+        <Sub
+          title="Score de robustesse Browne"
+          intuition="Une note de qualité globale : pas seulement la performance, mais aussi la stabilité du chemin."
+        >
           <p>
             Le score (0–100) est calculé <strong>entièrement sur la courbe réelle</strong>. Il ne
             récompense pas seulement la performance : il pénalise aussi la volatilité, les pertes
             profondes, les longues périodes sous l’eau et le manque de régularité.
           </p>
           <p>
-            Un pays peut donc afficher un rendement réel élevé mais un score plus faible si le chemin
-            est trop volatil, si les pertes sont profondes ou si le temps de récupération est long.
+            Un pays peut donc afficher un rendement réel élevé mais un score plus faible si le
+            chemin est trop volatil, si les pertes sont profondes ou si le temps de récupération est
+            long.
           </p>
           <Formula>{`Score = 30 %·score_rendement_réel + 25 %·score_drawdown_réel
       + 15 %·score_volatilité_réelle + 15 %·score_durée_sous_l’eau + 15 %·score_régularité`}</Formula>
           <p>
-            Chaque <code className="font-mono">score_…</code> est la composante correspondante d’abord
-            transformée en <strong>sous-score de 0 à 100</strong> (interpolation linéaire bornée entre
-            les deux seuils ci-dessous), puis pondérée.
+            Chaque <code className="font-mono">score_…</code> est la composante correspondante
+            d’abord transformée en <strong>sous-score de 0 à 100</strong> (interpolation linéaire
+            bornée entre les deux seuils ci-dessous), puis pondérée.
           </p>
           <DocTable
             head={["Composante", "Poids", "Ce que cela mesure"]}
@@ -338,16 +460,44 @@ Sharpe actions = (CAGR actions − CAGR cash local) / volatilité annualisée de
           <DocTable
             head={["Score", "Badge"]}
             rows={[
-              ["80 – 100", <QualityBadge key="a" className={ROBUSTNESS_TONE["Très robuste"]}>Très robuste</QualityBadge>],
-              ["65 – 79", <QualityBadge key="b" className={ROBUSTNESS_TONE["Robuste"]}>Robuste</QualityBadge>],
-              ["50 – 64", <QualityBadge key="c" className={ROBUSTNESS_TONE["Moyen"]}>Moyen</QualityBadge>],
-              ["35 – 49", <QualityBadge key="d" className={ROBUSTNESS_TONE["Fragile"]}>Fragile</QualityBadge>],
-              ["0 – 34", <QualityBadge key="e" className={ROBUSTNESS_TONE["Très fragile"]}>Très fragile</QualityBadge>],
+              [
+                "80 – 100",
+                <QualityBadge key="a" className={ROBUSTNESS_TONE["Très robuste"]}>
+                  Très robuste
+                </QualityBadge>,
+              ],
+              [
+                "65 – 79",
+                <QualityBadge key="b" className={ROBUSTNESS_TONE["Robuste"]}>
+                  Robuste
+                </QualityBadge>,
+              ],
+              [
+                "50 – 64",
+                <QualityBadge key="c" className={ROBUSTNESS_TONE["Moyen"]}>
+                  Moyen
+                </QualityBadge>,
+              ],
+              [
+                "35 – 49",
+                <QualityBadge key="d" className={ROBUSTNESS_TONE["Fragile"]}>
+                  Fragile
+                </QualityBadge>,
+              ],
+              [
+                "0 – 34",
+                <QualityBadge key="e" className={ROBUSTNESS_TONE["Très fragile"]}>
+                  Très fragile
+                </QualityBadge>,
+              ],
             ]}
           />
         </Sub>
 
-        <Sub title="Écarts Browne vs Actions" intuition="Les mesures relatives qui alimentent le profil : on compare Browne à l’indice actions local.">
+        <Sub
+          title="Écarts Browne vs Actions"
+          intuition="Les mesures relatives qui alimentent le profil : on compare Browne à l’indice actions local."
+        >
           <Formula>{`Écart rendement    = CAGR Browne − CAGR actions
 Écart volatilité   = Volatilité Browne − Volatilité actions
 Réduction drawdown = |Max DD actions| − |Max DD Browne|
@@ -359,10 +509,11 @@ Réduction drawdown = |Max DD actions| − |Max DD Browne|
           intuition="Le profil qualifie le type de compromis Browne vs actions — ce n’est pas un jugement absolu."
         >
           <p>
-            Le profil ne compare pas seulement les rendements : il qualifie le <strong>compromis</strong>{" "}
-            entre rendement, volatilité et drawdown par rapport à l’indice actions local. Un
-            portefeuille Browne peut être <strong>intéressant même s’il rend moins</strong> que les
-            actions, dès lors qu’il réduit fortement les pertes.
+            Le profil ne compare pas seulement les rendements : il qualifie le{" "}
+            <strong>compromis</strong> entre rendement, volatilité et drawdown par rapport à
+            l’indice actions local. Un portefeuille Browne peut être{" "}
+            <strong>intéressant même s’il rend moins</strong> que les actions, dès lors qu’il réduit
+            fortement les pertes.
           </p>
           <DocTable
             head={["Profil", "Signification"]}
@@ -374,7 +525,8 @@ Réduction drawdown = |Max DD actions| − |Max DD Browne|
             ])}
           />
           <p className="text-xs text-muted-foreground">
-            Règles de classement — la <strong>première règle remplie</strong> (dans l’ordre) l’emporte :
+            Règles de classement — la <strong>première règle remplie</strong> (dans l’ordre)
+            l’emporte :
           </p>
           <DocTable
             head={["Profil", "Règle"]}
@@ -395,20 +547,31 @@ Réduction drawdown = |Max DD actions| − |Max DD Browne|
         <ul className="ml-4 list-disc space-y-1">
           <li>Les calculs sont effectués sur données mensuelles.</li>
           <li>Le portefeuille est construit localement pour chaque pays.</li>
-          <li>Les actions sont représentées par un indice actions local (prix coupons réinvestis en priorité).</li>
-          <li>Les obligations sont représentées par une obligation souveraine 10 ans ou un proxy total-return.</li>
+          <li>
+            Les actions sont représentées par un indice actions local (prix coupons réinvestis en
+            priorité).
+          </li>
+          <li>
+            Les obligations sont représentées par une obligation souveraine 10 ans ou un proxy
+            total-return.
+          </li>
           <li>Le cash est représenté par un taux court ou un indice monétaire capitalisé.</li>
           <li>L’or est coté en USD puis converti dans la devise locale du pays.</li>
           <li>Les performances réelles sont calculées avec le CPI local.</li>
-          <li>Frais, taxes, spreads, frais de change et coûts de transaction ne sont pas inclus.</li>
+          <li>
+            Frais, taxes, spreads, frais de change et coûts de transaction ne sont pas inclus.
+          </li>
         </ul>
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Rééquilibrage</h3>
+          <h3 className="text-sm font-semibold text-foreground">Rééquilibrage et rotation</h3>
           <p className="mt-1">
             Le rééquilibrage remet les quatre poches à leur poids cible de 25 % selon la fréquence
-            choisie (mensuelle, trimestrielle, annuelle ou aucune). Le <strong>rééquilibrage annuel
-            est le réglage par défaut</strong> : plus réaliste qu’un rééquilibrage mensuel
-            systématique et cohérent avec l’esprit du portefeuille permanent.
+            choisie : mensuelle, trimestrielle, annuelle ou aucune. Entre deux rééquilibrages, les
+            poids dérivent avec la performance des actifs. La <strong>rotation annualisée</strong>{" "}
+            mesure la part moyenne du portefeuille effectivement vendue puis réinvestie chaque année
+            pour revenir aux poids cibles, hors constitution initiale. Le{" "}
+            <strong>rééquilibrage annuel est le réglage par défaut</strong>. Les coûts liés à ces
+            transactions ne sont pas intégrés à la simulation.
           </p>
         </div>
         <div>
@@ -435,7 +598,10 @@ Réduction drawdown = |Max DD actions| − |Max DD Browne|
             ["Référence", "Série directement adaptée au modèle (ex. indice actions total return)."],
             ["Observé", "Série directement observée (ex. CPI local)."],
             ["Converti", "Série transformée dans la devise locale (ex. or USD converti en EUR)."],
-            ["Proxy structurel", "Série reconstruite par une méthode standard lorsqu’une série directement exploitable n’est pas disponible."],
+            [
+              "Proxy structurel",
+              "Série reconstruite par une méthode standard lorsqu’une série directement exploitable n’est pas disponible.",
+            ],
             ["Repli", "Série moins complète utilisée faute de meilleure donnée disponible."],
           ]}
         />
@@ -461,9 +627,18 @@ Réduction drawdown = |Max DD actions| − |Max DD Browne|
           head={["Badge global", "Signification"]}
           rows={[
             ["Complet", "Les séries nécessaires sont disponibles avec une qualité suffisante."],
-            ["Complet avec proxy", "Séries principales disponibles, avec des proxys structurels normaux."],
-            ["Historique court", "La période disponible est plus courte que celle des autres pays."],
-            ["Partiel", "Certaines données importantes sont absentes ou remplacées par des séries de moindre qualité."],
+            [
+              "Complet avec proxy",
+              "Séries principales disponibles, avec des proxys structurels normaux.",
+            ],
+            [
+              "Historique court",
+              "La période disponible est plus courte que celle des autres pays.",
+            ],
+            [
+              "Partiel",
+              "Certaines données importantes sont absentes ou remplacées par des séries de moindre qualité.",
+            ],
           ]}
         />
       </Section>
@@ -477,14 +652,26 @@ Réduction drawdown = |Max DD actions| − |Max DD Browne|
         <ol className="ml-4 list-decimal space-y-1">
           <li>Les performances passées ne garantissent pas les performances futures.</li>
           <li>Les données mensuelles peuvent masquer certains mouvements intra-mensuels.</li>
-          <li>Frais, taxes, spreads, coûts de transaction et contraintes de liquidité ne sont pas pris en compte.</li>
+          <li>
+            Frais, taxes, spreads, coûts de transaction et contraintes de liquidité ne sont pas pris
+            en compte.
+          </li>
           <li>Les indices utilisés ne sont pas toujours directement investissables.</li>
           <li>Certains actifs peuvent être représentés par des proxys.</li>
-          <li>Les obligations 10 ans peuvent être reconstruites à partir de taux lorsque l’indice total-return n’est pas disponible.</li>
+          <li>
+            Les obligations 10 ans peuvent être reconstruites à partir de taux lorsque l’indice
+            total-return n’est pas disponible.
+          </li>
           <li>Le cash peut être capitalisé à partir d’un taux court.</li>
           <li>L’or est converti dans la devise locale avec les taux de change disponibles.</li>
-          <li>Les comparaisons internationales dépendent fortement de la devise, de l’inflation locale et de la période disponible.</li>
-          <li>Le score de robustesse est un indicateur synthétique : il aide à comparer les pays mais ne remplace pas l’analyse détaillée des courbes, des drawdowns et des données.</li>
+          <li>
+            Les comparaisons internationales dépendent fortement de la devise, de l’inflation locale
+            et de la période disponible.
+          </li>
+          <li>
+            Le score de robustesse est un indicateur synthétique : il aide à comparer les pays mais
+            ne remplace pas l’analyse détaillée des courbes, des drawdowns et des données.
+          </li>
         </ol>
         <div className="rounded-lg border border-primary/20 bg-background/40 p-3">
           <div className="text-xs font-semibold tracking-wide text-primary uppercase">
