@@ -199,3 +199,98 @@ describe("backtest — fenêtrage (poids détenus à l'entrée)", () => {
     expect(win.turnover.monthly[0].turnover as number).toBeGreaterThan(0);
   });
 });
+
+describe("backtest — garde-fous (indisponibilités structurées)", () => {
+  // n mois consécutifs à partir de 2015-01.
+  const mdates = (n: number): string[] => {
+    const out: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const y = 2015 + Math.floor(i / 12);
+      const m = (i % 12) + 1;
+      out.push(`${y}-${String(m).padStart(2, "0")}-15`);
+    }
+    return out;
+  };
+  // Entrée PROPRE : poches strictement positives, mois consécutifs, poids partout.
+  const cleanInput = (dates: string[], windowYears: number | null = null) => ({
+    countryCode: "XX",
+    windowYears,
+    weights: dates.map((date) => ({ date, allocation: alloc(0.4, 0.2, 0.2, 0.2) })),
+    equityTotalReturn: dates.map((date, i) => ({ date, value: 100 * 1.01 ** i })),
+    bondTotalReturn: dates.map((date, i) => ({ date, value: 100 * 1.002 ** i })),
+    cashTotalReturn: dates.map((date) => ({ date, value: 100 })),
+    gold: dates.map((date, i) => ({ date, value: 50 * 1.001 ** i })),
+  });
+
+  it("données propres : disponible, aucune raison, résultats calculés (no-op)", () => {
+    const res = backtestQuadrants(cleanInput(mdates(24)));
+    expect(res.status).toBe("OK");
+    if (res.status !== "OK") return;
+    expect(res.availability).toEqual({ status: "OK", reason: null, firstInvalidMonth: null });
+    expect(res.series.nominal.length).toBe(24);
+    expect(res.metrics.nominal.annualized).not.toBeNull();
+  });
+
+  it("poids cible manquant au milieu → MISSING_SIGNAL_WEIGHT + 1er mois fautif", () => {
+    const dates = mdates(24);
+    const input = cleanInput(dates);
+    input.weights = input.weights.filter((_, i) => i !== 15); // trou de poids à 2016-04
+    const res = backtestQuadrants(input);
+    expect(res.status).toBe("MISSING_SIGNAL_WEIGHT");
+    expect(res.availability.reason).toBe("missing_signal_weight");
+    expect(res.availability.firstInvalidMonth).toBe("2016-04");
+  });
+
+  it("mois de performance manquant → NON_CONTIGUOUS_HISTORY", () => {
+    const input = cleanInput(mdates(24));
+    const drop = (s: EconomicDataPoint[]) => s.filter((_, i) => i !== 15); // 2016-04 absent
+    input.equityTotalReturn = drop(input.equityTotalReturn);
+    input.bondTotalReturn = drop(input.bondTotalReturn);
+    input.cashTotalReturn = drop(input.cashTotalReturn);
+    input.gold = drop(input.gold);
+    const res = backtestQuadrants(input);
+    expect(res.status).toBe("NON_CONTIGUOUS_HISTORY");
+    expect(res.availability.reason).toBe("non_contiguous_history");
+    expect(res.availability.firstInvalidMonth).toBe("2016-04");
+  });
+
+  it("valeur nulle ou négative dans une poche → INVALID_ASSET_VALUE", () => {
+    const dates = mdates(24);
+    const zero = cleanInput(dates);
+    zero.bondTotalReturn[15] = { date: dates[15], value: 0 }; // valeur nulle à 2016-04
+    const r0 = backtestQuadrants(zero);
+    expect(r0.status).toBe("INVALID_ASSET_VALUE");
+    expect(r0.availability.reason).toBe("invalid_asset_value");
+    expect(r0.availability.firstInvalidMonth).toBe("2016-04");
+
+    const neg = cleanInput(dates);
+    neg.gold[10] = { date: dates[10], value: -5 }; // valeur négative à 2015-11
+    const rn = backtestQuadrants(neg);
+    expect(rn.status).toBe("INVALID_ASSET_VALUE");
+    expect(rn.availability.firstInvalidMonth).toBe("2015-11");
+  });
+
+  it("deux observations non consécutives (trou de calendrier) → NON_CONTIGUOUS_HISTORY", () => {
+    // Saut de 2015-03 à 2015-05 : le mois 2015-04 est absent de TOUTES les séries.
+    const dates = mdates(12).filter((d) => d.slice(0, 7) !== "2015-04");
+    const res = backtestQuadrants(cleanInput(dates));
+    expect(res.status).toBe("NON_CONTIGUOUS_HISTORY");
+    expect(res.availability.firstInvalidMonth).toBe("2015-04");
+  });
+
+  it("anomalie AVANT une fenêtre restreinte : ignorée, résultats identiques", () => {
+    const dates = mdates(40); // 2013-01 → 2016-04 ; fenêtre 1 an ≈ à partir de 2015-04
+    const clean = backtestQuadrants(cleanInput(dates, 1));
+    const dirty = cleanInput(dates, 1);
+    dirty.bondTotalReturn[3] = { date: dates[3], value: -1 }; // 2013-04, bien avant la fenêtre
+    const res = backtestQuadrants(dirty);
+    expect(clean.status).toBe("OK");
+    expect(res.status).toBe("OK");
+    if (clean.status !== "OK" || res.status !== "OK") return;
+    expect(res.availability.status).toBe("OK");
+    // Fenêtre identique : mêmes bornes, mêmes métriques, même rotation.
+    expect(res.start).toBe(clean.start);
+    expect(res.metrics.nominal.cumulative).toBeCloseTo(clean.metrics.nominal.cumulative as number, 9);
+    expect(res.turnover.annualized).toBeCloseTo(clean.turnover.annualized, 9);
+  });
+});

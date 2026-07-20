@@ -14,6 +14,7 @@ import {
   buildModel,
   backtestQuadrants,
   weightsFromModel,
+  availabilityOf,
   DEFAULT_FOUR_QUADRANTS_SETTINGS,
   type FourQuadrantsModelSettings,
   type BuildModelInput,
@@ -23,6 +24,7 @@ import {
   type BacktestResult,
   type BacktestStatus,
   type BacktestMetrics,
+  type Availability,
 } from "./four-quadrants";
 
 /** Séries globales cotées en USD, communes à tous les pays. */
@@ -106,6 +108,8 @@ export interface QuadrantModelRow {
   } | null;
   /** Fenêtre effective du backtest (auditabilité), `null` si indisponible. */
   effectivePeriod: { start: string; end: string; months: number } | null;
+  /** Disponibilité structurée des métriques fenêtrées (statut + raison + 1er mois fautif). */
+  availability: Availability;
 }
 
 // ─── Dérivation de la config ─────────────────────────────────────────────────
@@ -248,7 +252,8 @@ function runBacktest(
   model: QuadrantModel,
   perf: QuadrantPerfInput,
 ): BacktestResult {
-  if (model.status !== "OK") return { status: "MISSING_SERIES", countryCode };
+  if (model.status !== "OK")
+    return { status: "MISSING_SERIES", countryCode, availability: availabilityOf("MISSING_SERIES") };
   return backtestQuadrants({ countryCode, weights: weightsFromModel(model), ...perf });
 }
 
@@ -327,7 +332,7 @@ export async function getCountryQuadrantModel(
       signal: null,
       perf: null,
       model: { status: "MISSING_SERIES", countryCode, settings },
-      backtest: { status: "MISSING_SERIES", countryCode },
+      backtest: { status: "MISSING_SERIES", countryCode, availability: availabilityOf("MISSING_SERIES") },
     };
   }
 
@@ -343,12 +348,13 @@ function emptyRow(
   countryFr: string | null,
   status: QuadrantModelStatus,
 ): QuadrantModelRow {
+  const metricsStatus: BacktestStatus = status === "OK" ? "INSUFFICIENT_HISTORY" : "MISSING_SERIES";
   return {
     countryCode: code,
     countryFr,
     status,
     latest: null,
-    metricsStatus: status === "OK" ? "INSUFFICIENT_HISTORY" : "MISSING_SERIES",
+    metricsStatus,
     metrics: null,
     inflationAnnualized: null,
     realMultiple: null,
@@ -356,6 +362,7 @@ function emptyRow(
     equityReal: null,
     heatmap: null,
     effectivePeriod: null,
+    availability: availabilityOf(metricsStatus),
   };
 }
 
@@ -423,6 +430,7 @@ export async function computeAllCountryQuadrantModels(
           equityReal: null,
           heatmap: null,
           effectivePeriod: null,
+          availability: backtest.availability,
         };
       }
 
@@ -460,6 +468,7 @@ export async function computeAllCountryQuadrantModels(
           end: backtest.end,
           months: backtest.metrics.nominal.months,
         },
+        availability: backtest.availability,
       };
     }),
   );

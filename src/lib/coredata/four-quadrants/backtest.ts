@@ -5,6 +5,12 @@
 // ultérieure) : chaque mois, la cible du signal est détenue telle quelle.
 //
 // ⚠️ Le CPI n'intervient QUE pour les métriques réelles, jamais dans les signaux.
+//
+// GARDE-FOUS (2026-07-20) : le backtest ne TRONQUE ni n'ENJAMBE jamais en silence.
+// Avant tout calcul, la plage réellement consommée par la fenêtre est validée
+// (continuité mensuelle, poches valides > 0, présence des poids cibles) ; toute
+// anomalie renvoie un statut structuré (`availability`). Une lacune ANTÉRIEURE à
+// la fenêtre est ignorée (elle n'affecte ni les poids d'entrée ni les rendements).
 
 import type { EconomicDataPoint } from "../types";
 import type { FinalAllocation, TimeSeries } from "./types";
@@ -64,12 +70,59 @@ export interface TurnoverResult {
   trailing12Months: number | null;
 }
 
-export type BacktestStatus = "OK" | "MISSING_SERIES" | "INVALID_VALUE" | "INSUFFICIENT_HISTORY";
+export type BacktestStatus =
+  | "OK"
+  | "MISSING_SERIES"
+  | "INVALID_VALUE"
+  | "INSUFFICIENT_HISTORY"
+  | "MISSING_SIGNAL_WEIGHT"
+  | "NON_CONTIGUOUS_HISTORY"
+  | "INVALID_ASSET_VALUE";
+
+/** Raison structurée (code technique) d'une indisponibilité — traduisible par l'UI. */
+export type BacktestReason =
+  | "missing_series"
+  | "invalid_value"
+  | "insufficient_history"
+  | "missing_signal_weight"
+  | "non_contiguous_history"
+  | "invalid_asset_value";
+
+/**
+ * Champ de disponibilité commun. `firstInvalidMonth` (clé « YYYY-MM ») localise la
+ * PREMIÈRE anomalie rencontrée dans la plage utile, pour le diagnostic ; `null`
+ * quand la série est saine.
+ */
+export interface Availability {
+  status: "OK" | "UNAVAILABLE";
+  reason: BacktestReason | null;
+  firstInvalidMonth: string | null;
+}
+
+const STATUS_REASON: Record<Exclude<BacktestStatus, "OK">, BacktestReason> = {
+  MISSING_SERIES: "missing_series",
+  INVALID_VALUE: "invalid_value",
+  INSUFFICIENT_HISTORY: "insufficient_history",
+  MISSING_SIGNAL_WEIGHT: "missing_signal_weight",
+  NON_CONTIGUOUS_HISTORY: "non_contiguous_history",
+  INVALID_ASSET_VALUE: "invalid_asset_value",
+};
+
+/** Construit le champ `availability` d'un statut non-OK. */
+export function availabilityOf(
+  status: Exclude<BacktestStatus, "OK">,
+  firstInvalidMonth: string | null = null,
+): Availability {
+  return { status: "UNAVAILABLE", reason: STATUS_REASON[status], firstInvalidMonth };
+}
+
+const AVAILABLE: Availability = { status: "OK", reason: null, firstInvalidMonth: null };
 
 export type BacktestResult =
   | {
       status: "OK";
       countryCode: string;
+      availability: Availability;
       /** Période effective du backtest (fenêtre commune). */
       start: string;
       end: string;
@@ -97,7 +150,11 @@ export type BacktestResult =
       /** Rotation du portefeuille (indépendante du mode nominal/réel). */
       turnover: TurnoverResult;
     }
-  | { status: Exclude<BacktestStatus, "OK">; countryCode: string };
+  | {
+      status: Exclude<BacktestStatus, "OK">;
+      countryCode: string;
+      availability: Availability;
+    };
 
 export interface BacktestInput {
   countryCode: string;
@@ -167,6 +224,25 @@ export function computeMonthlyTurnover(
   return 0.5 * sum;
 }
 
+// ─── Helpers mois (clés « YYYY-MM », comparables lexicographiquement) ─────────
+
+const monthKey = (date: string): string => date.slice(0, 7);
+
+function nextMonthKey(ym: string): string {
+  const y = Number(ym.slice(0, 4));
+  const m = Number(ym.slice(5, 7));
+  return m >= 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+}
+
+function prevMonthKey(ym: string): string {
+  const y = Number(ym.slice(0, 4));
+  const m = Number(ym.slice(5, 7));
+  return m <= 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
+}
+
+const isPositive = (v: number | undefined): v is number =>
+  v !== undefined && Number.isFinite(v) && v > 0;
+
 // ─── Helpers locaux ──────────────────────────────────────────────────────────
 
 function toMonthly(data: EconomicDataPoint[]): EconomicDataPoint[] {
@@ -184,27 +260,101 @@ interface SleeveRow {
   energy: number | null;
 }
 
-/** Intersection des séries de perf sur leurs mois communs (énergie optionnelle). */
-function alignSleeves(input: BacktestInput): SleeveRow[] {
-  const key = (p: EconomicDataPoint) => p.date.slice(0, 7);
-  const bond = new Map(toMonthly(input.bondTotalReturn).map((p) => [key(p), p.value]));
-  const cash = new Map(toMonthly(input.cashTotalReturn).map((p) => [key(p), p.value]));
-  const gold = new Map(toMonthly(input.gold).map((p) => [key(p), p.value]));
-  const energy = input.energyTotalReturn
-    ? new Map(toMonthly(input.energyTotalReturn).map((p) => [key(p), p.value]))
-    : null;
+/** Maps mensuelles par poche + date complète par mois (spine = série actions). */
+interface SleeveMaps {
+  equity: Map<string, number>;
+  bond: Map<string, number>;
+  cash: Map<string, number>;
+  gold: Map<string, number>;
+  energy: Map<string, number> | null;
+  dateByMonth: Map<string, string>;
+}
+
+function buildSleeveMaps(input: BacktestInput): SleeveMaps {
+  const toMap = (d: EconomicDataPoint[]) =>
+    new Map(toMonthly(d).map((p) => [monthKey(p.date), p.value] as const));
+  return {
+    equity: toMap(input.equityTotalReturn),
+    bond: toMap(input.bondTotalReturn),
+    cash: toMap(input.cashTotalReturn),
+    gold: toMap(input.gold),
+    energy: input.energyTotalReturn ? toMap(input.energyTotalReturn) : null,
+    dateByMonth: new Map(
+      toMonthly(input.equityTotalReturn).map((p) => [monthKey(p.date), p.date] as const),
+    ),
+  };
+}
+
+/**
+ * Lignes VALIDES (toutes poches présentes, finies, > 0) sur les mois communs.
+ * ⚠️ Comme avant, un mois invalide est simplement absent de la sortie — la
+ * validation (`validateWindowRange`) détecte séparément si cette absence tombe
+ * dans la plage utile, pour ne jamais enjamber en silence.
+ */
+function rowsFromMaps(maps: SleeveMaps): SleeveRow[] {
   const out: SleeveRow[] = [];
-  for (const p of toMonthly(input.equityTotalReturn)) {
-    const m = key(p);
-    const b = bond.get(m);
-    const c = cash.get(m);
-    const g = gold.get(m);
-    const e = energy ? energy.get(m) : null;
-    if (b === undefined || c === undefined || g === undefined) continue;
-    if (energy && e === undefined) continue; // énergie demandée mais absente ce mois
-    out.push({ date: p.date, equity: p.value, bond: b, cash: c, gold: g, energy: e ?? null });
+  for (const [m, date] of maps.dateByMonth) {
+    const eq = maps.equity.get(m);
+    const b = maps.bond.get(m);
+    const c = maps.cash.get(m);
+    const g = maps.gold.get(m);
+    const e = maps.energy ? maps.energy.get(m) : null;
+    if (!isPositive(eq) || !isPositive(b) || !isPositive(c) || !isPositive(g)) continue;
+    if (maps.energy && !isPositive(e ?? undefined)) continue;
+    out.push({ date, equity: eq, bond: b, cash: c, gold: g, energy: maps.energy ? (e as number) : null });
   }
-  return out;
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+interface WindowAnomaly {
+  reason: Extract<
+    BacktestReason,
+    "non_contiguous_history" | "invalid_asset_value" | "missing_signal_weight"
+  >;
+  firstInvalidMonth: string;
+}
+
+/**
+ * Valide la plage `[usedStartMonth … endMonth]` (mois inclus) effectivement
+ * consommée par la fenêtre : continuité mensuelle (aucun trou), poches présentes
+ * et > 0, et présence du poids cible pour chaque mois DÉTENU (tous sauf `endMonth`,
+ * qui n'est jamais réalloué). Retourne la PREMIÈRE anomalie, ou `null` si la plage
+ * est saine. Les mois antérieurs à `usedStartMonth` ne sont pas examinés.
+ */
+function validateWindowRange(
+  maps: SleeveMaps,
+  wByMonth: Map<string, FinalAllocation>,
+  usedStartMonth: string,
+  endMonth: string,
+): WindowAnomaly | null {
+  for (let m = usedStartMonth; ; m = nextMonthKey(m)) {
+    const eq = maps.equity.get(m);
+    const b = maps.bond.get(m);
+    const c = maps.cash.get(m);
+    const g = maps.gold.get(m);
+    const e = maps.energy ? maps.energy.get(m) : undefined;
+
+    // Continuité : un mois entièrement absent d'une poche = trou de calendrier.
+    const monthPresent =
+      eq !== undefined &&
+      b !== undefined &&
+      c !== undefined &&
+      g !== undefined &&
+      (!maps.energy || e !== undefined);
+    if (!monthPresent) return { reason: "non_contiguous_history", firstInvalidMonth: m };
+
+    // Validité : une valeur présente mais ≤ 0 ou non finie = valeur d'actif invalide.
+    const valid =
+      isPositive(eq) && isPositive(b) && isPositive(c) && isPositive(g) && (!maps.energy || isPositive(e));
+    if (!valid) return { reason: "invalid_asset_value", firstInvalidMonth: m };
+
+    // Poids cible requis pour tout mois DÉTENU (appliqué au mois suivant).
+    if (m !== endMonth && !wByMonth.has(m)) {
+      return { reason: "missing_signal_weight", firstInvalidMonth: m };
+    }
+    if (m === endMonth) break;
+  }
+  return null;
 }
 
 /** Pire drawdown d'une courbe d'index, en % (≤ 0). */
@@ -314,7 +464,14 @@ function metricsOf(index: EconomicDataPoint[], riskFree: number): BacktestMetric
 
 export function backtestQuadrants(input: BacktestInput): BacktestResult {
   const { countryCode } = input;
-  const fail = (status: Exclude<BacktestStatus, "OK">): BacktestResult => ({ status, countryCode });
+  const fail = (
+    status: Exclude<BacktestStatus, "OK">,
+    firstInvalidMonth: string | null = null,
+  ): BacktestResult => ({
+    status,
+    countryCode,
+    availability: availabilityOf(status, firstInvalidMonth),
+  });
 
   if (
     !input.weights.length ||
@@ -329,28 +486,57 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
   const needsEnergy = input.weights.some((w) => w.allocation.energy > 1e-9);
   if (needsEnergy && !input.energyTotalReturn?.length) return fail("MISSING_SERIES");
 
-  const rows = alignSleeves(input).filter(
-    (r) =>
-      r.equity > 0 && r.bond > 0 && r.cash > 0 && r.gold > 0 && (r.energy === null || r.energy > 0),
-  );
+  const maps = buildSleeveMaps(input);
+  const rows = rowsFromMaps(maps);
   if (rows.length < 2) return fail("INVALID_VALUE");
 
-  const wByMonth = new Map(input.weights.map((w) => [w.date.slice(0, 7), w.allocation]));
+  const wByMonth = new Map(input.weights.map((w) => [monthKey(w.date), w.allocation]));
   const hasEnergy = Boolean(input.energyTotalReturn);
 
   // Premier mois disposant d'un poids cible (= début du portefeuille).
   let start = -1;
   for (let i = 0; i < rows.length; i++) {
-    if (wByMonth.has(rows[i].date.slice(0, 7))) {
+    if (wByMonth.has(monthKey(rows[i].date))) {
       start = i;
       break;
     }
   }
   if (start < 0 || start >= rows.length - 1) return fail("INSUFFICIENT_HISTORY");
 
+  // ── Fenêtre : 1er mois retenu (l'historique complet le précède → poids détenus corrects).
+  const windowYears = input.windowYears ?? null;
+  let winStart = start;
+  if (windowYears != null) {
+    const lastDate = rows[rows.length - 1].date;
+    const cutoff = `${Number(lastDate.slice(0, 4)) - windowYears}${lastDate.slice(4)}`;
+    for (let i = start; i < rows.length; i++) {
+      if (rows[i].date >= cutoff) {
+        winStart = i;
+        break;
+      }
+    }
+  }
+  if (winStart >= rows.length - 1) return fail("INSUFFICIENT_HISTORY");
+
+  // ── GARDE-FOUS : valider la plage RÉELLEMENT consommée par la fenêtre. Le
+  // dernier mois atteignable = min(dernier mois de perf, mois suivant le dernier
+  // poids) — au-delà, les poids manquent (fin naturelle, pas une anomalie). Le 1er
+  // mois utile inclut le mois d'ENTRÉE (winStart−1) quand la fenêtre débute après
+  // le modèle (transaction d'entrée). Toute lacune ANTÉRIEURE est ignorée.
+  const lastWeightMonth = [...wByMonth.keys()].reduce((a, b) => (a > b ? a : b));
+  const lastRowMonth = monthKey(rows[rows.length - 1].date);
+  const nextAfterWeights = nextMonthKey(lastWeightMonth);
+  const computedEndMonth = lastRowMonth < nextAfterWeights ? lastRowMonth : nextAfterWeights;
+  const winStartMonth = monthKey(rows[winStart].date);
+  const usedStartMonth = winStart === start ? monthKey(rows[start].date) : prevMonthKey(winStartMonth);
+  const anomaly = validateWindowRange(maps, wByMonth, usedStartMonth, computedEndMonth);
+  if (anomaly) return fail(reasonToStatus(anomaly.reason), anomaly.firstInvalidMonth);
+
   // ── Phase 1 — boucle COMPLÈTE : rendement, contributions et rotation par mois.
   // Les poids dérivent sur tout l'historique → poids détenus corrects à l'entrée
-  // d'une fenêtre restreinte (t → t+1 : poids figés à la clôture de j-1).
+  // d'une fenêtre restreinte (t → t+1 : poids figés à la clôture de j-1). Un mois
+  // sans poids cible est SAUTÉ (jamais un `break` qui tronquerait la suite) : la
+  // plage utile est déjà validée, donc seuls des mois hors fenêtre peuvent l'être.
   interface Step {
     idx: number;
     date: string;
@@ -360,8 +546,8 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
   }
   const steps: Step[] = [];
   for (let j = start + 1; j < rows.length; j++) {
-    const w = wByMonth.get(rows[j - 1].date.slice(0, 7));
-    if (!w) break;
+    const w = wByMonth.get(monthKey(rows[j - 1].date));
+    if (!w) continue;
     const prev = rows[j - 1];
     const cur = rows[j];
     const rEq = cur.equity / prev.equity - 1;
@@ -378,7 +564,7 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
       energy: useEn ? w.energy * rEn : 0,
     };
     const rp = c.equities + c.bonds + c.cash + c.gold + c.energy;
-    const target = wByMonth.get(cur.date.slice(0, 7));
+    const target = wByMonth.get(monthKey(cur.date));
     const turnover = target
       ? computeMonthlyTurnover(
           computePreRebalanceWeights(w, {
@@ -394,21 +580,6 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     steps.push({ idx: j, date: cur.date, rp, c, turnover });
   }
   if (!steps.length) return fail("INSUFFICIENT_HISTORY");
-
-  // ── Fenêtre : 1er mois retenu (l'historique complet le précède → poids détenus corrects).
-  const windowYears = input.windowYears ?? null;
-  let winStart = start;
-  if (windowYears != null) {
-    const lastDate = rows[rows.length - 1].date;
-    const cutoff = `${Number(lastDate.slice(0, 4)) - windowYears}${lastDate.slice(4)}`;
-    for (let i = start; i < rows.length; i++) {
-      if (rows[i].date >= cutoff) {
-        winStart = i;
-        break;
-      }
-    }
-  }
-  if (winStart >= rows.length - 1) return fail("INSUFFICIENT_HISTORY");
 
   // ── Phase 2 — sorties sur la fenêtre. nominal base 100 à winStart ; les rendements
   // des mois strictement postérieurs le font évoluer. La rotation inclut le mois
@@ -495,6 +666,7 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
   return {
     status: "OK",
     countryCode,
+    availability: AVAILABLE,
     start: nominal[0].date,
     end: nominal[nominal.length - 1].date,
     series: { nominal, real, equityBenchmark, equityReal, inflationIndex, sleeves },
@@ -507,4 +679,16 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     contributions,
     turnover,
   };
+}
+
+/** Statut correspondant à une raison d'anomalie de fenêtre. */
+function reasonToStatus(reason: WindowAnomaly["reason"]): Exclude<BacktestStatus, "OK"> {
+  switch (reason) {
+    case "non_contiguous_history":
+      return "NON_CONTIGUOUS_HISTORY";
+    case "invalid_asset_value":
+      return "INVALID_ASSET_VALUE";
+    case "missing_signal_weight":
+      return "MISSING_SIGNAL_WEIGHT";
+  }
 }
