@@ -542,6 +542,22 @@ function ContributionCard({ bt }: { bt: OkBacktest }) {
   );
 }
 
+// Teinte du badge de disponibilité — alignée sur la légende de la Méthodologie.
+const DATA_QUALITY_TONE: Record<QuadrantDataQuality, string> = {
+  Complet: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  "Historique court": "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  Indisponible: "border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400",
+};
+
+/** Badge de disponibilité coloré (Complet / Historique court / Indisponible). */
+function DataQualityBadge({ quality }: { quality: QuadrantDataQuality }) {
+  return (
+    <Badge variant="secondary" className={DATA_QUALITY_TONE[quality]}>
+      {quality}
+    </Badge>
+  );
+}
+
 function DataQualityCard({ config, dataQuality, months }: { config: QuadrantModelConfig; dataQuality: QuadrantDataQuality; months: number }) {
   const rows: { label: string; method: string }[] = [
     { label: "Signal activité", method: "Actions (prix) / pétrole" },
@@ -555,7 +571,7 @@ function DataQualityCard({ config, dataQuality, months }: { config: QuadrantMode
     <Card className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold">Qualité des données</h3>
-        <Badge variant="secondary">{dataQuality}</Badge>
+        <DataQualityBadge quality={dataQuality} />
       </div>
       <div className="space-y-2">
         {rows.map((r) => (
@@ -632,7 +648,7 @@ export function QuadrantsCountryView({
                 {STRATEGY_LABELS[strategy]}
                 {strategy === "dynamic" && " · DQAE"}
               </Badge>
-              <Badge variant="secondary">{dataQuality}</Badge>
+              <DataQualityBadge quality={dataQuality} />
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-4">

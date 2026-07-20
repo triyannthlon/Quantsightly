@@ -76,7 +76,7 @@ export default async function QuadrantsPage() {
             plan activité × inflation, dynamique du régime et allocation cible.
           </p>
         </div>
-        <Lexique terms={LEXIQUE_TERMS} />
+        <Lexique terms={LEXIQUE_TERMS} className="w-28" />
       </header>
 
       <QuadrantsView
