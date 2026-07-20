@@ -25,7 +25,6 @@ export function QuadrantPlane({
 }) {
   const T = transitionWidth;
   const code = QUADRANT_TO_REGIME_CODE[latest.quadrant];
-  const regime = regimeStyleOf(latest.quadrant);
   const cx = px(latest.x);
   const cy = py(latest.y);
 
