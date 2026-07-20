@@ -112,6 +112,12 @@ export interface BacktestInput {
   energyTotalReturn?: EconomicDataPoint[];
   /** CPI local — pour les métriques réelles uniquement. */
   cpi?: EconomicDataPoint[];
+  /**
+   * Fenêtre d'analyse en années. Le backtest tourne TOUJOURS sur l'historique
+   * complet (poids détenus corrects à l'entrée) ; `windowYears` ne restreint que
+   * les sorties (perf, risque, rotation). `null`/absent = tout l'historique.
+   */
+  windowYears?: number | null;
 }
 
 /** Extrait les poids cibles mensuels (finalAllocation) d'un modèle calculé. */
@@ -138,7 +144,8 @@ export function computePreRebalanceWeights(
     values[a] = (previousPostRebalanceWeights[a] ?? 0) * (1 + (assetReturns[a] ?? 0));
   }
   const total = TURNOVER_ASSETS.reduce((s, a) => s + values[a], 0);
-  if (!Number.isFinite(total) || total <= 0) throw new Error("Invalid portfolio value before rebalancing.");
+  if (!Number.isFinite(total) || total <= 0)
+    throw new Error("Invalid portfolio value before rebalancing.");
   return {
     equities: values.equities / total,
     bonds: values.bonds / total,
@@ -234,7 +241,10 @@ function maxUnderwaterMonths(index: EconomicDataPoint[]): number | null {
 }
 
 /** Déflate une courbe par le CPI (base 100, rebasée à la 1ʳᵉ date où le CPI existe). */
-function deflateByCpi(index: EconomicDataPoint[], cpiByMonth: Map<string, number>): EconomicDataPoint[] | null {
+function deflateByCpi(
+  index: EconomicDataPoint[],
+  cpiByMonth: Map<string, number>,
+): EconomicDataPoint[] | null {
   const pts = index
     .map((n) => ({ date: n.date, v: n.value, c: cpiByMonth.get(n.date.slice(0, 7)) }))
     .filter((x): x is { date: string; v: number; c: number } => x.c !== undefined && x.c > 0);
@@ -259,7 +269,10 @@ function calendarYearReturns(index: EconomicDataPoint[]): number[] {
 }
 
 /** Inflation cumulée (base 100) sur les dates de `index` où le CPI existe. */
-function cumulativeInflation(index: EconomicDataPoint[], cpiByMonth: Map<string, number>): EconomicDataPoint[] | null {
+function cumulativeInflation(
+  index: EconomicDataPoint[],
+  cpiByMonth: Map<string, number>,
+): EconomicDataPoint[] | null {
   const pts = index
     .map((n) => ({ date: n.date, c: cpiByMonth.get(n.date.slice(0, 7)) }))
     .filter((x): x is { date: string; c: number } => x.c !== undefined && x.c > 0);
@@ -276,9 +289,12 @@ function metricsOf(index: EconomicDataPoint[], riskFree: number): BacktestMetric
   const cumulative = index.length >= 2 && first > 0 && last > 0 ? (last / first - 1) * 100 : null;
   const maxDrawdown = maxDrawdownPct(index);
   const peak = index.length ? index.reduce((mx, p) => (p.value > mx ? p.value : mx), -Infinity) : 0;
-  const currentDrawdown = index.length >= 2 && peak > 0 && last > 0 ? (last / peak - 1) * 100 : null;
+  const currentDrawdown =
+    index.length >= 2 && peak > 0 && last > 0 ? (last / peak - 1) * 100 : null;
   const sharpe =
-    k.annualized !== null && k.volatility !== null && k.volatility > 0 ? (k.annualized - riskFree) / k.volatility : null;
+    k.annualized !== null && k.volatility !== null && k.volatility > 0
+      ? (k.annualized - riskFree) / k.volatility
+      : null;
   const yearly = calendarYearReturns(index);
   return {
     months: index.length,
@@ -314,7 +330,8 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
   if (needsEnergy && !input.energyTotalReturn?.length) return fail("MISSING_SERIES");
 
   const rows = alignSleeves(input).filter(
-    (r) => r.equity > 0 && r.bond > 0 && r.cash > 0 && r.gold > 0 && (r.energy === null || r.energy > 0),
+    (r) =>
+      r.equity > 0 && r.bond > 0 && r.cash > 0 && r.gold > 0 && (r.energy === null || r.energy > 0),
   );
   if (rows.length < 2) return fail("INVALID_VALUE");
 
@@ -331,13 +348,18 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
   }
   if (start < 0 || start >= rows.length - 1) return fail("INSUFFICIENT_HISTORY");
 
-  let p = 100;
-  const nominal: EconomicDataPoint[] = [{ date: rows[start].date, value: 100 }];
-  const contrib: SleeveContributions = { equities: 0, bonds: 0, gold: 0, cash: 0, energy: 0 };
-  // Rotation : la constitution initiale (1er mois) n'est PAS un rééquilibrage.
-  const turnoverMonthly: TurnoverPoint[] = [{ date: rows[start].date, turnover: null, grossTradedWeight: null }];
+  // ── Phase 1 — boucle COMPLÈTE : rendement, contributions et rotation par mois.
+  // Les poids dérivent sur tout l'historique → poids détenus corrects à l'entrée
+  // d'une fenêtre restreinte (t → t+1 : poids figés à la clôture de j-1).
+  interface Step {
+    idx: number;
+    date: string;
+    rp: number;
+    c: SleeveContributions;
+    turnover: number | null;
+  }
+  const steps: Step[] = [];
   for (let j = start + 1; j < rows.length; j++) {
-    // Poids figés à la clôture du mois j-1 → appliqués au rendement du mois j (t → t+1).
     const w = wByMonth.get(rows[j - 1].date.slice(0, 7));
     if (!w) break;
     const prev = rows[j - 1];
@@ -346,30 +368,83 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     const rBd = cur.bond / prev.bond - 1;
     const rCa = cur.cash / prev.cash - 1;
     const rGo = cur.gold / prev.gold - 1;
-    const rEn = hasEnergy && prev.energy !== null && cur.energy !== null ? cur.energy / prev.energy - 1 : 0;
-    contrib.equities += w.equities * rEq;
-    contrib.bonds += w.bonds * rBd;
-    contrib.cash += w.cash * rCa;
-    contrib.gold += w.gold * rGo;
-    let rp = w.equities * rEq + w.bonds * rBd + w.cash * rCa + w.gold * rGo;
-    if (hasEnergy && prev.energy !== null && cur.energy !== null) {
-      contrib.energy += w.energy * rEn;
-      rp += w.energy * rEn;
-    }
-    p *= 1 + rp;
-    nominal.push({ date: cur.date, value: p });
-
-    // Turnover : poids détenus (dérivés par les rendements) → nouvelle cible du mois j.
+    const useEn = hasEnergy && prev.energy !== null && cur.energy !== null;
+    const rEn = useEn ? cur.energy! / prev.energy! - 1 : 0;
+    const c: SleeveContributions = {
+      equities: w.equities * rEq,
+      bonds: w.bonds * rBd,
+      cash: w.cash * rCa,
+      gold: w.gold * rGo,
+      energy: useEn ? w.energy * rEn : 0,
+    };
+    const rp = c.equities + c.bonds + c.cash + c.gold + c.energy;
     const target = wByMonth.get(cur.date.slice(0, 7));
-    if (target) {
-      const pre = computePreRebalanceWeights(w, { equities: rEq, bonds: rBd, gold: rGo, cash: rCa, energy: rEn });
-      const to = computeMonthlyTurnover(pre, target);
-      turnoverMonthly.push({ date: cur.date, turnover: to, grossTradedWeight: 2 * to });
+    const turnover = target
+      ? computeMonthlyTurnover(
+          computePreRebalanceWeights(w, {
+            equities: rEq,
+            bonds: rBd,
+            gold: rGo,
+            cash: rCa,
+            energy: rEn,
+          }),
+          target,
+        )
+      : null;
+    steps.push({ idx: j, date: cur.date, rp, c, turnover });
+  }
+  if (!steps.length) return fail("INSUFFICIENT_HISTORY");
+
+  // ── Fenêtre : 1er mois retenu (l'historique complet le précède → poids détenus corrects).
+  const windowYears = input.windowYears ?? null;
+  let winStart = start;
+  if (windowYears != null) {
+    const lastDate = rows[rows.length - 1].date;
+    const cutoff = `${Number(lastDate.slice(0, 4)) - windowYears}${lastDate.slice(4)}`;
+    for (let i = start; i < rows.length; i++) {
+      if (rows[i].date >= cutoff) {
+        winStart = i;
+        break;
+      }
+    }
+  }
+  if (winStart >= rows.length - 1) return fail("INSUFFICIENT_HISTORY");
+
+  // ── Phase 2 — sorties sur la fenêtre. nominal base 100 à winStart ; les rendements
+  // des mois strictement postérieurs le font évoluer. La rotation inclut le mois
+  // winStart (transaction d'ENTRÉE réelle si la fenêtre débute après le modèle) ;
+  // au tout début du modèle, ce 1er mois est la constitution initiale (rotation nulle).
+  let p = 100;
+  const nominal: EconomicDataPoint[] = [{ date: rows[winStart].date, value: 100 }];
+  const contrib: SleeveContributions = { equities: 0, bonds: 0, gold: 0, cash: 0, energy: 0 };
+  const turnoverMonthly: TurnoverPoint[] = [];
+  if (winStart === start) {
+    turnoverMonthly.push({ date: rows[start].date, turnover: null, grossTradedWeight: null });
+  }
+  const firstTurnoverIdx = winStart === start ? start + 1 : winStart;
+  for (const s of steps) {
+    if (s.idx >= firstTurnoverIdx) {
+      turnoverMonthly.push({
+        date: s.date,
+        turnover: s.turnover,
+        grossTradedWeight: s.turnover === null ? null : 2 * s.turnover,
+      });
+    }
+    if (s.idx > winStart) {
+      p *= 1 + s.rp;
+      nominal.push({ date: s.date, value: p });
+      contrib.equities += s.c.equities;
+      contrib.bonds += s.c.bonds;
+      contrib.cash += s.c.cash;
+      contrib.gold += s.c.gold;
+      contrib.energy += s.c.energy;
     }
   }
   if (nominal.length < 2) return fail("INSUFFICIENT_HISTORY");
 
-  const toValid = turnoverMonthly.filter((t) => t.turnover !== null).map((t) => t.turnover as number);
+  const toValid = turnoverMonthly
+    .filter((t) => t.turnover !== null)
+    .map((t) => t.turnover as number);
   const averageMonthly = toValid.length ? toValid.reduce((s, v) => s + v, 0) / toValid.length : 0;
   const last12 = toValid.slice(-12);
   const turnover: TurnoverResult = {
@@ -379,14 +454,14 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     trailing12Months: last12.length === 12 ? last12.reduce((s, v) => s + v, 0) : null,
   };
 
-  // Référence interne = indice ACTIONS, rebasé 100 sur la MÊME fenêtre.
-  const eq0 = rows[start].equity;
-  const equityBenchmark = rows.slice(start).map((r) => ({ date: r.date, value: (100 * r.equity) / eq0 }));
+  // Référence interne = indice ACTIONS + poches, rebasés 100 sur la FENÊTRE.
+  const winRows = rows.slice(winStart);
+  const eq0 = winRows[0].equity;
+  const equityBenchmark = winRows.map((r) => ({ date: r.date, value: (100 * r.equity) / eq0 }));
 
-  // Chaque poche (actions/oblig/cash/or) rebasée 100 sur la fenêtre (courbes nominal).
   const rebaseSleeve = (pick: (r: SleeveRow) => number): EconomicDataPoint[] => {
-    const v0 = pick(rows[start]);
-    return rows.slice(start).map((r) => ({ date: r.date, value: (100 * pick(r)) / v0 }));
+    const v0 = pick(winRows[0]);
+    return winRows.map((r) => ({ date: r.date, value: (100 * pick(r)) / v0 }));
   };
   const sleeves = {
     equities: equityBenchmark,
@@ -395,8 +470,8 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     gold: rebaseSleeve((r) => r.gold),
   };
 
-  // Taux sans risque = rendement annualisé du cash sur la MÊME période (Sharpe = excédent).
-  const cashSeries = rows.slice(start).map((r) => ({ date: r.date, value: r.cash }));
+  // Taux sans risque = rendement annualisé du cash sur la FENÊTRE (Sharpe = excédent).
+  const cashSeries = winRows.map((r) => ({ date: r.date, value: r.cash }));
   const riskFreeNominal = computeKpis(cashSeries).annualized ?? 0;
 
   const cpiByMonth = input.cpi?.length

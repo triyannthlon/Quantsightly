@@ -126,10 +126,13 @@ export function deriveQuadrantConfig(
 
   const equityPrice = inCountry(1, 1); // SIGNAL : prix nu (obligatoire)
   const equityTR = inCountry(1, 2); // PERF : total-return, repli sur le prix
-  const bond = pickBond10Y(series.filter((s) => s.countryIso === countryCode && s.class === 4 && s.type === 2));
+  const bond = pickBond10Y(
+    series.filter((s) => s.countryIso === countryCode && s.class === 4 && s.type === 2),
+  );
   const cash = inCountry(3, 2);
   const cpi = inCountry(7, 2);
-  const hasGlobal = series.some((s) => s.id === GLOBAL_OIL_ID) && series.some((s) => s.id === GLOBAL_GOLD_ID);
+  const hasGlobal =
+    series.some((s) => s.id === GLOBAL_OIL_ID) && series.some((s) => s.id === GLOBAL_GOLD_ID);
 
   if (!equityPrice || !bond || !cash || !hasGlobal) return null;
 
@@ -169,10 +172,18 @@ function buildConverter(usdPerUnit: Map<string, Map<string, number>>) {
 }
 
 async function loadContext(): Promise<QuadrantContext> {
-  const [series, ref, fxRates] = await Promise.all([listSeries(), getReferenceData(), getFxRates()]);
+  const [series, ref, fxRates] = await Promise.all([
+    listSeries(),
+    getReferenceData(),
+    getFxRates(),
+  ]);
   const usdPerUnit = new Map<string, Map<string, number>>();
-  for (const fx of fxRates as FxRate[]) usdPerUnit.set(fx.currency, usdPerUnitMap(fx.data, fx.reverse));
-  const [oil, gold] = await Promise.all([getSeriesData(GLOBAL_OIL_ID), getSeriesData(GLOBAL_GOLD_ID)]);
+  for (const fx of fxRates as FxRate[])
+    usdPerUnit.set(fx.currency, usdPerUnitMap(fx.data, fx.reverse));
+  const [oil, gold] = await Promise.all([
+    getSeriesData(GLOBAL_OIL_ID),
+    getSeriesData(GLOBAL_GOLD_ID),
+  ]);
   return { series, countries: ref.countries, usdPerUnit, oil, gold };
 }
 
@@ -223,26 +234,6 @@ function dataQualityOf(model: QuadrantModel): QuadrantDataQuality {
   return model.monthlyResults.length < SHORT_HISTORY_MONTHS ? "Historique court" : "Complet";
 }
 
-/**
- * Restreint les séries de PERFORMANCE aux `years` dernières années (mirror serveur
- * du `clipPerf` client). ⚠️ N'affecte QUE la perf/le backtest : le SIGNAL (donc le
- * régime, les coords et l'allocation) reste calculé sur l'historique complet.
- */
-function clipPerfByYears(perf: QuadrantPerfInput, years: number | null): QuadrantPerfInput {
-  if (!years) return perf;
-  const last = perf.equityTotalReturn.at(-1)?.date;
-  if (!last) return perf;
-  const from = `${Number(last.slice(0, 4)) - years}${last.slice(4)}`;
-  const clip = (a: EconomicDataPoint[]) => a.filter((p) => p.date >= from);
-  return {
-    equityTotalReturn: clip(perf.equityTotalReturn),
-    bondTotalReturn: clip(perf.bondTotalReturn),
-    cashTotalReturn: clip(perf.cashTotalReturn),
-    gold: clip(perf.gold),
-    cpi: perf.cpi ? clip(perf.cpi) : undefined,
-  };
-}
-
 function runBacktest(
   countryCode: string,
   model: QuadrantModel,
@@ -258,7 +249,11 @@ function runBacktest(
 export async function listQuadrantCountries(): Promise<{ iso: string; nameFr: string }[]> {
   const [series, ref] = await Promise.all([listSeries(), getReferenceData()]);
   const isos = [
-    ...new Set(series.filter((s) => s.class === 1 && s.type === 1 && s.countryIso !== "XX").map((s) => s.countryIso)),
+    ...new Set(
+      series
+        .filter((s) => s.class === 1 && s.type === 1 && s.countryIso !== "XX")
+        .map((s) => s.countryIso),
+    ),
   ];
   const nameByIso = new Map(ref.countries.map((c) => [c.iso, c.nameFr]));
   return isos
@@ -292,11 +287,13 @@ export async function computeQuadrantsRealSeries(
       if (!config) return { countryCode: code, countryFr: null, real: null };
       const { signal, perf } = await loadSeries(config, ctx);
       const model = buildModel(signal, settings);
-      if (model.status !== "OK") return { countryCode: code, countryFr: config.countryFr, real: null };
+      if (model.status !== "OK")
+        return { countryCode: code, countryFr: config.countryFr, real: null };
       const backtest = backtestQuadrants({
         countryCode: code,
         weights: weightsFromModel(model),
-        ...clipPerfByYears(perf, years),
+        ...perf,
+        windowYears: years,
       });
       return {
         countryCode: code,
@@ -332,7 +329,11 @@ export async function getCountryQuadrantModel(
 }
 
 /** Ligne « vide » (config absente ou modèle non OK) — régime ET métriques indisponibles. */
-function emptyRow(code: string, countryFr: string | null, status: QuadrantModelStatus): QuadrantModelRow {
+function emptyRow(
+  code: string,
+  countryFr: string | null,
+  status: QuadrantModelStatus,
+): QuadrantModelRow {
   return {
     countryCode: code,
     countryFr,
@@ -365,7 +366,9 @@ export async function computeAllCountryQuadrantModels(
   const ctx = await loadContext();
   const codes = [
     ...new Set(
-      ctx.series.filter((s) => s.class === 1 && s.type === 1 && s.countryIso !== "XX").map((s) => s.countryIso),
+      ctx.series
+        .filter((s) => s.class === 1 && s.type === 1 && s.countryIso !== "XX")
+        .map((s) => s.countryIso),
     ),
   ].sort();
 
@@ -389,11 +392,13 @@ export async function computeAllCountryQuadrantModels(
         finalAllocation: r.finalAllocation,
       };
 
-      // Backtest FENÊTRÉ : perf clippée aux `years`, poids issus du modèle complet.
+      // Backtest sur l'historique COMPLET puis fenêtré (poids détenus corrects à
+      // l'entrée) : perf entière + `windowYears`, poids issus du modèle complet.
       const backtest = backtestQuadrants({
         countryCode: code,
         weights: weightsFromModel(model),
-        ...clipPerfByYears(perf, years),
+        ...perf,
+        windowYears: years,
       });
       if (backtest.status !== "OK") {
         return {
@@ -422,7 +427,9 @@ export async function computeAllCountryQuadrantModels(
         ? {
             beatsInflation: HEATMAP_HORIZONS.map((w) => rollingPositiveShare(realSeries, w)),
             beatsEquity: equityRealSeries
-              ? HEATMAP_HORIZONS.map((w) => rollingOutperformanceShare(realSeries, equityRealSeries, w))
+              ? HEATMAP_HORIZONS.map((w) =>
+                  rollingOutperformanceShare(realSeries, equityRealSeries, w),
+                )
               : HEATMAP_HORIZONS.map(() => null),
           }
         : null;

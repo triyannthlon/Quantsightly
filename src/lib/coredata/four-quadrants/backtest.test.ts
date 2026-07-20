@@ -9,7 +9,13 @@ import {
 } from "./backtest";
 
 const D = ["2020-01-15", "2020-02-15", "2020-03-15"];
-const alloc = (equities: number, bonds: number, gold: number, cash: number, energy = 0): FinalAllocation => ({
+const alloc = (
+  equities: number,
+  bonds: number,
+  gold: number,
+  cash: number,
+  energy = 0,
+): FinalAllocation => ({
   equities,
   bonds,
   gold,
@@ -112,7 +118,9 @@ describe("turnover", () => {
 
   it("réallocation de 10 % → turnover 10 %", () => {
     // Actions 40→50, Obligations 30→20 : Σ|Δ| = 20 %, turnover unidirectionnel = 10 %.
-    expect(computeMonthlyTurnover(alloc(0.4, 0.3, 0.2, 0.1), alloc(0.5, 0.2, 0.2, 0.1))).toBeCloseTo(0.1, 12);
+    expect(
+      computeMonthlyTurnover(alloc(0.4, 0.3, 0.2, 0.1), alloc(0.5, 0.2, 0.2, 0.1)),
+    ).toBeCloseTo(0.1, 12);
   });
 
   it("bascule complète entre actifs → turnover 100 %", () => {
@@ -143,5 +151,51 @@ describe("turnover", () => {
     expect(res.turnover.annualized).toBeCloseTo(res.turnover.averageMonthly * 12, 12);
     // 100 % Actions maintenu chaque mois → aucun rééquilibrage → turnover ~0.
     expect(res.turnover.annualized).toBeCloseTo(0, 6);
+  });
+});
+
+describe("backtest — fenêtrage (poids détenus à l'entrée)", () => {
+  // 25 mois : 2015-01 → 2017-01.
+  const M: string[] = [];
+  for (let i = 0; i < 25; i++) {
+    const y = 2015 + Math.floor(i / 12);
+    const m = (i % 12) + 1;
+    M.push(`${y}-${String(m).padStart(2, "0")}-15`);
+  }
+  const mser = (fn: (i: number) => number): EconomicDataPoint[] =>
+    M.map((date, i) => ({ date, value: fn(i) }));
+  const mflat = (v: number): EconomicDataPoint[] => M.map((date) => ({ date, value: v }));
+  // Allocation qui alterne chaque mois → un rééquilibrage réel à chaque frontière.
+  const weights: WeightPoint[] = M.map((date, i) => ({
+    date,
+    allocation: i % 2 === 0 ? alloc(0.5, 0.1, 0.2, 0.2) : alloc(0.1, 0.5, 0.2, 0.2),
+  }));
+  const input = {
+    countryCode: "XX",
+    weights,
+    equityTotalReturn: mser((i) => 100 * 1.01 ** i),
+    bondTotalReturn: mser((i) => 100 * 1.003 ** i),
+    cashTotalReturn: mflat(100),
+    gold: mser((i) => 50 * 1.002 ** i),
+  };
+
+  it("windowYears=null : 1er mois = constitution (turnover null), comportement inchangé", () => {
+    const res = backtestQuadrants({ ...input });
+    if (res.status !== "OK") return;
+    expect(res.turnover.monthly[0].turnover).toBeNull();
+  });
+
+  it("fenêtre débutant après le modèle : 1er mois = transaction d'ENTRÉE réelle (≠ constitution)", () => {
+    const full = backtestQuadrants({ ...input });
+    const win = backtestQuadrants({ ...input, windowYears: 1 });
+    if (full.status !== "OK" || win.status !== "OK") return;
+    // La fenêtre démarre à 100, plus tard que le modèle, sur moins de mois.
+    expect(win.series.nominal[0].value).toBe(100);
+    expect(win.series.nominal[0].date > full.series.nominal[0].date).toBe(true);
+    expect(win.metrics.nominal.months).toBeLessThan(full.metrics.nominal.months);
+    // ⚠️ Le 1er mois de la fenêtre porte une VRAIE rotation (poids réellement dérivés
+    // avant transaction), et NON une constitution : la transaction d'entrée est comptée.
+    expect(win.turnover.monthly[0].turnover).not.toBeNull();
+    expect(win.turnover.monthly[0].turnover as number).toBeGreaterThan(0);
   });
 });

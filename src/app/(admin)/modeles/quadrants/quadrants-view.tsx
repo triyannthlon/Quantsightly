@@ -98,27 +98,6 @@ function Control({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-/** Décale une date `YYYY-MM-DD` de `delta` années (comparaison lexicographique). */
-function shiftYears(date: string, delta: number): string {
-  return `${Number(date.slice(0, 4)) + delta}${date.slice(4)}`;
-}
-
-/** Restreint les séries de perf aux `years` dernières années (null = MAX). */
-function clipPerf(perf: QuadrantPerfInput, years: number | null): QuadrantPerfInput {
-  if (years === null) return perf;
-  const last = perf.equityTotalReturn.at(-1)?.date;
-  if (!last) return perf;
-  const cutoff = shiftYears(last, -years);
-  const f = (s: QuadrantPerfInput["gold"]) => s.filter((p) => p.date >= cutoff);
-  return {
-    equityTotalReturn: f(perf.equityTotalReturn),
-    bondTotalReturn: f(perf.bondTotalReturn),
-    cashTotalReturn: f(perf.cashTotalReturn),
-    gold: f(perf.gold),
-    cpi: perf.cpi ? f(perf.cpi) : undefined,
-  };
-}
-
 export function QuadrantsView({
   countries,
   defaultCountry,
@@ -166,7 +145,8 @@ export function QuadrantsView({
         ? backtestQuadrants({
             countryCode: country,
             weights: weightsFromModel(model),
-            ...clipPerf(perf, PERIOD_YEARS[period]),
+            ...perf,
+            windowYears: PERIOD_YEARS[period],
           })
         : null,
     [model, perf, country, period],
@@ -224,24 +204,49 @@ export function QuadrantsView({
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {isRegionTab ? (
         <Control label="Région">
-          <SelectDropdown items={REGION_ITEMS} value={region} onChange={(i) => setRegion(i.value as QuadrantRegion)} width="w-full" />
+          <SelectDropdown
+            items={REGION_ITEMS}
+            value={region}
+            onChange={(i) => setRegion(i.value as QuadrantRegion)}
+            width="w-full"
+          />
         </Control>
       ) : (
         <Control label="Pays">
-          <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
+          <SelectDropdown
+            items={countryItems}
+            value={country}
+            onChange={(i) => onCountry(i.value)}
+            width="w-full"
+          />
         </Control>
       )}
       <Control label="Période">
-        <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as Period)} width="w-full" />
+        <SelectDropdown
+          items={PERIOD_ITEMS}
+          value={period}
+          onChange={(i) => setPeriod(i.value as Period)}
+          width="w-full"
+        />
       </Control>
       <Control label="Devise d’analyse">
         <SelectDropdown items={DEVISE_ITEMS} value="local" width="w-full" />
       </Control>
       <Control label="Mode d’analyse">
-        <SelectDropdown items={MODE_ITEMS} value={perfMode} onChange={(i) => setPerfMode(i.value as PerfMode)} width="w-full" />
+        <SelectDropdown
+          items={MODE_ITEMS}
+          value={perfMode}
+          onChange={(i) => setPerfMode(i.value as PerfMode)}
+          width="w-full"
+        />
       </Control>
       <Control label="Stratégie">
-        <SelectDropdown items={STRATEGY_ITEMS} value={strategy} onChange={(i) => setStrategy(i.value as Strategy)} width="w-full" />
+        <SelectDropdown
+          items={STRATEGY_ITEMS}
+          value={strategy}
+          onChange={(i) => setStrategy(i.value as Strategy)}
+          width="w-full"
+        />
       </Control>
     </div>
   );
@@ -254,7 +259,10 @@ export function QuadrantsView({
     { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
     { label: "Devise", value: "Locale" },
     { label: "Mode", value: MODE_ITEMS.find((i) => i.value === perfMode)?.label ?? perfMode },
-    { label: "Stratégie", value: STRATEGY_ITEMS.find((i) => i.value === strategy)?.label ?? strategy },
+    {
+      label: "Stratégie",
+      value: STRATEGY_ITEMS.find((i) => i.value === strategy)?.label ?? strategy,
+    },
   ];
 
   const reglagesButton = (
