@@ -3,6 +3,7 @@
 import {
   getCountryQuadrantModel,
   computeAllCountryQuadrantModels,
+  computeQuadrantsRealSeries,
 } from "@/lib/coredata/four-quadrants-service";
 import type { FourQuadrantsModelSettings } from "@/lib/coredata/four-quadrants";
 
@@ -27,4 +28,13 @@ export async function loadQuadrantComparison(
   years: number | null,
 ) {
   return computeAllCountryQuadrantModels(settings, years);
+}
+
+/** Séries réelles (base 100) de 2–5 pays pour le comparateur multi-pays de vs Actions. */
+export async function loadQuadrantsRealSeries(
+  codes: string[],
+  settings: FourQuadrantsModelSettings,
+  years: number | null,
+) {
+  return computeQuadrantsRealSeries(codes, settings, years);
 }

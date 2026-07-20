@@ -26,6 +26,7 @@ import type {
 import { QuadrantsCountryView } from "./quadrants-country-view";
 import { QuadrantsComparisonView } from "./quadrants-comparison-view";
 import { QuadrantsVsEquityView } from "./quadrants-vs-equity-view";
+import { QuadrantsMethodology, METHODOLOGY_SECTIONS } from "./quadrants-methodology";
 import { ModelSettingsDialog } from "@/components/custom/model-settings/settings-dialog";
 import {
   ModelStickyControls,
@@ -42,7 +43,7 @@ const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[
   { key: "country", label: "Vue pays", icon: LineChart, ready: true },
   { key: "comparison", label: "Comparaison pays", icon: Table2, ready: true },
   { key: "vs_actions", label: "4 Quadrants vs Actions", icon: Swords, ready: true },
-  { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: false },
+  { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: true },
 ];
 
 // Navigation interne par onglet.
@@ -64,9 +65,10 @@ const SECTIONS: Record<Tab, StickyNavSection[]> = {
     { id: "compromis", label: "Compromis" },
     { id: "detail", label: "Détail" },
     { id: "regularite", label: "Régularité" },
+    { id: "comparateur", label: "Comparateur" },
     { id: "carte", label: "Carte" },
   ],
-  methodology: [],
+  methodology: METHODOLOGY_SECTIONS,
 };
 
 const PERIOD_ITEMS: SelectItem[] = [
@@ -115,15 +117,6 @@ function clipPerf(perf: QuadrantPerfInput, years: number | null): QuadrantPerfIn
     gold: f(perf.gold),
     cpi: perf.cpi ? f(perf.cpi) : undefined,
   };
-}
-
-function Placeholder({ label }: { label: string }) {
-  return (
-    <Card className="flex h-64 flex-col items-center justify-center gap-2 text-center">
-      <span className="text-sm font-medium">{label}</span>
-      <span className="text-xs text-muted-foreground">Bientôt disponible.</span>
-    </Card>
-  );
 }
 
 export function QuadrantsView({
@@ -321,9 +314,11 @@ export function QuadrantsView({
             loading={comparisonLoading}
             onPick={onPickCountry}
             region={region}
+            settings={settings}
+            years={PERIOD_YEARS[period]}
           />
         ) : (
-          <Placeholder label="Méthodologie" />
+          <QuadrantsMethodology />
         )}
       </ModelStickyControls>
 

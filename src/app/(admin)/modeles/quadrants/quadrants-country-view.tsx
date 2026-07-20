@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,14 @@ import {
 type OkModel = Extract<QuadrantModel, { status: "OK" }>;
 type OkBacktest = Extract<BacktestResult, { status: "OK" }>;
 
-const COLOR = { portfolio: "#E8833A", actions: SLEEVE_META.equities.hex };
+const COLOR = {
+  portfolio: "#E8833A",
+  actions: SLEEVE_META.equities.hex,
+  inflation: "#E87386",
+  bonds: SLEEVE_META.bonds.hex,
+  cash: SLEEVE_META.cash.hex,
+  gold: SLEEVE_META.gold.hex,
+};
 
 function formatMonth(iso: string): string {
   return new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(new Date(iso));
@@ -231,91 +238,201 @@ function buildInflationKpis(bt: OkBacktest): KpiData[] {
 
 // ─── Graphiques (performance + drawdown) ─────────────────────────────────────
 
-function PerfChart({
-  title,
-  portfolio,
-  actions,
-  inflation,
-  months,
-}: {
-  title: string;
-  portfolio: EconomicDataPoint[];
-  actions?: EconomicDataPoint[] | null;
-  inflation?: EconomicDataPoint[] | null;
-  months: number;
-}) {
+type SeriesDef = { key: string; label: string; color: string; dashed?: boolean; defaultOn: boolean };
+
+// Séries disponibles par mode + état par défaut (4Q + Actions actifs ; poches
+// secondaires activables en nominal ; inflation en NvI). Clone de la Vue pays Browne.
+const PERF_SERIES: Record<PerfMode, SeriesDef[]> = {
+  nominal: [
+    { key: "q4", label: "4 Quadrants", color: COLOR.portfolio, defaultOn: true },
+    { key: "actions", label: "Actions", color: COLOR.actions, defaultOn: true },
+    { key: "bonds", label: "Obligations", color: COLOR.bonds, defaultOn: false },
+    { key: "cash", label: "Cash", color: COLOR.cash, defaultOn: false },
+    { key: "gold", label: "Or", color: COLOR.gold, defaultOn: false },
+  ],
+  real: [
+    { key: "q4", label: "4 Quadrants réel", color: COLOR.portfolio, defaultOn: true },
+    { key: "actions", label: "Actions réelles", color: COLOR.actions, defaultOn: true },
+  ],
+  nominal_vs_inflation: [
+    { key: "q4", label: "4 Quadrants nominal", color: COLOR.portfolio, defaultOn: true },
+    { key: "inflation", label: "Inflation cumulée", color: COLOR.inflation, dashed: true, defaultOn: true },
+    { key: "actions", label: "Actions", color: COLOR.actions, defaultOn: false },
+  ],
+};
+
+function perfSeriesData(mode: PerfMode, s: OkBacktest["series"], key: string): EconomicDataPoint[] | null {
+  if (mode === "real") return key === "q4" ? s.real : key === "actions" ? s.equityReal : null;
+  if (mode === "nominal_vs_inflation")
+    return key === "q4" ? s.nominal : key === "inflation" ? s.inflationIndex : key === "actions" ? s.equityBenchmark : null;
+  if (key === "q4") return s.nominal;
+  if (key === "actions") return s.equityBenchmark;
+  if (key === "bonds") return s.sleeves.bonds;
+  if (key === "cash") return s.sleeves.cash;
+  if (key === "gold") return s.sleeves.gold;
+  return null;
+}
+
+const defaultsOf = (mode: PerfMode): Record<string, boolean> =>
+  Object.fromEntries(PERF_SERIES[mode].map((d) => [d.key, d.defaultOn]));
+
+function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode }) {
+  const defs = PERF_SERIES[displayMode];
+  const [shown, setShown] = useState<Record<string, boolean>>(() => defaultsOf(displayMode));
+  useEffect(() => {
+    setShown(defaultsOf(displayMode));
+  }, [displayMode]);
+
+  const months = bt.metrics.nominal.months;
   const [userScale, setUserScale] = useState<"linear" | "log" | null>(null);
   const scale = userScale ?? (months > 120 ? "log" : "linear");
   const [zoom, setZoom] = useState(false);
-  const { data, lines } = useMemo(() => {
-    const parts: { line: ChartLine; data: EconomicDataPoint[] }[] = [];
-    if (actions?.length) parts.push({ line: { key: "actions", label: "Actions", color: COLOR.actions, width: 1.4 }, data: actions });
-    if (inflation?.length)
-      parts.push({ line: { key: "inflation", label: "Inflation cumulée", color: "#E87386", width: 1.4, dashed: true }, data: inflation });
-    parts.push({ line: { key: "q4", label: "4 Quadrants", color: COLOR.portfolio, width: 2.6 }, data: portfolio });
-    return {
-      data: mergeChart(parts.map((p) => ({ key: p.line.key, data: p.data }))),
-      lines: parts.map((p) => p.line),
-    };
-  }, [portfolio, actions, inflation]);
-  const render = (height: number | string) => (
-    <ExplorationChart data={data} lines={lines} height={height} logScale={scale === "log"} showLegend={false} markLast gridOpacity={0.22} cumulativeTooltip axisLine />
-  );
+
+  const chart = useMemo(() => {
+    const withData = defs
+      .filter((d) => shown[d.key])
+      .map((d) => ({ def: d, data: perfSeriesData(displayMode, bt.series, d.key) }))
+      .filter((x): x is { def: SeriesDef; data: EconomicDataPoint[] } => !!x.data && x.data.length > 0);
+    if (!withData.length) return null;
+    const lines: ChartLine[] = withData
+      .map(({ def }) => ({ key: def.key, label: def.label, color: def.color, dashed: def.dashed, width: def.key === "q4" ? 2.6 : 1.4 }))
+      .sort((a, b) => (a.key === "q4" ? 1 : b.key === "q4" ? -1 : 0));
+    return { data: mergeChart(withData.map(({ def, data }) => ({ key: def.key, data }))), lines };
+  }, [defs, shown, displayMode, bt.series]);
+
+  const extraRows =
+    displayMode === "nominal_vs_inflation"
+      ? (row: Record<string, number>) =>
+          row.q4 && row.inflation && row.inflation > 0
+            ? [
+                {
+                  label: "Pouvoir d’achat",
+                  value: `x${(row.q4 / row.inflation).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`,
+                },
+              ]
+            : []
+      : undefined;
+
+  const render = (height: number | string) =>
+    chart ? (
+      <ExplorationChart data={chart.data} lines={chart.lines} height={height} logScale={scale === "log"} showLegend={false} markLast gridOpacity={0.22} cumulativeTooltip extraTooltipRows={extraRows} axisLine />
+    ) : null;
+
   return (
     <Card className="gap-0 bg-gradient-to-b from-foreground/[0.015] to-transparent p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <div className="inline-flex items-center rounded-md border border-border/50 bg-background/40 p-0.5 text-xs">
-          {(["linear", "log"] as const).map((sc) => (
-            <button
-              key={sc}
-              type="button"
-              onClick={() => setUserScale(sc)}
-              className={cn("cursor-pointer rounded px-2.5 py-1 font-medium transition-all", scale === sc ? "bg-slate-700/70 text-white shadow-sm ring-1 ring-slate-500/50" : "text-slate-400 hover:text-slate-200")}
-            >
-              {sc === "linear" ? "Linéaire" : "Log"}
-            </button>
-          ))}
+        <h3 className="text-sm font-semibold">Performance cumulée</h3>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap gap-1.5">
+            {defs.map((d) => (
+              <button
+                key={d.key}
+                type="button"
+                onClick={() => setShown((s) => ({ ...s, [d.key]: !s[d.key] }))}
+                className={cn(
+                  "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
+                  shown[d.key] ? "border-foreground/20 text-foreground" : "border-transparent text-muted-foreground/50 hover:text-foreground",
+                )}
+              >
+                <span className="size-2 rounded-full transition-opacity" style={{ backgroundColor: d.color, opacity: shown[d.key] ? 1 : 0.35 }} />
+                {d.label}
+              </button>
+            ))}
+          </div>
+          <div className="inline-flex items-center rounded-md border border-border/50 bg-background/40 p-0.5 text-xs">
+            {(["linear", "log"] as const).map((sc) => (
+              <button
+                key={sc}
+                type="button"
+                onClick={() => setUserScale(sc)}
+                className={cn("cursor-pointer rounded px-2.5 py-1 font-medium transition-all", scale === sc ? "bg-slate-700/70 text-white shadow-sm ring-1 ring-slate-500/50" : "text-slate-400 hover:text-slate-200")}
+              >
+                {sc === "linear" ? "Linéaire" : "Log"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-      <button type="button" onClick={() => setZoom(true)} className="cursor-zoom-img block w-full text-left" aria-label="Agrandir le graphique">
-        {render(360)}
-      </button>
-      <Dialog open={zoom} onOpenChange={setZoom}>
-        <FrostedDialogContent className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]" showCloseButton>
-          <DialogTitle className="text-center text-base font-medium">{title}</DialogTitle>
-          {render("78vh")}
-        </FrostedDialogContent>
-      </Dialog>
+      {chart ? (
+        <>
+          <button type="button" onClick={() => setZoom(true)} className="cursor-zoom-img block w-full text-left" aria-label="Agrandir le graphique">
+            {render(360)}
+          </button>
+          <Dialog open={zoom} onOpenChange={setZoom}>
+            <FrostedDialogContent className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]" showCloseButton>
+              <DialogTitle className="text-center text-base font-medium">Performance cumulée</DialogTitle>
+              {render("78vh")}
+            </FrostedDialogContent>
+          </Dialog>
+        </>
+      ) : (
+        <div className="flex h-[360px] items-center justify-center text-sm text-muted-foreground">Donnée indisponible pour ce mode.</div>
+      )}
     </Card>
   );
 }
 
-function DrawdownCard({ portfolio, actions, pm, am }: { portfolio: EconomicDataPoint[]; actions: EconomicDataPoint[]; pm: BacktestMetrics; am: BacktestMetrics }) {
+function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode }) {
+  // Drawdown réel en mode Réel (si dispo) ; nominal sinon (y compris NvI).
+  const useReal = displayMode === "real" && !!bt.series.real && !!bt.series.equityReal;
+  const bSeries = useReal ? bt.series.real! : bt.series.nominal;
+  const aSeries = useReal ? bt.series.equityReal! : bt.series.equityBenchmark;
+  const bMetrics = useReal ? bt.metrics.real! : bt.metrics.nominal;
+  const aMetrics = useReal ? bt.metrics.equityReal! : bt.metrics.equity;
+
+  const [shown, setShown] = useState({ q4: true, actions: true });
+
   const dd = useMemo(() => {
-    const bDD = drawdownSeries(portfolio);
-    const aDD = drawdownSeries(actions);
+    const bDD = drawdownSeries(bSeries);
+    const aDD = drawdownSeries(aSeries);
     let worst = 0;
     for (const p of [...bDD, ...aDD]) if (p.value < worst) worst = p.value;
     const floor = Math.min(-5, Math.floor(worst / 10) * 10);
-    return {
-      data: mergeChart([{ key: "actions", data: aDD }, { key: "q4", data: bDD }]),
-      lines: [
-        { key: "actions", label: "Actions", color: COLOR.actions, width: 1.4, fillOpacity: 0.16 },
-        { key: "q4", label: "4 Quadrants", color: COLOR.portfolio, width: 2.6, fillOpacity: 0.22 },
-      ] as ChartLine[],
-      yDomain: [floor, 0] as [number, number],
-    };
-  }, [portfolio, actions]);
-  const reduction = pm.maxDrawdown !== null && am.maxDrawdown !== null ? pm.maxDrawdown - am.maxDrawdown : null;
+    const active: { key: string; data: EconomicDataPoint[] }[] = [];
+    const lines: ChartLine[] = [];
+    if (shown.actions) {
+      active.push({ key: "actions", data: aDD });
+      lines.push({ key: "actions", label: "Actions", color: COLOR.actions, width: 1.4, fillOpacity: 0.16 });
+    }
+    if (shown.q4) {
+      active.push({ key: "q4", data: bDD });
+      lines.push({ key: "q4", label: "4 Quadrants", color: COLOR.portfolio, width: 2.6, fillOpacity: 0.22 });
+    }
+    return { data: mergeChart(active), lines, yDomain: [floor, 0] as [number, number] };
+  }, [bSeries, aSeries, shown]);
+
+  const reduction = bMetrics.maxDrawdown !== null && aMetrics.maxDrawdown !== null ? bMetrics.maxDrawdown - aMetrics.maxDrawdown : null;
+  const toggles = [
+    { key: "q4" as const, label: "4 Quadrants", color: COLOR.portfolio },
+    { key: "actions" as const, label: "Actions", color: COLOR.actions },
+  ];
+
   return (
     <Card className="gap-0 bg-gradient-to-b from-foreground/[0.015] to-transparent p-4">
-      <h3 className="mb-3 text-sm font-semibold">Drawdown</h3>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold">Drawdown</h3>
+        <div className="flex flex-wrap gap-1.5">
+          {toggles.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setShown((s) => ({ ...s, [t.key]: !s[t.key] }))}
+              className={cn(
+                "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
+                shown[t.key] ? "border-foreground/20 text-foreground" : "border-transparent text-muted-foreground/50 hover:text-foreground",
+              )}
+            >
+              <span className="size-2 rounded-full transition-opacity" style={{ backgroundColor: t.color, opacity: shown[t.key] ? 1 : 0.35 }} />
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Max DD 4Q" value={fmtPctN(pm.maxDrawdown)} />
-        <Stat label="Max DD actions" value={fmtPctN(am.maxDrawdown)} />
+        <Stat label="Max DD 4Q" value={fmtPctN(bMetrics.maxDrawdown)} />
+        <Stat label="Max DD actions" value={fmtPctN(aMetrics.maxDrawdown)} />
         <Stat label="Réduction" value={reduction === null ? "—" : `+${reduction.toFixed(1)} pts`} />
-        <Stat label="Durée max sous l’eau" value={fmtMonths(pm.maxUnderwaterMonths)} />
+        <Stat label="Durée max sous l’eau" value={fmtMonths(bMetrics.maxUnderwaterMonths)} />
       </div>
       <ExplorationChart data={dd.data} lines={dd.lines} height={240} showLegend={false} markLast gridOpacity={0.22} yDomain={dd.yDomain} areaFill percentTooltip axisLine />
     </Card>
@@ -483,12 +600,6 @@ export function QuadrantsCountryView({
   const real = displayMode === "real" && bt?.metrics.real != null;
   const pm = bt ? (real ? bt.metrics.real! : bt.metrics.nominal) : null;
   const am = bt ? (real ? bt.metrics.equityReal! : bt.metrics.equity) : null;
-  // Courbes : portefeuille (nominal en NvI) ; Actions masquées en NvI, remplacées
-  // par l'inflation cumulée. Le drawdown reste porté par Actions.
-  const ps = bt ? (real ? bt.series.real! : bt.series.nominal) : null;
-  const asDD = bt ? (real ? bt.series.equityReal! : bt.series.equityBenchmark) : null;
-  const asChart = isNvI ? null : asDD;
-  const infl = bt && isNvI ? bt.series.inflationIndex : null;
 
   const kpis = !bt ? [] : isNvI ? buildInflationKpis(bt) : pm && am ? buildKpis(pm, am, real) : [];
 
@@ -547,16 +658,14 @@ export function QuadrantsCountryView({
         </section>
 
         {/* Performance + Drawdown */}
-        {bt && ps && (
+        {bt && (
           <>
             <section id="performance" className="scroll-mt-[var(--model-header-offset,96px)]">
-              <PerfChart title="Performance cumulée" portfolio={ps} actions={asChart} inflation={infl} months={pm?.months ?? 0} />
+              <PerfChart bt={bt} displayMode={displayMode} />
             </section>
-            {pm && am && asDD && (
-              <section id="drawdown" className="scroll-mt-[var(--model-header-offset,96px)]">
-                <DrawdownCard portfolio={ps} actions={asDD} pm={pm} am={am} />
-              </section>
-            )}
+            <section id="drawdown" className="scroll-mt-[var(--model-header-offset,96px)]">
+              <DrawdownCard bt={bt} displayMode={displayMode} />
+            </section>
           </>
         )}
 

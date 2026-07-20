@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Info, ShieldCheck, TrendingUp, Trophy, Scale, Map as MapIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Info, ShieldCheck, TrendingUp, Trophy, Scale, Users, Map as MapIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider, TooltipBody } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { FourQuadrantsModelSettings } from "@/lib/coredata/four-quadrants";
 import type { QuadrantModelRow } from "@/lib/coredata/four-quadrants-service";
 import {
   quadrantsVsEquity,
@@ -20,6 +21,7 @@ import {
 } from "./helpers";
 import { QuadrantsVsEquityMatrix } from "./quadrants-vs-equity-matrix";
 import { QuadrantsHeatmap } from "./quadrants-heatmap";
+import { QuadrantsMultiCompare } from "./quadrants-multi-compare";
 import { QuadrantsVerdictMap } from "./quadrants-verdict-map";
 
 interface Item {
@@ -143,15 +145,20 @@ export function QuadrantsVsEquityView({
   loading,
   onPick,
   region,
+  settings,
+  years,
 }: {
   rows: QuadrantModelRow[] | null;
   loading: boolean;
   onPick: (iso: string) => void;
   region: QuadrantRegion;
+  settings: FourQuadrantsModelSettings;
+  years: number | null;
 }) {
   const [sortKey, setSortKey] = useState("dd");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const [showHeatmap, setShowHeatmap] = useState(true);
+  const [showCompare, setShowCompare] = useState(false);
   const [showMap, setShowMap] = useState(false);
 
   const items = useMemo<Item[]>(() => {
@@ -369,6 +376,24 @@ export function QuadrantsVsEquityView({
           {showHeatmap && (
             <div className="mt-3">
               <QuadrantsHeatmap rows={items.map((it) => it.row)} onPick={onPick} />
+            </div>
+          )}
+        </Card>
+
+        {/* Comparateur multi-pays (séries réelles à la demande) */}
+        <Card id="comparateur" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <Users className="size-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">Comparer des pays</h3>
+            </div>
+            <button type="button" onClick={() => setShowCompare((v) => !v)} className="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+              {showCompare ? "Masquer" : "Ouvrir le comparateur"}
+            </button>
+          </div>
+          {showCompare && (
+            <div className="mt-3">
+              <QuadrantsMultiCompare rows={items.map((it) => it.row)} settings={settings} years={years} onPick={onPick} />
             </div>
           )}
         </Card>

@@ -82,6 +82,8 @@ export type BacktestResult =
         equityReal: TimeSeries | null;
         /** Inflation cumulée base 100 (mode Nominal vs Inflation) — `null` sans CPI. */
         inflationIndex: TimeSeries | null;
+        /** Chaque poche rebasée 100 sur la fenêtre (courbes du mode nominal). */
+        sleeves: { equities: TimeSeries; bonds: TimeSeries; cash: TimeSeries; gold: TimeSeries };
       };
       metrics: {
         nominal: BacktestMetrics;
@@ -381,6 +383,18 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
   const eq0 = rows[start].equity;
   const equityBenchmark = rows.slice(start).map((r) => ({ date: r.date, value: (100 * r.equity) / eq0 }));
 
+  // Chaque poche (actions/oblig/cash/or) rebasée 100 sur la fenêtre (courbes nominal).
+  const rebaseSleeve = (pick: (r: SleeveRow) => number): EconomicDataPoint[] => {
+    const v0 = pick(rows[start]);
+    return rows.slice(start).map((r) => ({ date: r.date, value: (100 * pick(r)) / v0 }));
+  };
+  const sleeves = {
+    equities: equityBenchmark,
+    bonds: rebaseSleeve((r) => r.bond),
+    cash: rebaseSleeve((r) => r.cash),
+    gold: rebaseSleeve((r) => r.gold),
+  };
+
   // Taux sans risque = rendement annualisé du cash sur la MÊME période (Sharpe = excédent).
   const cashSeries = rows.slice(start).map((r) => ({ date: r.date, value: r.cash }));
   const riskFreeNominal = computeKpis(cashSeries).annualized ?? 0;
@@ -408,7 +422,7 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     countryCode,
     start: nominal[0].date,
     end: nominal[nominal.length - 1].date,
-    series: { nominal, real, equityBenchmark, equityReal, inflationIndex },
+    series: { nominal, real, equityBenchmark, equityReal, inflationIndex, sleeves },
     metrics: {
       nominal: metricsOf(nominal, riskFreeNominal),
       real: real ? metricsOf(real, riskFreeReal) : null,

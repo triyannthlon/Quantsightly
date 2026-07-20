@@ -266,6 +266,47 @@ export async function listQuadrantCountries(): Promise<{ iso: string; nameFr: st
     .sort((a, b) => a.nameFr.localeCompare(b.nameFr, "fr"));
 }
 
+/** Série réelle (base 100) du portefeuille 4 Quadrants d'un pays, pour le comparateur. */
+export interface QuadrantsRealSeries {
+  countryCode: string;
+  countryFr: string | null;
+  real: EconomicDataPoint[] | null;
+}
+
+/**
+ * Séries RÉELLES (base 100) du portefeuille 4 Quadrants des pays demandés, sous
+ * les mêmes paramètres (stratégie / zone neutre + fenêtre). Chargées à la demande
+ * (2–5 pays) pour le comparateur multi-pays ; l'alignement sur une période commune
+ * se fait côté client. Régime toujours sur historique complet ; fenêtre `years`
+ * appliquée aux perfs (mêmes règles que le batch).
+ */
+export async function computeQuadrantsRealSeries(
+  codes: string[],
+  settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
+  years: number | null = null,
+): Promise<QuadrantsRealSeries[]> {
+  const ctx = await loadContext();
+  return Promise.all(
+    codes.map(async (code): Promise<QuadrantsRealSeries> => {
+      const config = deriveQuadrantConfig(code, ctx.series, ctx.countries);
+      if (!config) return { countryCode: code, countryFr: null, real: null };
+      const { signal, perf } = await loadSeries(config, ctx);
+      const model = buildModel(signal, settings);
+      if (model.status !== "OK") return { countryCode: code, countryFr: config.countryFr, real: null };
+      const backtest = backtestQuadrants({
+        countryCode: code,
+        weights: weightsFromModel(model),
+        ...clipPerfByYears(perf, years),
+      });
+      return {
+        countryCode: code,
+        countryFr: config.countryFr,
+        real: backtest.status === "OK" ? backtest.series.real : null,
+      };
+    }),
+  );
+}
+
 /** Modèle 4 Quadrants complet d'un pays, avec ses séries brutes (recalcul client-side). */
 export async function getCountryQuadrantModel(
   countryCode: string,

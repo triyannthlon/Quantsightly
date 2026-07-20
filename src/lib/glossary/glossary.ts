@@ -45,6 +45,9 @@ const G_BR_INFLATION = "Inflation & pouvoir d’achat";
 const G_BR_COMPARAISON = "Comparaison & sources";
 const G_BR_DONNEES = "Données & graphes";
 const G_BR_VS_ACTIONS = "Browne vs Actions";
+// 4 Quadrants (page Modèles > 4 Quadrants)
+const G_Q4_PILOTAGE = "Portefeuille 4 Quadrants";
+const G_Q4_VS = "4 Quadrants vs Actions";
 
 const ENTRIES: Record<string, GlossaryEntry> = {
   // ─── Régime macro ─────────────────────────────────────────────────────────
@@ -1034,6 +1037,104 @@ const ENTRIES: Record<string, GlossaryEntry> = {
     retenir:
       "Logarithmique = meilleure lecture des rythmes de croissance ; linéaire = meilleure lecture des écarts de niveau.",
     source: "glossaire",
+  },
+
+  // ─── 4 Quadrants — Portefeuille & pilotage ──────────────────────────────────
+  "q4-modele": {
+    key: "q4-modele",
+    term: "4 Quadrants",
+    group: G_Q4_PILOTAGE,
+    base: "Un portefeuille de référence dont l’allocation est pilotée par le régime macroéconomique.",
+    technique:
+      "Deux axes de marché — l’activité et l’inflation — situent le pays dans un plan ; cette position détermine la part de chaque poche (actions, obligations, or, liquidités).",
+    retenir: "Le 4 Quadrants suit le régime observé dans les prix ; il ne le prévoit pas.",
+    source: "méthode",
+  },
+  "q4-coordonnees": {
+    key: "q4-coordonnees",
+    term: "Coordonnées (activité, inflation)",
+    group: G_Q4_PILOTAGE,
+    base: "Deux nombres entre −100 et +100 qui situent le pays dans le plan des régimes.",
+    technique:
+      "Chaque coordonnée mesure l’écart d’un rapport de prix à sa tendance de 7 ans, normalisé de façon robuste. L’activité compare les actions au pétrole ; l’inflation compare l’or aux obligations 10 ans.",
+    formule: "100 · tanh(z / κ), z = écart normalisé à la moyenne mobile 7 ans",
+    source: "méthode",
+  },
+  "q4-strategie-binaire": {
+    key: "q4-strategie-binaire",
+    term: "Allocation binaire",
+    group: G_Q4_PILOTAGE,
+    base: "Une poche dominante par axe lorsque le signal est net.",
+    technique:
+      "Si l’axe activité est net, tout son bloc va aux actions (expansion) ou aux liquidités (contraction) ; sinon le bloc est réparti à parts égales. Même logique pour l’axe inflation (or ou obligations).",
+    source: "méthode",
+  },
+  "q4-strategie-dynamique": {
+    key: "q4-strategie-dynamique",
+    term: "Allocation dynamique (DQAE)",
+    group: G_Q4_PILOTAGE,
+    base: "Les poids varient de façon continue avec la position dans le plan.",
+    technique:
+      "Chaque poche s’ajuste progressivement, d’une répartition équilibrée 25/25/25/25 jusqu’à une forte concentration sur la poche dominante lorsque le signal est intense.",
+    source: "méthode",
+  },
+  "q4-rotation": {
+    key: "q4-rotation",
+    term: "Rotation annualisée",
+    group: G_Q4_PILOTAGE,
+    base: "Part moyenne du portefeuille réallouée chaque année.",
+    technique:
+      "Elle mesure l’activité de gestion. Le turnover est unidirectionnel : la demi-somme des variations de poids compte les achats OU les ventes, pas leur total. La constitution initiale est exclue.",
+    formule: "½ · Σ | poids cible − poids détenu |, par mois",
+    retenir: "Une rotation élevée signale une allocation plus mouvante, donc plus de transactions.",
+    source: "méthode",
+  },
+
+  // ─── 4 Quadrants — vs Actions ───────────────────────────────────────────────
+  "q4-vs-actions": {
+    key: "q4-vs-actions",
+    term: "4 Quadrants vs Actions",
+    group: G_Q4_VS,
+    base: "Comparaison, en réel, du portefeuille 4 Quadrants à l’indice actions local.",
+    technique:
+      "On mesure l’écart, pas le niveau : de combien le 4 Quadrants fait mieux ou moins bien que les actions locales — en rendement, en volatilité et en protection contre les pertes.",
+    source: "méthode",
+  },
+  "q4-ecart-rendement": {
+    key: "q4-ecart-rendement",
+    term: "Écart de rendement",
+    group: G_Q4_VS,
+    base: "Rendement réel du 4 Quadrants moins celui des actions locales.",
+    formule: "CAGR 4 Quadrants − CAGR actions (réel)",
+    source: "méthode",
+  },
+  "q4-reduction-drawdown": {
+    key: "q4-reduction-drawdown",
+    term: "Réduction de drawdown",
+    group: G_Q4_VS,
+    base: "Baisse maximale évitée par le 4 Quadrants par rapport aux actions locales.",
+    technique:
+      "Une valeur positive signifie que le portefeuille a mieux protégé le capital que l’indice actions local.",
+    formule: "| Max DD actions | − | Max DD 4 Quadrants |",
+    source: "méthode",
+  },
+  "q4-profil": {
+    key: "q4-profil",
+    term: "Profil vs actions",
+    group: G_Q4_VS,
+    base: "Un résumé du compromis rendement / protection face aux actions.",
+    technique:
+      "Six profils, du plus favorable au moins favorable : Supérieur aux actions, Excellent compromis, Protecteur, Compromis modéré, Protection limitée, Profil atypique. La première règle remplie l’emporte.",
+    source: "méthode",
+  },
+  "q4-regularite": {
+    key: "q4-regularite",
+    term: "Régularité par horizon",
+    group: G_Q4_VS,
+    base: "Fréquence à laquelle le 4 Quadrants gagne, selon la durée de détention.",
+    technique:
+      "Sur des fenêtres glissantes de 1 à 20 ans, part des périodes où le portefeuille bat l’inflation (gagne du pouvoir d’achat) ou fait mieux que les actions locales.",
+    source: "méthode",
   },
 };
 
