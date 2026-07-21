@@ -70,6 +70,26 @@ n'est jamais supprimé).
 4. **Puis seulement** : reprise des chantiers gelés — **vitesse/accélération**, **comparaison
    Browne** (aucun avant la bascule stabilisée, consigne Yann).
 
+## Exécution — décision B PRÉPARÉE (2026-07-21)
+
+Après validation de A (déploiement `main` v1 + smoke test prod conformes, Yann), **B est préparée**
+(commit sur `main`, **pas encore déployée, pas de tag**) :
+- **Bascule GLOBALE** : `DEFAULT_MODEL_VERSION` passé à `"v2"` (`model-version.ts`) — une seule
+  constante, propagée à **toutes** les surfaces (service : défaut des 4 fonctions ; client :
+  `ACTIVE_*` ; contenu : `IS_MODEL_V2`). **Pas de bascule page par page.**
+- **Retour v1 simple conservé** : (a) repasser la constante à `"v1"` (build+déploiement) **ou**
+  (b) déployer avec l'env **`NEXT_PUBLIC_QS_MODEL_VERSION=v1`** (aucun code à changer — le flag
+  accepte désormais `v1`|`v2`). Code v1 jamais supprimé.
+- **Bannière de staging** : disparaît automatiquement (`IS_STAGING_V2 = IS_MODEL_V2 && DÉFAUT≠"v2"`
+  → faux quand le défaut est v2). ✅
+- **Contrôles data-level** (`bascule-check.mts`) : service défaut = **v2** (US rotation 24,2 %,
+  CAGR 6,35 %) · retour `v1` OK (36,8 % / 6,32 %) · GB détenu≠cible. `tsc`/`lint`/**212 tests**
+  (golden v1 **et** v2 inchangés)/`build` **verts**.
+- **À faire par Yann** : déployer ce `main` (défaut v2) + recette prod (smoke 4 pages, détenu/cible,
+  rotation/fréquence, Binaire/Dynamique, indisponibilités/périodes, console/erreurs serveur,
+  comparaison fixtures `v2-rc2`, bannière absente). **Tag `4q-standard-v2` créé APRÈS** cette
+  validation prod **sans rollback**, pointant le commit déployé.
+
 ## Points ouverts pour Yann
 - **A** : merge `--no-ff` (jalons conservés) **ou** squash (`main` plat) ?
 - **B** : bascule **globale** (défaut v2) **ou** **par page** (recommandé) ?

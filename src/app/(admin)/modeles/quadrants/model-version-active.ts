@@ -15,8 +15,12 @@ import {
 
 const raw = process.env.NEXT_PUBLIC_QS_MODEL_VERSION;
 
-/** Version méthodologique ACTIVE (défaut = production v1 ; forcée par le flag en staging). */
-export const ACTIVE_MODEL_VERSION: ModelVersion = raw === "v2" ? "v2" : DEFAULT_MODEL_VERSION;
+// Le flag peut FORCER une version (`v1` ou `v2`) ; absent → défaut du produit.
+// ⇒ **retour global à v1** = déployer avec `NEXT_PUBLIC_QS_MODEL_VERSION=v1` (aucun code à changer).
+const forced: ModelVersion | null = raw === "v1" || raw === "v2" ? raw : null;
+
+/** Version méthodologique ACTIVE (défaut produit = v2 ; surchargeable par le flag). */
+export const ACTIVE_MODEL_VERSION: ModelVersion = forced ?? DEFAULT_MODEL_VERSION;
 
 /** Bande de réallocation active (fraction ; `null` en v1) — pour le recalcul client. */
 export const ACTIVE_REALLOCATION_BAND = REALLOCATION_BAND[ACTIVE_MODEL_VERSION];

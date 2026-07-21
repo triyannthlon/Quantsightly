@@ -31,5 +31,11 @@ export const REALLOCATION_BAND: Record<ModelVersion, number | null> = {
   v2: DELTA_V2_POINTS / 100,
 };
 
-/** Version de référence par défaut du produit (inchangée tant que v2 n'est pas publiée). */
-export const DEFAULT_MODEL_VERSION: ModelVersion = "v1";
+/**
+ * Version de référence par défaut du produit.
+ * ⚙️ **BASCULÉE en `v2`** (bande de réallocation δ=5) — étude 2, jalon `v2-rc2`.
+ * **Retour global à v1** = repasser cette constante à `"v1"` (build + déploiement),
+ * OU déployer avec l'env `NEXT_PUBLIC_QS_MODEL_VERSION=v1` (aucun changement de code).
+ * Le code v1 n'est jamais supprimé (rejouable via `version:"v1"`).
+ */
+export const DEFAULT_MODEL_VERSION: ModelVersion = "v2";
