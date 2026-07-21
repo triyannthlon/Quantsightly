@@ -797,20 +797,28 @@ function CompositionCard({
       {diverges && (
         <div className="mt-3 rounded-md border border-border/60 bg-muted/20 p-3">
           <p className="text-xs font-medium">Aucune réallocation ce mois-ci — allocation conservée.</p>
-          <div className="mt-2 grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-1 text-xs">
+          <div className="mt-2 grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-2 gap-y-1 text-xs">
             <span />
-            <span className="text-right font-medium text-muted-foreground">Actuelle</span>
+            <span className="text-right font-medium text-muted-foreground">Détenue</span>
+            <span />
             <span className="text-right font-medium text-muted-foreground">Cible</span>
-            {CORE_SLEEVES.map((k) => (
-              <div key={k} className="contents">
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full" style={{ background: SLEEVE_META[k].hex }} />
-                  {SLEEVE_META[k].label}
-                </span>
-                <span className="text-right font-semibold tabular-nums">{fmtPct0(held[k])}</span>
-                <span className="text-right tabular-nums text-muted-foreground">{fmtPct0(target[k])}</span>
-              </div>
-            ))}
+            {/* Même ORDRE d'actifs que la composition principale (tri par poids détenu). */}
+            {sleeves.map((k) => {
+              const differs = Math.round(held[k] * 100) !== Math.round(target[k] * 100);
+              return (
+                <div key={k} className="contents">
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full" style={{ background: SLEEVE_META[k].hex }} />
+                    {SLEEVE_META[k].label}
+                  </span>
+                  <span className="text-right font-semibold tabular-nums">{fmtPct0(held[k])}</span>
+                  <span className="px-0.5 text-center text-muted-foreground/60" aria-hidden>
+                    {differs ? "→" : ""}
+                  </span>
+                  <span className="text-right tabular-nums text-muted-foreground">{fmtPct0(target[k])}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

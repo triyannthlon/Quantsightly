@@ -160,3 +160,18 @@ bannière garde `IS_STAGING_V2`. **Seuil/formule toujours confidentiels.**
 - Mémoïsation client (`quadrants-view`) : documentée — la version étant une constante de build,
   aucune dépendance de mémo n'est requise ; **si la version devenait dynamique, l'ajouter aux deps
   ET aux clés des actions serveur** (noté dans le code).
+
+## 9. Ajustements desktop (retour recette Yann, 2026-07-21)
+
+Comportement **validé** côté desktop (distinction détenu/cible correcte : les poids détenus
+**dérivent** avec les performances relatives — ex. 48/52, 53/47 — et sont **conservés** tant que
+l'écart à la cible reste insuffisant ; **jamais forcés à 50/50**). Deux ajustements d'affichage
+appliqués au bloc secondaire de la Composition :
+1. intitulé **« Actuelle » → « Détenue »** ;
+2. **même ordre d'actifs** dans la composition principale et le tableau Détenue/Cible (tri par poids
+   détenu, via `sleeves`) ;
+3. (option retenue) **flèche `Détenue → Cible`** sur les seules lignes qui diffèrent — lisible, sans
+   révéler ni seuil ni formule.
+
+**Reste avant Go final** (côté Yann) : recette **responsive** (mobile/tablette/bureau), vérification
+**Méthodologie** v2, **console/hydratation**. `rc2` sera créé **après** cette recette complète.
