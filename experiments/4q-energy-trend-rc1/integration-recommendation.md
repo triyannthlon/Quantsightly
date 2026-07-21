@@ -1,8 +1,25 @@
-# `4q-energy-trend-rc1` — recommandation d'intégration & plan (spec, NON exécuté)
+# `4q-energy-trend-rc1` → `energy-trend-v1` — recommandation d'intégration
 
-**⚠️ AUCUNE modification moteur/interface. Ce document est un PLAN pour décision de Yann.**
-`4q-standard-v2` reste la version PUBLIQUE et le rollback. rc1 FIGÉ (L=6, w=10 %, prorata).
-Aucun nouveau réglage quantitatif.
+## STATUT : **PASS AVEC RÉSERVES** (validé Yann, 2026-07-21)
+
+Candidat validé sur toute la chaîne : **quantitatif** (Dyn+Bin, plateau L4-7) → **concordance
+moteur** (28/0 candidat, 22/0 production) → **risque extrême** (queue AMÉLIORÉE, pas dégradée) →
+**bootstrap** (IC>0). Branché au moteur derrière `QS_ENERGY_OVERLAY=off|trend-v1` (défaut off),
+commit `8112502`, branche `4q-energy-trend-v1`.
+
+**Contrôles franchis** : CAGR réel net supérieur · Sharpe & Sortino améliorés · downside deviation
+plus faible · ES 95 % & 99 % améliorés · pire mois amélioré · drawdown non dégradé · cohérent
+Dynamique & Binaire · positif après coûts · **protection effective pendant les krachs énergétiques**
+(COVID 2020 : 0 mois détenu ; oil 2014-16 : 2 mois ; SPDYENT 5 % pires : actif 17 %). Cf.
+`tail-risk-report.md`.
+
+**Réserves restantes** (durabilité hors-échantillon, PAS le risque extrême) : gain de RENDEMENT
+concentré sur 2021-2022 (hors-21/22 ΔCAGR ≈ +0,06 modeste) ; rotation +16-18 pt/an ; validation
+**in-sample**. À traiter par **gel des paramètres + suivi parallèle**, jamais par ré-optimisation.
+
+**⚠️ Interdits maintenus** : activation par défaut · UI · texte méthodo public · tag final · nouveau
+réglage · changement du modèle public. `4q-standard-v2` reste public + rollback. rc1 FIGÉ (L=6, w=10 %,
+prorata, SMA6, bande unique).
 
 ## 1. Évidence (validée, figée)
 
