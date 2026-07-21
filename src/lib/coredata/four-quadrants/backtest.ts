@@ -175,6 +175,14 @@ export interface BacktestInput {
    * les sorties (perf, risque, rotation). `null`/absent = tout l'historique.
    */
   windowYears?: number | null;
+  /**
+   * Bande de réallocation (méthodologie `4q-standard-v2`), en FRACTION de rotation.
+   * `null`/absent ⇒ comportement `4q-standard-v1` EXACT (réallocation pleine chaque
+   * mois). Si défini (ex. 0.05 = δ 5 pts), on conserve les poids détenus tant que la
+   * rotation-vers-cible `½·Σ|cible − détenu|` ≤ bande, sinon réallocation pleine.
+   * ⚠️ N'inclut AUCUN coût de transaction (hypothèse de simulation externe).
+   */
+  reallocationBand?: number | null;
 }
 
 /** Extrait les poids cibles mensuels (finalAllocation) d'un modèle calculé. */
@@ -544,7 +552,14 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     c: SleeveContributions;
     turnover: number | null;
   }
+  // Bande de réallocation (v2). `null` ⇒ v1 EXACT : `held` réalloue plein chaque
+  // mois vers la cible, donc `held` ≡ cible du mois précédent (chemin inchangé).
+  const band = input.reallocationBand ?? null;
   const steps: Step[] = [];
+  // Poids RÉELLEMENT détenus (exécutés), figés à la clôture de j-1 puis appliqués au
+  // mois j. Initialisés à la 1ʳᵉ cible (constitution). La rotation et le rendement
+  // s'appuient sur ces poids détenus, JAMAIS sur la cible précédente.
+  let held: FinalAllocation = wByMonth.get(monthKey(rows[start].date))!;
   for (let j = start + 1; j < rows.length; j++) {
     const w = wByMonth.get(monthKey(rows[j - 1].date));
     if (!w) continue;
@@ -557,26 +572,36 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     const useEn = hasEnergy && prev.energy !== null && cur.energy !== null;
     const rEn = useEn ? cur.energy! / prev.energy! - 1 : 0;
     const c: SleeveContributions = {
-      equities: w.equities * rEq,
-      bonds: w.bonds * rBd,
-      cash: w.cash * rCa,
-      gold: w.gold * rGo,
-      energy: useEn ? w.energy * rEn : 0,
+      equities: held.equities * rEq,
+      bonds: held.bonds * rBd,
+      cash: held.cash * rCa,
+      gold: held.gold * rGo,
+      energy: useEn ? held.energy * rEn : 0,
     };
     const rp = c.equities + c.bonds + c.cash + c.gold + c.energy;
+    // Poids détenus DÉRIVÉS après les rendements du mois : base de la décision de bande.
+    const drifted = computePreRebalanceWeights(held, {
+      equities: rEq,
+      bonds: rBd,
+      gold: rGo,
+      cash: rCa,
+      energy: rEn,
+    });
     const target = wByMonth.get(monthKey(cur.date));
-    const turnover = target
-      ? computeMonthlyTurnover(
-          computePreRebalanceWeights(w, {
-            equities: rEq,
-            bonds: rBd,
-            gold: rGo,
-            cash: rCa,
-            energy: rEn,
-          }),
-          target,
-        )
-      : null;
+    let turnover: number | null = null;
+    if (target) {
+      // v2 : conserver les poids détenus si la rotation-vers-cible ≤ δ ; sinon réallouer plein.
+      // v1 (`band === null`) : toujours réallouer plein (chemin unique, identique à l'historique).
+      if (band !== null && computeMonthlyTurnover(drifted, target) <= band) {
+        held = drifted; // conservé : aucune transaction ce mois-ci
+        turnover = 0;
+      } else {
+        turnover = computeMonthlyTurnover(drifted, target);
+        held = target; // réallocation pleine vers la cible
+      }
+    } else {
+      held = drifted; // au-delà de la dernière cible : on garde les poids dérivés (hors fenêtre)
+    }
     steps.push({ idx: j, date: cur.date, rp, c, turnover });
   }
   if (!steps.length) return fail("INSUFFICIENT_HISTORY");

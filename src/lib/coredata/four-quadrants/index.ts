@@ -16,3 +16,4 @@ export * from "./energy-overlay";
 export * from "./kinematics";
 export * from "./build-model";
 export * from "./backtest";
+export * from "./model-version";
