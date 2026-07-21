@@ -35,6 +35,7 @@ import {
   type StickySummaryItem,
 } from "@/components/custom/model-shell/model-sticky-controls";
 import { loadCountryQuadrantModel, loadQuadrantComparison } from "./actions";
+import { ACTIVE_REALLOCATION_BAND, IS_STAGING_V2 } from "./model-version-active";
 import { REGION_ITEMS, type PerfMode, type QuadrantRegion } from "./helpers";
 import { availabilityMessage, type AvailabilityReason } from "./availability-message";
 
@@ -156,6 +157,7 @@ export function QuadrantsView({
             weights: weightsFromModel(model),
             ...perf,
             windowYears: PERIOD_YEARS[period],
+            reallocationBand: ACTIVE_REALLOCATION_BAND, // v1 : null → comportement historique
           })
         : null,
     [model, perf, country, period],
@@ -288,6 +290,16 @@ export function QuadrantsView({
 
   return (
     <>
+      {IS_STAGING_V2 && (
+        <div
+          className="mb-3 flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+          role="status"
+        >
+          <span className="inline-block size-1.5 rounded-full bg-amber-500" aria-hidden />
+          Recette interne · moteur <span className="font-semibold">4q-standard-v2-rc1</span> actif
+          (non destiné à la production)
+        </div>
+      )}
       <ModelStickyControls
         tabs={TABS}
         activeTab={tab}
