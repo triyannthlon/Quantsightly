@@ -136,3 +136,27 @@ Une fois confirmée → **Go** possible (bascule page par page, v1 conservé pou
 | `src/lib/coredata/four-quadrants/band.test.ts` | + test mois bloqué (position courante) |
 | `src/app/(admin)/modeles/quadrants/composition.test.ts` | *(nouveau)* test transformation |
 | `experiments/4q-stabilisation/etude2-recette-v2.md` | ce rapport (mis à jour) |
+
+## 8. Sélection par VERSION (≠ staging) & cache (2026-07-21)
+
+### 8.1 Contenu piloté par la version active, pas par le staging
+`model-version-active.ts` sépare désormais deux concepts :
+- **`IS_MODEL_V2`** = `ACTIVE_MODEL_VERSION === "v2"` → **contenu** spécifique v2 (Méthodologie,
+  Composition « détenu vs cible »). **Suit la version active** : lors de la mise en production de v2
+  (défaut basculé), la formulation « réallocation conditionnelle » **reste affichée sans le flag**.
+- **`IS_STAGING_V2`** = `IS_MODEL_V2 && DEFAULT_MODEL_VERSION !== "v2"` → **bannière interne**
+  seulement (v2 forcée par le flag alors que le défaut reste v1). Disparaît quand v2 devient le défaut.
+
+La Composition (`v2={IS_MODEL_V2}`) et la Méthodologie utilisent **`IS_MODEL_V2`** ; seule la
+bannière garde `IS_STAGING_V2`. **Seuil/formule toujours confidentiels.**
+
+### 8.2 Cache / préchargement : aucune fuite v1↔v2
+- Page 4Q en **`export const dynamic = "force-dynamic"`** → pas de Full Route Cache ni de prérendu.
+- **Aucun** `unstable_cache` / `revalidate` / `"use cache"` / `React.cache` / cache `fetch` dans
+  `coredata` ou la page 4Q (le service lit la base via `pg` Pool — pas de cache de réponse Next).
+- La version est une **CONSTANTE DE BUILD** (`NEXT_PUBLIC_QS_MODEL_VERSION` inline, client + serveur) :
+  toute l'instance rend **une seule version** ⇒ **aucun mélange v1/v2** possible à l'exécution ; une
+  réponse v1 ne peut pas servir une page v2. Les actions serveur lisent la même constante.
+- Mémoïsation client (`quadrants-view`) : documentée — la version étant une constante de build,
+  aucune dépendance de mémo n'est requise ; **si la version devenait dynamique, l'ajouter aux deps
+  ET aux clés des actions serveur** (noté dans le code).

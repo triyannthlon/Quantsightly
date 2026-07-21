@@ -160,6 +160,10 @@ export function QuadrantsView({
             reallocationBand: ACTIVE_REALLOCATION_BAND, // v1 : null → comportement historique
           })
         : null,
+    // ⚠️ `ACTIVE_REALLOCATION_BAND` (la version) est une CONSTANTE DE BUILD (flag inline) :
+    // toute l'instance rend une seule version, aucun mélange v1/v2 possible à l'exécution → aucune
+    // dépendance de mémoïsation nécessaire. Si la version devenait dynamique (état/prop), l'ajouter
+    // ici ET aux clés des actions serveur.
     [model, perf, country, period],
   );
 

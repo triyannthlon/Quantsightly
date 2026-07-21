@@ -39,7 +39,7 @@ import {
   type PerfMode,
 } from "./helpers";
 import { availabilityMessage } from "./availability-message";
-import { IS_STAGING_V2 } from "./model-version-active";
+import { IS_MODEL_V2 } from "./model-version-active";
 
 type OkModel = Extract<QuadrantModel, { status: "OK" }>;
 type OkBacktest = Extract<BacktestResult, { status: "OK" }>;
@@ -1112,7 +1112,7 @@ export function QuadrantsCountryView({
             held={bt ? bt.heldAllocation : latest.finalAllocation}
             target={bt ? bt.targetAllocation : latest.finalAllocation}
             turnover={bt ? bt.turnover : null}
-            v2={IS_STAGING_V2}
+            v2={IS_MODEL_V2}
           />
         </section>
 

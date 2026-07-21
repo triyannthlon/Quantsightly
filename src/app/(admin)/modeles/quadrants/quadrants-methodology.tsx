@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { VERDICT_ORDER, VERDICT_TONE, VERDICT_DESC, type QuadrantsVerdict } from "./helpers";
-import { IS_STAGING_V2 } from "./model-version-active";
+import { IS_MODEL_V2 } from "./model-version-active";
 
 // Ordre d'ÉVALUATION des règles de profil (première remplie l'emporte) — identique à Browne.
 const RULE_ORDER: QuadrantsVerdict[] = [
@@ -296,9 +296,9 @@ Or           = 25 % · (1 + u_y/100)  Obligations  = 25 % · (1 − u_y/100)`}</
         </Sub>
 
         <Sub
-          title={IS_STAGING_V2 ? "Réallocation sans anticipation" : "Réallocation mensuelle sans anticipation"}
+          title={IS_MODEL_V2 ? "Réallocation sans anticipation" : "Réallocation mensuelle sans anticipation"}
           intuition={
-            IS_STAGING_V2
+            IS_MODEL_V2
               ? "On ne réalloue que lorsque l’écart aux cibles est significatif ; les nouveaux poids ne produisent de rendement qu’au mois suivant."
               : "On réalloue à la clôture d’un mois, mais les nouveaux poids ne produisent de rendement qu’au mois suivant."
           }
@@ -313,7 +313,7 @@ Or           = 25 % · (1 + u_y/100)  Obligations  = 25 % · (1 − u_y/100)`}</
             actifs pendant le mois :
           </p>
           <Formula>{`poids détenuₖ,ₜ = [ poids cibleₖ,ₜ₋₁ × (1 + rendementₖ,ₜ) ] / Σⱼ [ poids cibleⱼ,ₜ₋₁ × (1 + rendementⱼ,ₜ) ]`}</Formula>
-          {IS_STAGING_V2 ? (
+          {IS_MODEL_V2 ? (
             <p>
               Le modèle calcule régulièrement une allocation cible. Afin d’éviter des ajustements
               mineurs et des coûts de transaction inutiles, le portefeuille n’est réalloué que
@@ -387,7 +387,7 @@ Indice réelₜ = Indice nominalₜ / Indice CPIₜ`}</Formula>
             La rotation annualisée représente la part moyenne du portefeuille réallouée chaque année
             :
           </p>
-          {IS_STAGING_V2 && (
+          {IS_MODEL_V2 && (
             <p>
               La rotation mesure uniquement les réallocations <span className="font-medium text-foreground">effectivement exécutées</span>. Un
               changement d’allocation cible qui ne déclenche pas de transaction n’augmente pas la
@@ -474,7 +474,7 @@ Réduction drawdown = |Max DD actions| − |Max DD 4 Quadrants|
             <span className="font-medium text-foreground">Aucune anticipation</span> : les poids
             sont figés à la clôture du mois et appliqués au mois suivant.
           </li>
-          {IS_STAGING_V2 ? (
+          {IS_MODEL_V2 ? (
             <li>
               <span className="font-medium text-foreground">Réallocation conditionnelle</span> :
               l’allocation cible est recalculée à chaque clôture mensuelle, mais le portefeuille

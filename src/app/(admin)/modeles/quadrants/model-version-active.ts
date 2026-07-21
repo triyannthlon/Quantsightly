@@ -15,11 +15,21 @@ import {
 
 const raw = process.env.NEXT_PUBLIC_QS_MODEL_VERSION;
 
-/** Version méthodologique active (défaut = production v1). */
+/** Version méthodologique ACTIVE (défaut = production v1 ; forcée par le flag en staging). */
 export const ACTIVE_MODEL_VERSION: ModelVersion = raw === "v2" ? "v2" : DEFAULT_MODEL_VERSION;
 
 /** Bande de réallocation active (fraction ; `null` en v1) — pour le recalcul client. */
 export const ACTIVE_REALLOCATION_BAND = REALLOCATION_BAND[ACTIVE_MODEL_VERSION];
 
-/** Vrai en recette v2 (affiche la mention interne de staging). */
-export const IS_STAGING_V2 = ACTIVE_MODEL_VERSION === "v2";
+/**
+ * Sélecteur de CONTENU spécifique v2 (Méthodologie, Composition « détenu vs cible »).
+ * Suit la **version active**, PAS le staging : lorsque v2 deviendra le socle de production,
+ * la formulation « réallocation conditionnelle » restera affichée sans le flag.
+ */
+export const IS_MODEL_V2 = ACTIVE_MODEL_VERSION === "v2";
+
+/**
+ * Mention interne de RECETTE : v2 active alors que la production par défaut est encore v1
+ * (⇒ on a forcé v2 par le flag). Disparaît automatiquement quand v2 devient le défaut.
+ */
+export const IS_STAGING_V2 = IS_MODEL_V2 && DEFAULT_MODEL_VERSION !== "v2";
