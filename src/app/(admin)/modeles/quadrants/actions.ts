@@ -6,6 +6,7 @@ import {
   computeQuadrantsRealSeries,
 } from "@/lib/coredata/four-quadrants-service";
 import type { FourQuadrantsModelSettings } from "@/lib/coredata/four-quadrants";
+import { ACTIVE_MODEL_VERSION } from "./model-version-active";
 
 /** Charge les séries brutes (signal + perf) + config d'un pays (recalcul client-side du 4Q). */
 export async function loadCountryQuadrantModel(iso: string) {
@@ -27,7 +28,7 @@ export async function loadQuadrantComparison(
   settings: FourQuadrantsModelSettings,
   years: number | null,
 ) {
-  return computeAllCountryQuadrantModels(settings, years);
+  return computeAllCountryQuadrantModels(settings, years, ACTIVE_MODEL_VERSION);
 }
 
 /** Séries réelles (base 100) de 2–5 pays pour le comparateur multi-pays de vs Actions. */
@@ -36,5 +37,5 @@ export async function loadQuadrantsRealSeries(
   settings: FourQuadrantsModelSettings,
   years: number | null,
 ) {
-  return computeQuadrantsRealSeries(codes, settings, years);
+  return computeQuadrantsRealSeries(codes, settings, years, ACTIVE_MODEL_VERSION);
 }

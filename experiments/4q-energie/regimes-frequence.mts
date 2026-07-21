@@ -8,7 +8,7 @@ import path from "node:path";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const env = readFileSync(path.join(root, ".env"), "utf8");
 const line = env.split(/\r?\n/).find((l) => l.startsWith("CODEDATA_DATABASE_URL="));
-process.env.CODEDATA_DATABASE_URL = line.slice("CODEDATA_DATABASE_URL=".length).trim().replace(/^"|"$/g, "");
+process.env.CODEDATA_DATABASE_URL = line!.slice("CODEDATA_DATABASE_URL=".length).trim().replace(/^"|"$/g, "");
 
 const svc = await import(
   pathToFileURL(path.join(root, "src/lib/coredata/four-quadrants-service.ts")).href

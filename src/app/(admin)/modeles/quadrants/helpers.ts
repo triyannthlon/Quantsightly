@@ -195,6 +195,19 @@ export const SLEEVE_META = {
 export type SleeveKey = keyof typeof SLEEVE_META;
 export const CORE_SLEEVES: SleeveKey[] = ["equities", "bonds", "gold", "cash"];
 
+/**
+ * Divergence VISIBLE entre poids détenus et poids cibles (au pourcentage AFFICHÉ) —
+ * sert à décider si l'UI v2 doit montrer le bloc secondaire « détenu vs cible ».
+ * ⚠️ Indépendant du seuil de la bande : compare uniquement les % arrondis à l'écran,
+ * ne révèle donc aucune valeur propriétaire.
+ */
+export function compositionDiverges(
+  held: Record<SleeveKey, number>,
+  target: Record<SleeveKey, number>,
+): boolean {
+  return CORE_SLEEVES.some((k) => Math.round(held[k] * 100) !== Math.round(target[k] * 100));
+}
+
 // ─── Formatters ──────────────────────────────────────────────────────────────
 
 /** Coordonnée signée [-100,100] arrondie (« +66 », « −12 »). */

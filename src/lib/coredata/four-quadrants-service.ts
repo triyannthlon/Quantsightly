@@ -25,6 +25,9 @@ import {
   type BacktestStatus,
   type BacktestMetrics,
   type Availability,
+  REALLOCATION_BAND,
+  DEFAULT_MODEL_VERSION,
+  type ModelVersion,
 } from "./four-quadrants";
 
 /** Séries globales cotées en USD, communes à tous les pays. */
@@ -251,10 +254,16 @@ function runBacktest(
   countryCode: string,
   model: QuadrantModel,
   perf: QuadrantPerfInput,
+  version: ModelVersion = DEFAULT_MODEL_VERSION,
 ): BacktestResult {
   if (model.status !== "OK")
     return { status: "MISSING_SERIES", countryCode, availability: availabilityOf("MISSING_SERIES") };
-  return backtestQuadrants({ countryCode, weights: weightsFromModel(model), ...perf });
+  return backtestQuadrants({
+    countryCode,
+    weights: weightsFromModel(model),
+    ...perf,
+    reallocationBand: REALLOCATION_BAND[version],
+  });
 }
 
 // ─── API publique ───────────────────────────────────────────────────────────
@@ -293,6 +302,7 @@ export async function computeQuadrantsRealSeries(
   codes: string[],
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
   years: number | null = null,
+  version: ModelVersion = DEFAULT_MODEL_VERSION,
 ): Promise<QuadrantsRealSeries[]> {
   const ctx = await loadContext();
   return Promise.all(
@@ -308,6 +318,7 @@ export async function computeQuadrantsRealSeries(
         weights: weightsFromModel(model),
         ...perf,
         windowYears: years,
+        reallocationBand: REALLOCATION_BAND[version],
       });
       return {
         countryCode: code,
@@ -322,6 +333,7 @@ export async function computeQuadrantsRealSeries(
 export async function getCountryQuadrantModel(
   countryCode: string,
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
+  version: ModelVersion = DEFAULT_MODEL_VERSION,
 ): Promise<CountryQuadrantModel> {
   const ctx = await loadContext();
   const config = deriveQuadrantConfig(countryCode, ctx.series, ctx.countries);
@@ -338,7 +350,7 @@ export async function getCountryQuadrantModel(
 
   const { signal, perf } = await loadSeries(config, ctx);
   const model = buildModel(signal, settings);
-  const backtest = runBacktest(countryCode, model, perf);
+  const backtest = runBacktest(countryCode, model, perf, version);
   return { config, dataQuality: dataQualityOf(config, model), signal, perf, model, backtest };
 }
 
@@ -378,6 +390,7 @@ function emptyRow(
 export async function computeAllCountryQuadrantModels(
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
   years: number | null = null,
+  version: ModelVersion = DEFAULT_MODEL_VERSION,
 ): Promise<QuadrantModelRow[]> {
   const ctx = await loadContext();
   const codes = [
@@ -415,6 +428,7 @@ export async function computeAllCountryQuadrantModels(
         weights: weightsFromModel(model),
         ...perf,
         windowYears: years,
+        reallocationBand: REALLOCATION_BAND[version],
       });
       if (backtest.status !== "OK") {
         return {
