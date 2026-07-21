@@ -78,19 +78,15 @@ OTP de Yann** (et je n'ai ni bypassé l'auth ni écrit en base). **À faire par 
 vérifier visuellement les 4 onglets + responsive. La recette **data-level + code** ci-dessus couvre
 les points 1–7 de façon déterministe ; seul le point 8 (visuel/responsive) reste à confirmer à l'œil.
 
-## 6. Recommandation — **NO-GO tant que la recette visuelle n'est pas validée**
+## 6. Recommandation — **candidat `4q-standard-v2-rc2` VALIDÉ** (recette complète OK)
 
-Le **moteur v2 est validé et correct**, les métriques s'affichent juste, et **les deux correctifs
-bloquants sont désormais APPLIQUÉS** (§7). Reste **un seul point ouvert** :
+Le **moteur v2 est validé et correct**, les métriques s'affichent juste, les correctifs bloquants
+sont appliqués (§7), les ajustements desktop sont faits (§9), et la **recette visuelle complète est
+validée** (§10). ⇒ Le candidat est figé en **`4q-standard-v2-rc2`**.
 
-- **[À confirmer par Yann] Recette visuelle/responsive** en `NEXT_PUBLIC_QS_MODEL_VERSION=v2` (auth
-  requise) : rendu des 4 onglets, bloc « détenu vs cible » sur un pays en état conservé (ex. GB),
-  Méthodologie v2, responsive.
-
-Le statut reste **NO-GO** tant que cette recette visuelle n'est pas faite et validée par Yann.
-Une fois confirmée → **Go** possible (bascule page par page, v1 conservé pour rollback).
-
-⚠️ Rappel : aucun merge, aucune migration, aucune suppression de v1 avant validation finale de Yann.
+⚠️ **La BASCULE de production reste une décision séparée** (Go/No-Go) : le candidat est prêt, mais
+la production **reste en v1** tant que Yann n'a pas validé le **plan de fusion et de bascule**
+(`etude2-v2-bascule-plan.md`). Aucun merge, aucune bascule, aucune suppression de v1 sans son accord.
 
 ## 7. Correctifs appliqués (2026-07-21)
 
@@ -175,3 +171,23 @@ appliqués au bloc secondaire de la Composition :
 
 **Reste avant Go final** (côté Yann) : recette **responsive** (mobile/tablette/bureau), vérification
 **Méthodologie** v2, **console/hydratation**. `rc2` sera créé **après** cette recette complète.
+
+## 10. Recette visuelle COMPLÈTE — VALIDÉE (Yann, 2026-07-21)
+
+Recette réalisée en local avec `NEXT_PUBLIC_QS_MODEL_VERSION=v2`. Tous les points **conformes** :
+
+| Contrôle | Résultat |
+|---|---|
+| Les 4 onglets (Vue pays · Comparaison · vs Actions · Méthodologie) sans régression | ✅ |
+| GB : Composition principale = poids **détenus** (≠ cible) | ✅ |
+| Bloc « Détenue / Cible » apparaît en divergence, disparaît si identiques | ✅ |
+| Arrondis & totaux des allocations cohérents (détenus dérivés, jamais forcés 50/50) | ✅ |
+| Rotation / fréquence / sources de performance cohérentes avec les poids détenus | ✅ |
+| Méthodologie v2 **sans** seuil ni formule confidentiels | ✅ |
+| Navigation entre pays & rechargements — aucun mélange v1/v2 | ✅ |
+| Console / hydratation — aucune erreur | ✅ |
+| Rendus **mobile / tablette / bureau** | ✅ |
+| Comportement **v1** après relance **sans** le flag — inchangé | ✅ |
+
+⇒ **Candidat figé `4q-standard-v2-rc2`.** La suite (fusion + bascule production) est décrite dans
+`etude2-v2-bascule-plan.md` et attend la décision Go/No-Go de Yann.
