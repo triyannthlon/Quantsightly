@@ -22,9 +22,9 @@
 | 5 | Rotation & fréquence = concordance | ✅ | US 36,8→24,2 %, fréq 11,6→3,4/an ; FR 43,9→32,4 % ; IN 47,8→36,0 % ; CN 39,8→27,3 % (= rapport de concordance). |
 | 6 | Périodes / indispo / nominal-réel corrects | ✅ | **Fenêtre effective IDENTIQUE v1 vs v2** (mêmes start/end/mois) ; garde-fous d'indisponibilité **avant** la bande (inchangés) ; modes nominal/réel intacts. |
 | 7 | Seuil/formule non exposés publiquement | ✅ (donnée) / ⚠️ (texte) | Le seuil δ n'apparaît nulle part. **Mais** la Méthodologie décrit v1 et **nie** tout seuil (cf. §3). |
-| 8 | Aucune régression responsive/visuelle | ✅ *(attendu)* | Diff = ajout d'une bannière + valeurs (rotation/perf) qui baissent ; **aucun changement de structure/layout**. *(Confirmation visuelle à faire, cf. §5.)* |
-| 1 | Allocation affichée = poids **détenus**, pas systématiquement la cible | ❌ **DIVERGENCE** | La carte « Composition du portefeuille » affiche `latest.finalAllocation` = **la CIBLE** (la bande ne change pas les cibles). |
-| 2 | Un mouvement bloqué par la bande ≠ réallocation affichée | ❌ **DIVERGENCE** | Corollaire du #1 : quand la dernière réallocation est bloquée, l'UI montre la cible comme si le portefeuille l'avait rejointe. |
+| 8 | Aucune régression responsive/visuelle | ✅ *(attendu)* | Diff = bannière + bloc secondaire conditionnel + valeurs (rotation/perf) qui baissent ; aucun changement de structure. *(Confirmation visuelle à faire, cf. §5.)* |
+| 1 | Allocation affichée = poids **détenus**, pas systématiquement la cible | ✅ **CORRIGÉ** | La Composition affiche désormais `bt.heldAllocation` (poids détenus). Cf. §7. |
+| 2 | Un mouvement bloqué par la bande ≠ réallocation affichée | ✅ **CORRIGÉ** | Bloc secondaire « détenu vs cible » + statut « Aucune réallocation ce mois-ci » quand ils divergent. Cf. §7. |
 
 ## 2. Divergence affichage ↔ moteur (la seule bloquante)
 
@@ -78,17 +78,61 @@ OTP de Yann** (et je n'ai ni bypassé l'auth ni écrit en base). **À faire par 
 vérifier visuellement les 4 onglets + responsive. La recette **data-level + code** ci-dessus couvre
 les points 1–7 de façon déterministe ; seul le point 8 (visuel/responsive) reste à confirmer à l'œil.
 
-## 6. Recommandation — **NO-GO (conditionnel) pour la bascule production**
+## 6. Recommandation — **NO-GO tant que la recette visuelle n'est pas validée**
 
-Le **moteur v2 est validé et correct** ; **les métriques (rotation, fréquence, performance,
-périodes) s'affichent juste** et concordent. **MAIS deux correctifs sont requis AVANT toute bascule** :
+Le **moteur v2 est validé et correct**, les métriques s'affichent juste, et **les deux correctifs
+bloquants sont désormais APPLIQUÉS** (§7). Reste **un seul point ouvert** :
 
-1. **[Bloquant] Composition = poids détenus** (exposer `held` courant, afficher Détenu/Cible).
-2. **[Bloquant] Méthodologie** : réécrire les 2-3 passages « réallocation mensuelle intégrale / pas
-   de seuil » pour décrire le principe de la bande **sans révéler δ**.
-3. **[À confirmer] Recette visuelle/responsive** par Yann (auth requise).
+- **[À confirmer par Yann] Recette visuelle/responsive** en `NEXT_PUBLIC_QS_MODEL_VERSION=v2` (auth
+  requise) : rendu des 4 onglets, bloc « détenu vs cible » sur un pays en état conservé (ex. GB),
+  Méthodologie v2, responsive.
 
-Une fois ces points traités et re-validés → **Go** possible pour la bascule (page par page, v1
-conservé pour rollback). **En l'état : NO-GO** — ne pas basculer la production.
+Le statut reste **NO-GO** tant que cette recette visuelle n'est pas faite et validée par Yann.
+Une fois confirmée → **Go** possible (bascule page par page, v1 conservé pour rollback).
 
 ⚠️ Rappel : aucun merge, aucune migration, aucune suppression de v1 avant validation finale de Yann.
+
+## 7. Correctifs appliqués (2026-07-21)
+
+### 7.1 Composition = poids détenus (points 1 & 2)
+- **Moteur** (`backtest.ts`) : le résultat OK expose désormais **`heldAllocation`** (poids réellement
+  détenus au dernier mois = position courante, base de la performance réelle) et **`targetAllocation`**
+  (poids cibles théoriques avant la bande). En **v1** (sans bande), `heldAllocation === targetAllocation`.
+- **UI** (`quadrants-country-view` / `CompositionCard`) : sous v2, la carte affiche **`heldAllocation`**
+  (sous-titre « Allocation réellement détenue »). Si détenu et cible **divergent au %**
+  (`compositionDiverges`, indépendant du seuil), un **bloc secondaire** liste **Actuelle (détenu)**
+  vs **Cible** + le statut **« Aucune réallocation ce mois-ci — allocation conservée »**. Si identiques
+  → une seule composition. **En v1 le rendu est strictement inchangé** (held === target, sous-titre « cible »).
+- **Vérifs demandées** : ✅ **Sources de performance** = poids détenus (contributions calculées sur
+  `held` dans la boucle) · ✅ **Rotation** = transactions réellement exécutées (turnover = 0 quand la
+  bande retient) · ✅ **Aucun** autre composant AFFICHÉ ne réutilise `finalAllocation` comme poids
+  détenus (`decision-panel` utilise `finalAllocation` mais **n'est pas affiché** — phase 2 masquée ;
+  `helpers.ts` l'utilise pour une phrase de **régime** en comparaison, pas comme position détenue).
+
+### 7.2 Méthodologie sans révéler δ (point 7)
+`quadrants-methodology` rendu **version-aware** (gaté sur `IS_STAGING_V2` ⇒ **v1 inchangé**) :
+- « Réallocation mensuelle sans anticipation » → sous v2 : *« … le portefeuille n'est réalloué que
+  lorsque l'écart entre l'allocation détenue et l'allocation cible devient suffisamment significatif… »*.
+- Hypothèse « intégralement ramené chaque mois / pas de seuil » → remplacée par « Réallocation
+  **conditionnelle** » (même formulation, sans chiffrer).
+- Rotation → ajout : *« La rotation mesure uniquement les réallocations effectivement exécutées… »*.
+- **Ni `δ`, ni 5 %, ni la formule de décision ne sont mentionnés.**
+
+### 7.3 Tests & validation
+- **`band.test.ts`** : + test « position courante » (mois bloqué type GB : détenu ≠ cible, **perf =
+  détenu** [nominal 102,5 ≠ 102,8], **rotation nulle**, cible dispo ; v1 : détenu === cible).
+- **`composition.test.ts`** : transformation `compositionDiverges` (identiques → non ; cas GB → oui).
+- **Golden v1 `standard-v1.test.ts` : STRICTEMENT inchangé** (fichier `golden.json` non modifié).
+  Golden v2 `standard-v2.test.ts` : inchangé.
+- **212 tests verts · tsc · ESLint · build OK** (build sans flag ⇒ v1, production inchangée).
+
+### 7.4 Fichiers modifiés / ajoutés (correctifs)
+| Fichier | Nature |
+|---|---|
+| `src/lib/coredata/four-quadrants/backtest.ts` | + `heldAllocation` / `targetAllocation` (suivi `held` courant) |
+| `src/app/(admin)/modeles/quadrants/helpers.ts` | + `compositionDiverges` |
+| `src/app/(admin)/modeles/quadrants/quadrants-country-view.tsx` | `CompositionCard` détenu/cible + bloc secondaire |
+| `src/app/(admin)/modeles/quadrants/quadrants-methodology.tsx` | passages gatés v2 (sans δ) |
+| `src/lib/coredata/four-quadrants/band.test.ts` | + test mois bloqué (position courante) |
+| `src/app/(admin)/modeles/quadrants/composition.test.ts` | *(nouveau)* test transformation |
+| `experiments/4q-stabilisation/etude2-recette-v2.md` | ce rapport (mis à jour) |

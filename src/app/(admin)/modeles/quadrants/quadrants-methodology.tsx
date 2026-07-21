@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { VERDICT_ORDER, VERDICT_TONE, VERDICT_DESC, type QuadrantsVerdict } from "./helpers";
+import { IS_STAGING_V2 } from "./model-version-active";
 
 // Ordre d'ÉVALUATION des règles de profil (première remplie l'emporte) — identique à Browne.
 const RULE_ORDER: QuadrantsVerdict[] = [
@@ -295,8 +296,12 @@ Or           = 25 % · (1 + u_y/100)  Obligations  = 25 % · (1 − u_y/100)`}</
         </Sub>
 
         <Sub
-          title="Réallocation mensuelle sans anticipation"
-          intuition="On réalloue à la clôture d’un mois, mais les nouveaux poids ne produisent de rendement qu’au mois suivant."
+          title={IS_STAGING_V2 ? "Réallocation sans anticipation" : "Réallocation mensuelle sans anticipation"}
+          intuition={
+            IS_STAGING_V2
+              ? "On ne réalloue que lorsque l’écart aux cibles est significatif ; les nouveaux poids ne produisent de rendement qu’au mois suivant."
+              : "On réalloue à la clôture d’un mois, mais les nouveaux poids ne produisent de rendement qu’au mois suivant."
+          }
         >
           <p>
             À la fin de chaque mois <span className="font-mono">t</span>, les coordonnées d’activité
@@ -308,11 +313,21 @@ Or           = 25 % · (1 + u_y/100)  Obligations  = 25 % · (1 − u_y/100)`}</
             actifs pendant le mois :
           </p>
           <Formula>{`poids détenuₖ,ₜ = [ poids cibleₖ,ₜ₋₁ × (1 + rendementₖ,ₜ) ] / Σⱼ [ poids cibleⱼ,ₜ₋₁ × (1 + rendementⱼ,ₜ) ]`}</Formula>
-          <p>
-            Le portefeuille est ensuite réalloué des poids détenus vers les nouveaux poids cibles.
-            Les actifs surpondérés sont partiellement vendus et le produit de ces ventes sert à
-            acheter les actifs sous-pondérés.
-          </p>
+          {IS_STAGING_V2 ? (
+            <p>
+              Le modèle calcule régulièrement une allocation cible. Afin d’éviter des ajustements
+              mineurs et des coûts de transaction inutiles, le portefeuille n’est réalloué que
+              lorsque l’écart entre l’allocation détenue et l’allocation cible devient suffisamment
+              significatif. Les poids effectivement détenus sont ensuite appliqués à la période
+              suivante.
+            </p>
+          ) : (
+            <p>
+              Le portefeuille est ensuite réalloué des poids détenus vers les nouveaux poids cibles.
+              Les actifs surpondérés sont partiellement vendus et le produit de ces ventes sert à
+              acheter les actifs sous-pondérés.
+            </p>
+          )}
           <p>Les nouveaux poids sont appliqués uniquement aux rendements du mois suivant :</p>
           <Formula>{`r₄Q,ₜ₊₁ = Σₖ w*ₖ,ₜ × rₖ,ₜ₊₁`}</Formula>
           <p>
@@ -372,6 +387,13 @@ Indice réelₜ = Indice nominalₜ / Indice CPIₜ`}</Formula>
             La rotation annualisée représente la part moyenne du portefeuille réallouée chaque année
             :
           </p>
+          {IS_STAGING_V2 && (
+            <p>
+              La rotation mesure uniquement les réallocations <span className="font-medium text-foreground">effectivement exécutées</span>. Un
+              changement d’allocation cible qui ne déclenche pas de transaction n’augmente pas la
+              rotation du portefeuille.
+            </p>
+          )}
           <Formula>{`Rotation annualisée = moyenne des rotations mensuelles observées × 12
                     = ( Σ rotations / nombre de mois disposant d'une rotation ) × 12`}</Formula>
           <p>
@@ -452,15 +474,27 @@ Réduction drawdown = |Max DD actions| − |Max DD 4 Quadrants|
             <span className="font-medium text-foreground">Aucune anticipation</span> : les poids
             sont figés à la clôture du mois et appliqués au mois suivant.
           </li>
-          <li>
-            <span className="font-medium text-foreground">Réallocation mensuelle</span> :
-            l’allocation cible est recalculée à chaque clôture mensuelle et appliquée au mois
-            suivant. Le portefeuille est intégralement ramené vers cette cible chaque mois. Il
-            n’existe pas de seuil de non-intervention supplémentaire : la zone neutre{" "}
-            <span className="font-mono">T</span> agit sur la construction du signal, pas sur
-            l’exécution des transactions. La rotation est mesurée, mais les coûts de transaction ne
-            sont pas facturés.
-          </li>
+          {IS_STAGING_V2 ? (
+            <li>
+              <span className="font-medium text-foreground">Réallocation conditionnelle</span> :
+              l’allocation cible est recalculée à chaque clôture mensuelle, mais le portefeuille
+              n’est réalloué que lorsque l’écart entre l’allocation détenue et l’allocation cible
+              devient suffisamment significatif — afin d’éviter des ajustements mineurs et des coûts
+              inutiles. La zone neutre <span className="font-mono">T</span> agit sur la construction
+              du signal, pas sur l’exécution. La rotation est mesurée sur les transactions
+              réellement exécutées, mais les coûts de transaction ne sont pas facturés.
+            </li>
+          ) : (
+            <li>
+              <span className="font-medium text-foreground">Réallocation mensuelle</span> :
+              l’allocation cible est recalculée à chaque clôture mensuelle et appliquée au mois
+              suivant. Le portefeuille est intégralement ramené vers cette cible chaque mois. Il
+              n’existe pas de seuil de non-intervention supplémentaire : la zone neutre{" "}
+              <span className="font-mono">T</span> agit sur la construction du signal, pas sur
+              l’exécution des transactions. La rotation est mesurée, mais les coûts de transaction ne
+              sont pas facturés.
+            </li>
+          )}
           <li>
             <span className="font-medium text-foreground">Régime sur historique complet</span> : le
             régime, les coordonnées et l’allocation courants sont calculés sur tout l’historique

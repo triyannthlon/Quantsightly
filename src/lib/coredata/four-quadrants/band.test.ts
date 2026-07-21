@@ -115,6 +115,36 @@ describe("Bande de réallocation v2 — mécanique", () => {
     for (const p of bt.series.nominal) { expect(Number.isFinite(p.value)).toBe(true); expect(p.value).toBeGreaterThan(0); }
   });
 
+  it("position courante : détenu ≠ cible sous v2 (mois bloqué type GB), perf = détenu, rotation nulle", () => {
+    // Cash/oblig/or plats ; actions +10 % au dernier mois. Cibles dérivant lentement →
+    // toutes les réallocations sont RETENUES par la bande → détenu reste ≈ 25/25/25/25.
+    const perf = {
+      equityTotalReturn: [100, 100, 100, 110].map((v, i) => ({ date: month(i), value: v })),
+      bondTotalReturn: series(4),
+      cashTotalReturn: series(4),
+      gold: series(4),
+    };
+    const tg = weights([a(0.25, 0.25, 0.25, 0.25), a(0.26, 0.25, 0.25, 0.24), a(0.27, 0.25, 0.25, 0.23), a(0.28, 0.25, 0.25, 0.22)]);
+    const v2 = backtestQuadrants({ countryCode: "T", weights: tg, ...perf, reallocationBand: V2 });
+    expect(v2.status).toBe("OK");
+    if (v2.status !== "OK") return;
+    // Détenu (position réelle) ≠ cible (théorique du dernier mois).
+    expect(v2.heldAllocation.equities).toBeCloseTo(0.2683, 3); // 25 % dérivé par +10 % actions
+    expect(v2.targetAllocation.equities).toBeCloseTo(0.28, 6); // cible du dernier mois
+    // Performance calculée sur les poids DÉTENUS (25 % actions), pas la cible (28 %).
+    expect(v2.series.nominal.at(-1)!.value).toBeCloseTo(102.5, 4); // 25 %×(+10 %) → 102,5 (≠ 102,8)
+    // Aucune réallocation exécutée : toutes les transactions sont nulles.
+    for (const t of v2.turnover.monthly) if (t.turnover != null) expect(t.turnover).toBe(0);
+    expect(v2.turnover.annualized).toBe(0);
+
+    // v1 (sans bande) : réallocation pleine chaque mois → détenu === cible ; perf = 27 %.
+    const v1 = backtestQuadrants({ countryCode: "T", weights: tg, ...perf });
+    if (v1.status !== "OK") return;
+    expect(v1.heldAllocation).toEqual(v1.targetAllocation);
+    expect(v1.heldAllocation.equities).toBeCloseTo(0.28, 6);
+    expect(v1.series.nominal.at(-1)!.value).toBeCloseTo(102.7, 4); // 27 % détenu au dernier mois
+  });
+
   it("discontinuité de données : v1 et v2 renvoient le MÊME statut (garde-fou inchangé)", () => {
     // actions sans le mois 2000-03 (trou) ; autres poches complètes.
     const equityTotalReturn = [{ date: month(0), value: 100 }, { date: month(1), value: 101 }, { date: month(3), value: 103 }];

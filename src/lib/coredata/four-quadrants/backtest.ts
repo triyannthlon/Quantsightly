@@ -149,6 +149,14 @@ export type BacktestResult =
       contributions: SleeveContributions;
       /** Rotation du portefeuille (indépendante du mode nominal/réel). */
       turnover: TurnoverResult;
+      /**
+       * Poids RÉELLEMENT DÉTENUS au dernier mois signalé (position courante) — ceux qui
+       * déterminent la performance réelle. En v1 (sans bande) = `targetAllocation`. En v2,
+       * peut différer si la dernière réallocation a été retenue par la bande.
+       */
+      heldAllocation: FinalAllocation;
+      /** Poids CIBLES du dernier mois (théoriques, produits par le modèle avant la bande). */
+      targetAllocation: FinalAllocation;
     }
   | {
       status: Exclude<BacktestStatus, "OK">;
@@ -560,6 +568,9 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
   // mois j. Initialisés à la 1ʳᵉ cible (constitution). La rotation et le rendement
   // s'appuient sur ces poids détenus, JAMAIS sur la cible précédente.
   let held: FinalAllocation = wByMonth.get(monthKey(rows[start].date))!;
+  // Position COURANTE exposée à l'UI : poids détenus + cible du DERNIER mois signalé.
+  let latestHeld: FinalAllocation = held;
+  let latestTarget: FinalAllocation = held;
   for (let j = start + 1; j < rows.length; j++) {
     const w = wByMonth.get(monthKey(rows[j - 1].date));
     if (!w) continue;
@@ -599,6 +610,8 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
         turnover = computeMonthlyTurnover(drifted, target);
         held = target; // réallocation pleine vers la cible
       }
+      latestHeld = held; // position courante = dernier mois DISPOSANT d'une cible
+      latestTarget = target;
     } else {
       held = drifted; // au-delà de la dernière cible : on garde les poids dérivés (hors fenêtre)
     }
@@ -703,6 +716,8 @@ export function backtestQuadrants(input: BacktestInput): BacktestResult {
     },
     contributions,
     turnover,
+    heldAllocation: latestHeld,
+    targetAllocation: latestTarget,
   };
 }
 

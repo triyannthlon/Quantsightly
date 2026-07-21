@@ -28,6 +28,7 @@ import {
   STRATEGY_LABELS,
   SLEEVE_META,
   CORE_SLEEVES,
+  compositionDiverges,
   mergeChart,
   drawdownSeries,
   fmtPct0,
@@ -38,6 +39,7 @@ import {
   type PerfMode,
 } from "./helpers";
 import { availabilityMessage } from "./availability-message";
+import { IS_STAGING_V2 } from "./model-version-active";
 
 type OkModel = Extract<QuadrantModel, { status: "OK" }>;
 type OkBacktest = Extract<BacktestResult, { status: "OK" }>;
@@ -745,18 +747,28 @@ function Stat({ label, value }: { label: string; value: string }) {
 // ─── Composition + Sources + Qualité ─────────────────────────────────────────
 
 function CompositionCard({
-  alloc,
+  held,
+  target,
   turnover,
+  v2,
 }: {
-  alloc: OkModel["latest"]["finalAllocation"];
+  held: OkModel["latest"]["finalAllocation"];
+  target: OkModel["latest"]["finalAllocation"];
   turnover: TurnoverResult | null;
+  v2: boolean;
 }) {
+  // v2 : la carte principale montre les poids DÉTENUS (ceux qui font la performance réelle).
+  // v1 : `held` === `target` → rendu strictement identique à l'historique.
+  const alloc = v2 ? held : target;
+  const diverges = v2 && compositionDiverges(held, target);
   const sleeves = [...CORE_SLEEVES].sort((a, b) => alloc[b] - alloc[a]);
   return (
     <Card className="p-4">
       <h3 className="mb-1 text-sm font-semibold">Composition du portefeuille</h3>
       <p className="mb-3 text-xs text-muted-foreground">
-        Allocation cible au dernier mois clôturé (elle évolue avec le régime).
+        {v2
+          ? "Allocation réellement détenue au dernier mois clôturé (poids appliqués au portefeuille)."
+          : "Allocation cible au dernier mois clôturé (elle évolue avec le régime)."}
       </p>
       <div className="space-y-2.5">
         {sleeves.map((k) => {
@@ -781,6 +793,27 @@ function CompositionCard({
           );
         })}
       </div>
+
+      {diverges && (
+        <div className="mt-3 rounded-md border border-border/60 bg-muted/20 p-3">
+          <p className="text-xs font-medium">Aucune réallocation ce mois-ci — allocation conservée.</p>
+          <div className="mt-2 grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-1 text-xs">
+            <span />
+            <span className="text-right font-medium text-muted-foreground">Actuelle</span>
+            <span className="text-right font-medium text-muted-foreground">Cible</span>
+            {CORE_SLEEVES.map((k) => (
+              <div key={k} className="contents">
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full" style={{ background: SLEEVE_META[k].hex }} />
+                  {SLEEVE_META[k].label}
+                </span>
+                <span className="text-right font-semibold tabular-nums">{fmtPct0(held[k])}</span>
+                <span className="text-right tabular-nums text-muted-foreground">{fmtPct0(target[k])}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {turnover && (
         <div className="mt-4 border-t border-border/50 pt-3">
@@ -1075,7 +1108,12 @@ export function QuadrantsCountryView({
 
         {/* Composition */}
         <section id="composition" className="scroll-mt-[var(--model-header-offset,96px)]">
-          <CompositionCard alloc={latest.finalAllocation} turnover={bt ? bt.turnover : null} />
+          <CompositionCard
+            held={bt ? bt.heldAllocation : latest.finalAllocation}
+            target={bt ? bt.targetAllocation : latest.finalAllocation}
+            turnover={bt ? bt.turnover : null}
+            v2={IS_STAGING_V2}
+          />
         </section>
 
         {/* Sources + Qualité */}
