@@ -15,6 +15,8 @@ import {
   backtestQuadrants,
   weightsFromModel,
   availabilityOf,
+  computeEnergyTrendSignal,
+  energyTrendScores,
   DEFAULT_FOUR_QUADRANTS_SETTINGS,
   type FourQuadrantsModelSettings,
   type BuildModelInput,
@@ -29,10 +31,12 @@ import {
   DEFAULT_MODEL_VERSION,
   type ModelVersion,
 } from "./four-quadrants";
+import { readEnergyOverlay, type EnergyOverlayVersion } from "./energy-overlay-config";
 
 /** Séries globales cotées en USD, communes à tous les pays. */
 const GLOBAL_OIL_ID = "CL1 comdty-XX-5-1"; // WTI
 const GLOBAL_GOLD_ID = "XAU Comdty-XX-5-1"; // Or
+const GLOBAL_ENERGY_ID = "SPDYENT Index-XX-5-2"; // S&P GSCI Energy Dynamic Roll TR (surcouche `trend-v1`)
 
 /** En deçà de cette profondeur de série mensuelle scorée, l'historique est « court ». */
 export const SHORT_HISTORY_MONTHS = 120; // 10 ans de coordonnées
@@ -166,6 +170,20 @@ interface QuadrantContext {
   usdPerUnit: Map<string, Map<string, number>>;
   oil: EconomicDataPoint[];
   gold: EconomicDataPoint[];
+  /** Surcouche Énergie active (lue au build). `off` = socle v2. */
+  overlay: EnergyOverlayVersion;
+  /** SPDYENT (niveau USD) — chargé UNIQUEMENT si `overlay === "trend-v1"`, sinon `null`. */
+  energyUsd: EconomicDataPoint[] | null;
+  /** Scores de tendance injectables (100 actif / 0 inactif dispo) — `null` hors `trend-v1`. */
+  energyScores: EconomicDataPoint[] | null;
+}
+
+/** Réglages effectifs : mode `trend` sous la surcouche, inchangés sinon (socle v2). */
+function overlaySettings(
+  settings: FourQuadrantsModelSettings,
+  ctx: QuadrantContext,
+): FourQuadrantsModelSettings {
+  return ctx.overlay === "trend-v1" ? { ...settings, energyMode: "trend" } : settings;
 }
 
 function buildConverter(usdPerUnit: Map<string, Map<string, number>>) {
@@ -178,7 +196,7 @@ function buildConverter(usdPerUnit: Map<string, Map<string, number>>) {
   };
 }
 
-async function loadContext(): Promise<QuadrantContext> {
+async function loadContext(overlay: EnergyOverlayVersion): Promise<QuadrantContext> {
   const [series, ref, fxRates] = await Promise.all([
     listSeries(),
     getReferenceData(),
@@ -191,7 +209,14 @@ async function loadContext(): Promise<QuadrantContext> {
     getSeriesData(GLOBAL_OIL_ID),
     getSeriesData(GLOBAL_GOLD_ID),
   ]);
-  return { series, countries: ref.countries, usdPerUnit, oil, gold };
+  // Surcouche `trend-v1` : charger SPDYENT (USD) + calculer le signal SMA6 (une fois, global).
+  let energyUsd: EconomicDataPoint[] | null = null;
+  let energyScores: EconomicDataPoint[] | null = null;
+  if (overlay === "trend-v1") {
+    energyUsd = await getSeriesData(GLOBAL_ENERGY_ID);
+    energyScores = energyTrendScores(computeEnergyTrendSignal(energyUsd));
+  }
+  return { series, countries: ref.countries, usdPerUnit, oil, gold, overlay, energyUsd, energyScores };
 }
 
 /** Devise source d'une série depuis le catalogue (repli USD). */
@@ -203,7 +228,7 @@ function seriesCurrency(ctx: QuadrantContext, id: string): string {
 async function loadSeries(
   config: QuadrantModelConfig,
   ctx: QuadrantContext,
-): Promise<{ signal: BuildModelInput; perf: QuadrantPerfInput }> {
+): Promise<{ signal: BuildModelInput; perf: QuadrantPerfInput; energyLocal: EconomicDataPoint[] | null }> {
   const cur = (id: string) => seriesCurrency(ctx, id);
   const [equityPriceRaw, equityTRRaw, bondRaw, cashRaw, cpiRaw] = await Promise.all([
     getSeriesData(config.equityPriceId),
@@ -223,9 +248,22 @@ async function loadSeries(
   const cash = convert(cashRaw, cur(config.cashId), t);
   const gold = convert(ctx.gold, cur(GLOBAL_GOLD_ID), t);
   const oil = convert(ctx.oil, cur(GLOBAL_OIL_ID), t);
+  // Surcouche `trend-v1` : SPDYENT converti en devise locale (MÊME méthode que l'or), pour la
+  // perf de la poche Énergie ; signal de tendance (global USD) injecté via `energyScore`.
+  const energyLocal =
+    ctx.overlay === "trend-v1" && ctx.energyUsd
+      ? convert(ctx.energyUsd, cur(GLOBAL_ENERGY_ID), t)
+      : null;
 
   return {
-    signal: { countryCode: config.countryCode, equityPrice, oil, gold, bond },
+    signal: {
+      countryCode: config.countryCode,
+      equityPrice,
+      oil,
+      gold,
+      bond,
+      energyScore: ctx.energyScores ?? undefined,
+    },
     perf: {
       equityTotalReturn: equityTR,
       bondTotalReturn: bond,
@@ -233,6 +271,7 @@ async function loadSeries(
       gold,
       cpi: config.cpiId ? convert(cpiRaw, cur(config.cpiId), t) : undefined,
     },
+    energyLocal,
   };
 }
 
@@ -255,6 +294,7 @@ function runBacktest(
   model: QuadrantModel,
   perf: QuadrantPerfInput,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
+  energyLocal: EconomicDataPoint[] | null = null,
 ): BacktestResult {
   if (model.status !== "OK")
     return { status: "MISSING_SERIES", countryCode, availability: availabilityOf("MISSING_SERIES") };
@@ -262,6 +302,8 @@ function runBacktest(
     countryCode,
     weights: weightsFromModel(model),
     ...perf,
+    // `trend-v1` : perf de la 5ᵉ poche ; `off` : `undefined` (backtest v2 strict, fenêtre inchangée).
+    energyTotalReturn: energyLocal ?? undefined,
     reallocationBand: REALLOCATION_BAND[version],
   });
 }
@@ -303,20 +345,22 @@ export async function computeQuadrantsRealSeries(
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
   years: number | null = null,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
+  overlay: EnergyOverlayVersion = readEnergyOverlay(),
 ): Promise<QuadrantsRealSeries[]> {
-  const ctx = await loadContext();
+  const ctx = await loadContext(overlay);
   return Promise.all(
     codes.map(async (code): Promise<QuadrantsRealSeries> => {
       const config = deriveQuadrantConfig(code, ctx.series, ctx.countries);
       if (!config) return { countryCode: code, countryFr: null, real: null };
-      const { signal, perf } = await loadSeries(config, ctx);
-      const model = buildModel(signal, settings);
+      const { signal, perf, energyLocal } = await loadSeries(config, ctx);
+      const model = buildModel(signal, overlaySettings(settings, ctx));
       if (model.status !== "OK")
         return { countryCode: code, countryFr: config.countryFr, real: null };
       const backtest = backtestQuadrants({
         countryCode: code,
         weights: weightsFromModel(model),
         ...perf,
+        energyTotalReturn: energyLocal ?? undefined,
         windowYears: years,
         reallocationBand: REALLOCATION_BAND[version],
       });
@@ -334,8 +378,9 @@ export async function getCountryQuadrantModel(
   countryCode: string,
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
+  overlay: EnergyOverlayVersion = readEnergyOverlay(),
 ): Promise<CountryQuadrantModel> {
-  const ctx = await loadContext();
+  const ctx = await loadContext(overlay);
   const config = deriveQuadrantConfig(countryCode, ctx.series, ctx.countries);
   if (!config) {
     return {
@@ -348,9 +393,9 @@ export async function getCountryQuadrantModel(
     };
   }
 
-  const { signal, perf } = await loadSeries(config, ctx);
-  const model = buildModel(signal, settings);
-  const backtest = runBacktest(countryCode, model, perf, version);
+  const { signal, perf, energyLocal } = await loadSeries(config, ctx);
+  const model = buildModel(signal, overlaySettings(settings, ctx));
+  const backtest = runBacktest(countryCode, model, perf, version, energyLocal);
   return { config, dataQuality: dataQualityOf(config, model), signal, perf, model, backtest };
 }
 
@@ -391,8 +436,9 @@ export async function computeAllCountryQuadrantModels(
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
   years: number | null = null,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
+  overlay: EnergyOverlayVersion = readEnergyOverlay(),
 ): Promise<QuadrantModelRow[]> {
-  const ctx = await loadContext();
+  const ctx = await loadContext(overlay);
   const codes = [
     ...new Set(
       ctx.series
@@ -406,8 +452,8 @@ export async function computeAllCountryQuadrantModels(
       const config = deriveQuadrantConfig(code, ctx.series, ctx.countries);
       if (!config) return emptyRow(code, null, "MISSING_SERIES");
 
-      const { signal, perf } = await loadSeries(config, ctx);
-      const model = buildModel(signal, settings); // historique COMPLET → régime/coords/alloc
+      const { signal, perf, energyLocal } = await loadSeries(config, ctx);
+      const model = buildModel(signal, overlaySettings(settings, ctx)); // historique COMPLET → régime/coords/alloc
       if (model.status !== "OK") return emptyRow(code, config.countryFr, model.status);
 
       const r = model.latest;
@@ -427,6 +473,7 @@ export async function computeAllCountryQuadrantModels(
         countryCode: code,
         weights: weightsFromModel(model),
         ...perf,
+        energyTotalReturn: energyLocal ?? undefined,
         windowYears: years,
         reallocationBand: REALLOCATION_BAND[version],
       });

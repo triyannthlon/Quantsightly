@@ -13,6 +13,7 @@ export * from "./transition";
 export * from "./allocation-binary";
 export * from "./allocation-dynamic";
 export * from "./energy-overlay";
+export * from "./energy-trend-signal";
 export * from "./kinematics";
 export * from "./build-model";
 export * from "./backtest";

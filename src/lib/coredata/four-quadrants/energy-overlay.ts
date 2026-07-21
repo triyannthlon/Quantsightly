@@ -11,6 +11,13 @@ import type { FourQuadrantsModelSettings } from "./settings";
 export const DEFAULT_MAX_ENERGY_WEIGHT = 0.2;
 
 /**
+ * Poids FIGÉ de la surcouche `energy-trend-v1` (mode `trend`). NON configurable :
+ * la spécification (SPDYENT > SMA6, 10 %, prorata, `t→t+1`, une bande v2 sur 5 poches)
+ * est verrouillée. Validée sur Dynamique ET Binaire (cf. `experiments/4q-energy-trend-rc1/`).
+ */
+export const ENERGY_TREND_V1_WEIGHT = 0.1;
+
+/**
  * Score énergie → poids de la poche : 0 si le score est ≤ 0, sinon montée
  * linéaire jusqu'à `maxWeight` à +100. Ex. score 50, max 20 % → 10 %.
  */
@@ -40,12 +47,14 @@ export function applyEnergyOverlay(base: CoreAllocation, energyWeight: number): 
 export const computeEnergyOverlay = applyEnergyOverlay;
 
 /**
- * Résout le poids de la poche Énergie selon le MODE du modèle, sans figer la
- * formule du score (différée) :
- *   • `disabled`  → 0 (défaut V1) ;
+ * Résout le poids de la poche Énergie selon le MODE du modèle :
+ *   • `disabled`  → 0 (socle `4q-standard-v2`) ;
  *   • `fixed`     → `energyFixedWeight` (borné [0,1]) ;
- *   • `automatic` → `energyScoreToWeight(energyScore, energyMaxWeight)` (score injecté).
- * L'architecture est prête ; l'activation ne changera pas la structure.
+ *   • `automatic` → `energyScoreToWeight(energyScore, energyMaxWeight)` (score injecté) ;
+ *   • `trend`     → surcouche FIGÉE `energy-trend-v1` : poids `ENERGY_TREND_V1_WEIGHT`
+ *     (10 %) quand le signal de tendance injecté est ACTIF (`energyScore > 0`), sinon 0.
+ *     Le signal (SPDYENT > SMA6) est calculé et injecté par le service (pur : `energy-trend-signal.ts`) ;
+ *     un mois SANS signal disponible (`null`) reste inactif → poids 0 (sémantique du candidat validé).
  */
 export function resolveEnergyWeight(
   settings: FourQuadrantsModelSettings,
@@ -58,5 +67,7 @@ export function resolveEnergyWeight(
       return Math.max(0, Math.min(1, settings.energyFixedWeight ?? 0));
     case "automatic":
       return energyScoreToWeight(energyScore ?? 0, settings.energyMaxWeight);
+    case "trend":
+      return (energyScore ?? 0) > 0 ? ENERGY_TREND_V1_WEIGHT : 0;
   }
 }

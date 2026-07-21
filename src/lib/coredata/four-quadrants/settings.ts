@@ -5,7 +5,9 @@ import type { Strategy } from "./types";
 // quadrants, les cartes KPI, le panneau Paramètres et l'état persistant (URL /
 // localStorage). Aucun de ces paramètres ne doit être codé en dur ailleurs.
 
-export type EnergyMode = "disabled" | "automatic" | "fixed";
+// `trend` = surcouche méthodologique FIGÉE `energy-trend-v1` (SPDYENT > SMA6, poids 10 %,
+// prorata) — paramètres NON configurables (cf. `energy-overlay.ts`). `disabled` = socle v2.
+export type EnergyMode = "disabled" | "automatic" | "fixed" | "trend";
 
 export interface FourQuadrantsModelSettings {
   /** Stratégie d'allocation cible. */
