@@ -7,7 +7,9 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   prettier,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  // `experiments/**` = scripts de recherche CLI (exécutés via tsx, hors application) :
+  // console.log légitime, typage souple ; non soumis aux règles de l'app.
+  globalIgnores([".next/**", "out/**", "build/**", "coverage/**", "next-env.d.ts", "experiments/**"]),
   {
     rules: {
       // TypeScript
