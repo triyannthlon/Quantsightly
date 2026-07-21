@@ -767,7 +767,7 @@ function CompositionCard({
       <h3 className="mb-1 text-sm font-semibold">Composition du portefeuille</h3>
       <p className="mb-3 text-xs text-muted-foreground">
         {v2
-          ? "Allocation réellement détenue au dernier mois clôturé (poids appliqués au portefeuille)."
+          ? "Allocation actuelle du modèle au dernier mois clôturé — celle à suivre aujourd’hui."
           : "Allocation cible au dernier mois clôturé (elle évolue avec le régime)."}
       </p>
       <div className="space-y-2.5">
@@ -796,30 +796,36 @@ function CompositionCard({
 
       {diverges && (
         <div className="mt-3 rounded-md border border-border/60 bg-muted/20 p-3">
-          <p className="text-xs font-medium">Aucune réallocation ce mois-ci — allocation conservée.</p>
-          <div className="mt-2 grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-2 gap-y-1 text-xs">
-            <span />
-            <span className="text-right font-medium text-muted-foreground">Détenue</span>
-            <span />
-            <span className="text-right font-medium text-muted-foreground">Cible</span>
-            {/* Même ORDRE d'actifs que la composition principale (tri par poids détenu). */}
-            {sleeves.map((k) => {
-              const differs = Math.round(held[k] * 100) !== Math.round(target[k] * 100);
-              return (
+          {/* Bloc PUREMENT INFORMATIF — jamais une instruction de réallocation. */}
+          <p className="text-xs font-medium">
+            Aucune action requise — conservez l’allocation actuelle du modèle.
+          </p>
+          <div className="mt-2 overflow-x-auto">
+            <div className="grid min-w-max grid-cols-[1fr_auto_auto] items-end gap-x-4 gap-y-1 text-xs">
+              <span />
+              <span className="text-right font-medium whitespace-nowrap text-muted-foreground">
+                Allocation actuelle du modèle
+              </span>
+              <span className="text-right font-medium whitespace-nowrap text-muted-foreground">
+                Allocation cible
+              </span>
+              {/* Même ORDRE d'actifs que la composition principale (tri par poids). */}
+              {sleeves.map((k) => (
                 <div key={k} className="contents">
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1.5 whitespace-nowrap">
                     <span className="size-2 rounded-full" style={{ background: SLEEVE_META[k].hex }} />
                     {SLEEVE_META[k].label}
                   </span>
                   <span className="text-right font-semibold tabular-nums">{fmtPct0(held[k])}</span>
-                  <span className="px-0.5 text-center text-muted-foreground/60" aria-hidden>
-                    {differs ? "→" : ""}
-                  </span>
                   <span className="text-right tabular-nums text-muted-foreground">{fmtPct0(target[k])}</span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            L’allocation cible est indicative. Elle ne constitue pas une instruction de réallocation
+            pour ce mois-ci.
+          </p>
         </div>
       )}
 
