@@ -208,14 +208,15 @@ export function QuadrantsMethodology() {
           </h3>
           <ul className="ml-4 list-disc space-y-1">
             <li>
-              <span className="font-medium text-foreground">Binaire</span> — quand un axe envoie un
-              signal net, la poche dominante prend toute la part de son bloc ; sinon le bloc est
-              réparti à parts égales.
+              <span className="font-medium text-foreground">Allocation par régime</span> — méthode
+              originale 50/50 : quand un axe envoie un signal net, la poche dominante prend toute la
+              part de son bloc ; sinon le bloc est réparti à parts égales.
             </li>
             <li>
-              <span className="font-medium text-foreground">Dynamique (DQAE)</span> — les poids
-              varient de façon continue avec la position dans le plan, d’une répartition équilibrée
-              jusqu’à une forte concentration sur la poche dominante.
+              <span className="font-medium text-foreground">Allocation continue</span> — méthode
+              dérivée Quantsightly : les poids varient de façon continue avec la position
+              dans le plan, d’une répartition équilibrée jusqu’à une forte concentration sur la poche
+              dominante.
             </li>
           </ul>
           <p className="mt-2 text-xs">
@@ -280,11 +281,11 @@ intensitéₜ = hypot( xₜ , yₜ ) / √2        (∈ [0, 100])`}</Formula>
           title="Allocation cible"
           intuition="Chaque axe pilote un bloc de 50 % : actions/liquidités d’un côté, or/obligations de l’autre."
         >
-          <Formula>{`— Binaire —
+          <Formula>{`— Allocation par régime —
 si l'axe est net (hors zone neutre) : 50 % sur la poche dominante, 0 % sur l'autre
 sinon                               : 25 % / 25 % dans le bloc
 
-— Dynamique (DQAE) —
+— Allocation continue —
 uₓ = zone_morte( x , T )            (0 dans [−T, T], rampe linéaire jusqu'à ±100)
 Actions      = 25 % · (1 + uₓ/100)   Liquidités   = 25 % · (1 − uₓ/100)
 Or           = 25 % · (1 + u_y/100)  Obligations  = 25 % · (1 − u_y/100)`}</Formula>

@@ -1062,18 +1062,18 @@ const ENTRIES: Record<string, GlossaryEntry> = {
   },
   "q4-strategie-binaire": {
     key: "q4-strategie-binaire",
-    term: "Allocation binaire",
+    term: "Allocation par régime",
     group: G_Q4_PILOTAGE,
-    base: "Une poche dominante par axe lorsque le signal est net.",
+    base: "Approche originale des 4 Quadrants dans laquelle deux actifs correspondant au régime identifié reçoivent chacun 50 %.",
     technique:
       "Si l’axe activité est net, tout son bloc va aux actions (expansion) ou aux liquidités (contraction) ; sinon le bloc est réparti à parts égales. Même logique pour l’axe inflation (or ou obligations).",
     source: "méthode",
   },
   "q4-strategie-dynamique": {
     key: "q4-strategie-dynamique",
-    term: "Allocation dynamique (DQAE)",
+    term: "Allocation continue",
     group: G_Q4_PILOTAGE,
-    base: "Les poids varient de façon continue avec la position dans le plan.",
+    base: "Adaptation Quantsightly dans laquelle les quatre pondérations évoluent progressivement selon l'intensité et la position du régime.",
     technique:
       "Chaque poche s’ajuste progressivement, d’une répartition équilibrée 25/25/25/25 jusqu’à une forte concentration sur la poche dominante lorsque le signal est intense.",
     source: "méthode",

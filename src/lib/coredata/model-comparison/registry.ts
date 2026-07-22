@@ -184,16 +184,16 @@ export const COMPARISON_STRATEGIES: Record<ComparisonStrategyId, ComparisonStrat
   },
   "quadrants-dynamic-v2": {
     id: "quadrants-dynamic-v2",
-    label: "4Q Dynamique",
+    label: "4Q Continue",
     description:
-      "Une allocation qui évolue progressivement selon la position et l'intensité du régime macroéconomique.",
+      "Méthode dérivée Quantsightly : les pondérations des quatre actifs évoluent progressivement selon la position dans le plan macroéconomique.",
     build: (shared) => buildQuadrantsPath(shared, "dynamic"),
   },
   "quadrants-binary-v2": {
     id: "quadrants-binary-v2",
-    label: "4Q Binaire",
+    label: "4Q Régime",
     description:
-      "Une allocation plus concentrée qui privilégie les actifs correspondant au régime macroéconomique identifié.",
+      "Méthode originale 50/50 : le régime macroéconomique sélectionne deux actifs, pondérés à parts égales.",
     build: (shared) => buildQuadrantsPath(shared, "binary"),
   },
 };

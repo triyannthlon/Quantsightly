@@ -21,7 +21,12 @@ export type Quadrant =
 /** État de la zone de transition (bande neutre ±T autour de chaque axe). */
 export type TransitionState = "none" | "activity" | "monetary" | "double";
 
-/** Stratégie d'allocation. */
+/**
+ * Stratégie d'allocation — identifiants MOTEUR (ne pas renommer : API, tests, golden).
+ * Correspondance des libellés PUBLICS affichés dans l'UI :
+ *   binary  → « Allocation par régime »  (compact : « 4Q Régime »)
+ *   dynamic → « Allocation continue »     (compact : « 4Q Continue »)
+ */
 export type Strategy = "binary" | "dynamic";
 
 /** Statut de calcul d'un point du modèle. */

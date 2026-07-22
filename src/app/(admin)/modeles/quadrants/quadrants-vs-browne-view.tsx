@@ -2,15 +2,23 @@
 // quadrants-view.tsx (qui EST la frontière cliente), il est donc compilé côté client
 // via son parent. Une directive redondante créerait une frontière imbriquée.
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { ExplorationChart, type ChartLine } from "@/app/(admin)/exploration/exploration-chart";
-import { mergeChart, SLEEVE_META } from "./helpers";
+import {
+  SLEEVE_META,
+  ALLOC_KEYS,
+  roundedAllocPercents,
+  resolveTargetPercents,
+  strategiesWithAllocation,
+  type AllocKey,
+} from "./helpers";
+import { SeriesChartCard, type ChartSeries } from "./series-chart-card";
 // ⚠️ Sous-modules PURS uniquement (types + constantes) : ce composant CLIENT ne doit
 // PAS tirer le moteur `model-comparison` ni `browne.ts` dans le bundle client.
 import type {
-  Allocation,
   ComparisonStrategyId,
   ComparisonStrategyResult,
   ComparisonMetrics,
@@ -75,7 +83,7 @@ const ROW: Record<string, MetricRow> = {
   sharpe: { key: "sharpe", label: "Sharpe", fmt: (v) => ratio(v), higherBetter: true, diff: (d) => signed(d, "", 2), tip: "Excédent de rendement sur le cash local, rapporté à la volatilité. Un critère parmi d’autres." },
   sortino: { key: "sortino", label: "Sortino", fmt: (v) => ratio(v), higherBetter: true, diff: (d) => signed(d, "", 2), tip: "Rendement rapporté à la seule volatilité baissière (pertes)." },
   maxDrawdown: { key: "maxDrawdown", label: "Max drawdown", fmt: (v) => pct(v), higherBetter: true, diff: (d) => signed(d, "pt"), tip: "Pire perte du pic au creux sur la période." },
-  maxUnderwaterMonths: { key: "maxUnderwaterMonths", label: "Durée max sous l’eau", fmt: (v) => months(v), higherBetter: false, diff: (d) => signed(d, "mois", 0), tip: "Plus longue période passée sous un sommet avant d’y revenir." },
+  maxUnderwaterMonths: { key: "maxUnderwaterMonths", label: "Durée maximale sous l’eau", fmt: (v) => months(v), higherBetter: false, diff: (d) => signed(d, "mois", 0), tip: "Plus longue période passée sous un sommet avant d’y revenir." },
   worstRolling12m: { key: "worstRolling12m", label: "Pire 12 mois glissants", fmt: (v) => pct(v), higherBetter: true, diff: (d) => signed(d, "pt"), tip: "Pire performance observée sur une fenêtre de 12 mois consécutifs." },
   annualizedTurnover: { key: "annualizedTurnover", label: "Rotation annualisée", fmt: (v) => pct(v === null ? null : v * 100), higherBetter: false, diff: (d) => signed(d * 100, "pt"), tip: "Part du portefeuille échangée en moyenne par an (transactions exécutées)." },
   reallocationsPerYear: { key: "reallocationsPerYear", label: "Fréquence de réallocation", fmt: (v) => perYear(v), higherBetter: false, diff: (d) => signed(d, "/an"), tip: "Nombre moyen de mois par an où le portefeuille est effectivement réajusté." },
@@ -99,16 +107,18 @@ function Section({
   children,
 }: {
   id: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
     <section id={id} className="scroll-mt-[var(--model-header-offset,96px)] space-y-3">
-      <div className="space-y-0.5">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
-      </div>
+      {title && (
+        <div className="space-y-0.5">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
+      )}
       {children}
     </section>
   );
@@ -131,25 +141,63 @@ function StrategyChip({ s }: { s: ComparisonStrategyResult }) {
   );
 }
 
-/** Ton (favorable / défavorable / neutre) d'un écart selon le sens de la métrique. */
-function diffTone(d: number, higherBetter: boolean): string {
-  if (Math.abs(d) < 1e-9) return "text-muted-foreground";
+/**
+ * Ton (favorable / défavorable / neutre) d'un écart selon le sens de la métrique.
+ * `soft` = variante moins contrastée (écart secondaire, mode « toutes »).
+ * `negligible` = écart nul à l'affichage → neutre (cf. §5).
+ */
+function diffTone(
+  d: number,
+  higherBetter: boolean,
+  opts?: { negligible?: boolean; soft?: boolean },
+): string {
+  if (opts?.negligible || Math.abs(d) < 1e-9) return "text-muted-foreground";
   const good = higherBetter ? d > 0 : d < 0;
+  if (opts?.soft) {
+    return good
+      ? "text-emerald-600/70 dark:text-emerald-400/70"
+      : "text-red-600/70 dark:text-red-400/70";
+  }
   return good ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400";
 }
 
-// ─── Tableau de métriques (une colonne par stratégie + écart vs Browne) ────────
+/** Nom court d'une stratégie pour les en-têtes d'écart (« 4Q Continue » → « Continue »). */
+const shortLabel = (s: ComparisonStrategyResult) => s.label.replace(/^4Q\s+/, "");
 
+/**
+ * L'écart est-il négligeable À L'AFFICHAGE ? On le formate via `row.diff` (mêmes
+ * arrondis et unité que la cellule) et on regarde si la magnitude ne contient que
+ * des zéros — évite de colorer « +0,0 pt » en vert/rouge (cf. §5).
+ */
+function diffIsNegligible(row: MetricRow, d: number): boolean {
+  const digits = row.diff(d).replace(/[^\d]/g, "");
+  return digits.length > 0 && /^0+$/.test(digits);
+}
+
+type MetricGroup = { label?: string; rows: MetricRow[] };
+
+// ─── Tableau de métriques — s'ADAPTE au nombre de stratégies affichées ─────────
+// • 2 stratégies (paire) → colonne « Écart vs <référence> », référence = 1ʳᵉ colonne :
+//     – paire avec Browne     : écart = stratégie − Browne
+//     – Continue vs Régime    : écart = Régime − Continue
+// • 3 stratégies (toutes) → pas de colonne d'écart unique (elle ne peut représenter
+//     les deux variantes 4Q) ; à la place un écart secondaire discret « vs <référence> »
+//     sous chaque valeur non-référence.
 function MetricTable({
-  rows,
+  groups,
   strategies,
-  browne,
 }: {
-  rows: MetricRow[];
+  groups: MetricGroup[];
   strategies: ComparisonStrategyResult[];
-  browne: ComparisonStrategyResult | null;
 }) {
-  const showDiff = !!browne && strategies.some((s) => s.id !== "browne");
+  const reference = strategies[0] ?? null;
+  const refShort = reference ? shortLabel(reference) : "";
+  const isPair = strategies.length === 2;
+  const isTrio = strategies.length >= 3;
+  const colCount = 1 + strategies.length + (isPair ? 1 : 0);
+  const raw = (s: ComparisonStrategyResult | null | undefined, r: MetricRow) =>
+    s?.metrics ? (s.metrics[r.key] as number | null) : null;
+
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full min-w-[520px] text-sm">
@@ -163,157 +211,351 @@ function MetricTable({
                 </span>
               </Th>
             ))}
-            {showDiff && <Th className="text-right">Écart vs Browne</Th>}
+            {isPair && <Th className="whitespace-nowrap text-right">Écart vs {refShort}</Th>}
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => {
-            const bval = browne?.metrics ? (browne.metrics[r.key] as number | null) : null;
-            // Écart affiché : la 1ʳᵉ stratégie non-Browne visible (paires) ou omis en « toutes ».
-            const other = strategies.find((s) => s.id !== "browne");
-            const oval = other?.metrics ? (other.metrics[r.key] as number | null) : null;
-            const canDiff = showDiff && bval !== null && oval !== null && strategies.length === 2;
-            return (
-              <tr key={r.key} className="border-b last:border-0">
-                <Td className="sticky left-0 bg-background font-medium" >
-                  <span title={r.tip} className="cursor-help decoration-dotted underline-offset-2 hover:underline">
-                    {r.label}
-                  </span>
-                </Td>
-                {strategies.map((s) => (
-                  <Td key={s.id} className="text-right">
-                    {r.fmt(s.metrics ? (s.metrics[r.key] as number | null) : null)}
-                  </Td>
-                ))}
-                {showDiff && (
-                  <Td className={cn("text-right", canDiff ? diffTone(oval! - bval!, r.higherBetter) : "text-muted-foreground")}>
-                    {canDiff ? r.diff(oval! - bval!) : "—"}
-                  </Td>
-                )}
-              </tr>
-            );
-          })}
+          {groups.map((g, gi) => (
+            <Fragment key={g.label ?? `g${gi}`}>
+              {g.label && (
+                <tr>
+                  <td
+                    colSpan={colCount}
+                    className="bg-muted/20 px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                  >
+                    {g.label}
+                  </td>
+                </tr>
+              )}
+              {g.rows.map((r) => {
+                const refV = raw(reference, r);
+                return (
+                  <tr
+                    key={r.key}
+                    className="group border-b transition-colors last:border-0 hover:bg-muted/30"
+                  >
+                    <Td className="sticky left-0 bg-background font-medium group-hover:bg-muted/30">
+                      <span
+                        title={r.tip}
+                        className="cursor-help decoration-dotted underline-offset-2 hover:underline"
+                      >
+                        {r.label}
+                      </span>
+                    </Td>
+                    {strategies.map((s) => {
+                      const v = raw(s, r);
+                      const showSecondary =
+                        isTrio && s.id !== reference?.id && v !== null && refV !== null;
+                      const d = showSecondary ? v! - refV! : 0;
+                      const neg = showSecondary && diffIsNegligible(r, d);
+                      return (
+                        <Td key={s.id} className="text-right">
+                          <div>{r.fmt(v)}</div>
+                          {showSecondary && (
+                            <div
+                              className={cn(
+                                "whitespace-nowrap text-xs",
+                                neg
+                                  ? "text-muted-foreground"
+                                  : diffTone(d, r.higherBetter, { soft: true }),
+                              )}
+                            >
+                              {neg ? "≈ identique" : `${r.diff(d)} vs ${refShort}`}
+                            </div>
+                          )}
+                        </Td>
+                      );
+                    })}
+                    {isPair &&
+                      (() => {
+                        const ov = raw(strategies[1], r);
+                        const canDiff = refV !== null && ov !== null;
+                        const d = canDiff ? ov! - refV! : 0;
+                        const neg = canDiff && diffIsNegligible(r, d);
+                        return (
+                          <Td
+                            className={cn(
+                              "whitespace-nowrap text-right",
+                              !canDiff || neg
+                                ? "text-muted-foreground"
+                                : diffTone(d, r.higherBetter),
+                            )}
+                          >
+                            {!canDiff ? "—" : neg ? "≈ identique" : r.diff(d)}
+                          </Td>
+                        );
+                      })()}
+                  </tr>
+                );
+              })}
+            </Fragment>
+          ))}
         </tbody>
       </table>
     </div>
   );
 }
 
+/**
+ * Regroupement des indicateurs principaux — hiérarchie visuelle Performance / Risque (§4).
+ * La gestion (rotation, fréquence, coûts) n'apparaît QUE dans la section dédiée
+ * « Coûts et rééquilibrages » plus bas, pour éviter les doublons.
+ */
+const INDICATEUR_GROUPS: MetricGroup[] = [
+  { label: "Performance", rows: [ROW.annualized, ROW.sharpe] },
+  {
+    label: "Risque",
+    rows: [ROW.volatility, ROW.maxDrawdown, ROW.maxUnderwaterMonths, ROW.worstRolling12m],
+  },
+];
+
 // ─── Blocs ────────────────────────────────────────────────────────────────────
 
-/** Bloc 1 — synthèse comparative en 4 dimensions (sans verdict absolu). */
+/**
+ * Bloc 1 — « Repères sur la sélection actuelle ». Lecture STRICTEMENT déterministe et
+ * factuelle des métriques déjà présentes dans `ComparisonStrategyResult` : chaque carte
+ * nomme une métrique explicite et le modèle qui la mène SUR LA SÉLECTION VISIBLE (jamais
+ * un classement général). Aucun score composite, aucune pondération, aucun texte éditorial.
+ * Les ex æquo au % affiché sont présentés comme tels. Aucun calcul sous-jacent modifié.
+ */
+interface SynthesisDimension {
+  title: string;
+  pick: (m: ComparisonMetrics) => number | null;
+  /** true = la valeur la plus élevée mène ; false = la plus faible mène. */
+  higher: boolean;
+  format: (v: number) => string;
+  /** Formulation du leader unique. */
+  phrase: string;
+}
+
+const SYNTHESIS_DIMENSIONS: SynthesisDimension[] = [
+  {
+    title: "Performance annualisée",
+    pick: (m) => m.annualized,
+    higher: true,
+    format: (v) => pct(v),
+    phrase: "affiche la performance annualisée la plus élevée",
+  },
+  {
+    title: "Rendement ajusté du risque",
+    pick: (m) => m.sharpe,
+    higher: true,
+    format: (v) => ratio(v),
+    phrase: "présente le Sharpe le plus élevé",
+  },
+  {
+    title: "Perte maximale",
+    pick: (m) => m.maxDrawdown,
+    higher: true, // le max drawdown le MOINS négatif protège le mieux
+    format: (v) => pct(v),
+    phrase: "enregistre le max drawdown le moins profond",
+  },
+  {
+    title: "Rotation",
+    pick: (m) => m.annualizedTurnover,
+    higher: false, // la rotation la plus FAIBLE = coûts les plus bas
+    format: (v) => pct(v * 100),
+    phrase: "présente la rotation annualisée la plus faible",
+  },
+];
+
+/** Énumération française « a, b et c ». */
+function joinFr(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} et ${items[items.length - 1]}`;
+}
+
 function SynthesisCards({ strategies }: { strategies: ComparisonStrategyResult[] }) {
   const withM = strategies.filter((s) => s.metrics);
   if (withM.length < 2) return null;
-  const leaderBy = (pick: (m: ComparisonMetrics) => number | null, higher = true) =>
-    withM.reduce<{ s: ComparisonStrategyResult; v: number } | null>((best, s) => {
-      const v = pick(s.metrics!);
-      if (v === null) return best;
-      if (!best) return { s, v };
-      return (higher ? v > best.v : v < best.v) ? { s, v } : best;
-    }, null);
 
-  const perf = leaderBy((m) => m.annualized, true);
-  const prot = leaderBy((m) => m.maxDrawdown, true); // le moins négatif protège le mieux
-  const reg = leaderBy((m) => m.sharpe, true);
-  const cost = leaderBy((m) => m.annualizedTurnover, false);
+  const cards = SYNTHESIS_DIMENSIONS.map((dim) => {
+    // Uniquement les stratégies dont la métrique est disponible sur la sélection.
+    const rows = withM
+      .map((s) => ({ s, v: dim.pick(s.metrics!) }))
+      .filter((x): x is { s: ComparisonStrategyResult; v: number } => x.v !== null);
+    if (!rows.length) return null; // métrique indisponible → carte masquée
 
-  const cards = [
-    perf && { title: "Performance", body: `${perf.s.label} délivre la meilleure performance annualisée sur la période (${pct(perf.v)}).` },
-    prot && { title: "Protection", body: `${prot.s.label} limite le mieux les pertes maximales (max drawdown ${pct(prot.v)}).` },
-    reg && { title: "Régularité", body: `${reg.s.label} présente le meilleur rapport rendement/risque (Sharpe ${ratio(reg.v)}).` },
-    cost && { title: "Coût de gestion", body: `${cost.s.label} présente la rotation la plus faible (${pct(cost.v * 100)}/an), donc les coûts les plus bas.` },
-  ].filter(Boolean) as { title: string; body: string }[];
+    // Meilleur par valeur RÉELLE, puis ex æquo = même VALEUR AFFICHÉE (arrondi identique à
+    // l'interface) : on ne départage jamais deux valeurs visuellement identiques.
+    const best = rows.reduce((b, x) => ((dim.higher ? x.v > b.v : x.v < b.v) ? x : b), rows[0]);
+    const bestShown = dim.format(best.v);
+    const winners = rows.filter((x) => dim.format(x.v) === bestShown);
+
+    const body =
+      winners.length === 1
+        ? `${best.s.label} ${dim.phrase} sur la période sélectionnée : ${bestShown}.`
+        : `${joinFr(winners.map((w) => w.s.label))} présentent des résultats équivalents sur cette métrique.`;
+
+    return { title: dim.title, body };
+  }).filter(Boolean) as { title: string; body: string }[];
+
+  if (!cards.length) return null;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {cards.map((c) => (
-        <Card key={c.title} className="gap-1.5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">{c.title}</p>
-          <p className="text-sm text-muted-foreground">{c.body}</p>
-        </Card>
-      ))}
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map((c) => (
+          <Card key={c.title} className="gap-1.5 p-4">
+            <p className="text-xs font-semibold tracking-wide text-primary uppercase">{c.title}</p>
+            <p className="text-sm text-muted-foreground">{c.body}</p>
+          </Card>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Ces repères décrivent la période sélectionnée et ne constituent pas un classement général des
+        modèles.
+      </p>
     </div>
   );
 }
 
-/** Bloc 2 — performance cumulée nette (base 100), légende masquable. */
+/** Bloc 2 — performance cumulée nette (base 100), carte partagée du module. */
 function CumulativeChart({ strategies }: { strategies: ComparisonStrategyResult[] }) {
-  const [hidden, setHidden] = useState<Set<ComparisonStrategyId>>(new Set());
-  const visible = strategies.filter((s) => s.metrics && !hidden.has(s.id));
-  const data = useMemo(
-    () => mergeChart(visible.map((s) => ({ key: s.id, data: s.cumulativeSeries }))),
-    [visible],
+  const series: ChartSeries[] = strategies
+    .filter((s) => s.metrics)
+    .map((s) => ({
+      id: s.id,
+      label: s.label,
+      color: STRATEGY_COLOR[s.id],
+      data: s.cumulativeSeries,
+      width: s.id === "browne" ? 2 : 2.4,
+    }));
+  // Défaut Log sur les fenêtres longues (> 120 mois), comme Vue pays : plus lisible.
+  const months = series.reduce((m, s) => Math.max(m, s.data.length), 0);
+  return (
+    <SeriesChartCard
+      title="Performance cumulée nette de coûts"
+      subtitle="Base 100 au début de la fenêtre commune."
+      series={series}
+      scaleToggle
+      defaultScale={months > 120 ? "log" : "linear"}
+      cumulativeTooltip
+      height={360}
+      emptyLabel="Sélectionnez au moins une série."
+    />
   );
-  const lines: ChartLine[] = visible.map((s) => ({
-    key: s.id,
+}
+
+/** Bloc 4 — drawdowns comparés (carte partagée + synthèse KPI par stratégie). */
+function DrawdownChart({ strategies }: { strategies: ComparisonStrategyResult[] }) {
+  const withM = strategies.filter((s) => s.metrics);
+  const series: ChartSeries[] = withM.map((s) => ({
+    id: s.id,
     label: s.label,
     color: STRATEGY_COLOR[s.id],
+    data: s.drawdownSeries,
     width: s.id === "browne" ? 2 : 2.4,
+    fillOpacity: 0.1,
   }));
-
+  // Plancher d'axe commun à toutes les stratégies (comme Vue pays) : stable au masquage.
+  let worst = 0;
+  for (const s of withM) for (const p of s.drawdownSeries) if (p.value < worst) worst = p.value;
+  const floor = Math.min(-5, Math.floor(worst / 10) * 10);
   return (
-    <Card className="gap-3 p-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-        {strategies
-          .filter((s) => s.metrics)
-          .map((s) => {
-            const off = hidden.has(s.id);
-            return (
-              <button
-                key={s.id}
-                onClick={() =>
-                  setHidden((h) => {
-                    const n = new Set(h);
-                    if (n.has(s.id)) n.delete(s.id);
-                    else n.add(s.id);
-                    return n;
-                  })
-                }
+    <SeriesChartCard
+      title="Drawdowns"
+      subtitle="Pertes depuis le dernier sommet, sur la même chronologie."
+      series={series}
+      kpis={<DrawdownKpis strategies={withM} />}
+      areaFill
+      percentTooltip
+      yDomain={[floor, 0]}
+      height={280}
+    />
+  );
+}
+
+/** Synthèse KPI du drawdown : un bloc compact par stratégie (+ écarts factuels en paire). */
+function DrawdownKpis({ strategies }: { strategies: ComparisonStrategyResult[] }) {
+  // Carte d'écarts uniquement en comparaison par PAIRE (jamais en « Toutes les stratégies »).
+  const showDelta = strategies.length === 2;
+  const blocks = strategies.length + (showDelta ? 1 : 0);
+  return (
+    <div className={cn("grid gap-2.5", blocks <= 2 ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
+      {strategies.map((s) => (
+        <div key={s.id} className="rounded-lg border bg-muted/20 p-3">
+          <StrategyChip s={s} />
+          <dl className="mt-2 space-y-1 text-sm">
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-muted-foreground">Max drawdown</dt>
+              <dd className="font-semibold tabular-nums">{pct(s.metrics?.maxDrawdown ?? null)}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-muted-foreground">Sous l’eau</dt>
+              <dd className="font-semibold tabular-nums">
+                {months(s.metrics?.maxUnderwaterMonths ?? null)}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      ))}
+      {showDelta && <DrawdownDeltaCard reference={strategies[0]} compared={strategies[1]} />}
+    </div>
+  );
+}
+
+/**
+ * Écarts DRAWDOWN de la stratégie comparée vs la référence (1ʳᵉ colonne), présentés
+ * SÉPARÉMENT — pas de verdict global « protection » : un max drawdown moins profond
+ * peut coexister avec une durée sous l'eau plus longue. Lecture favorable/défavorable
+ * propre à chaque métrique. Restitution d'affichage, aucun calcul modifié.
+ */
+function DrawdownDeltaCard({
+  reference,
+  compared,
+}: {
+  reference: ComparisonStrategyResult;
+  compared: ComparisonStrategyResult;
+}) {
+  const rows = [
+    {
+      label: "Max drawdown",
+      a: reference.metrics?.maxDrawdown ?? null,
+      b: compared.metrics?.maxDrawdown ?? null,
+      higher: true, // moins négatif = favorable
+      fmt: (d: number) => `${signStr(d)}${nf(Math.abs(d), 1)} ${Math.abs(d) >= 2 ? "points" : "point"}`,
+      isZero: (d: number) => Math.round(d * 10) === 0,
+    },
+    {
+      label: "Durée sous l’eau",
+      a: reference.metrics?.maxUnderwaterMonths ?? null,
+      b: compared.metrics?.maxUnderwaterMonths ?? null,
+      higher: false, // plus courte = favorable
+      fmt: (d: number) => `${signStr(d)}${Math.round(Math.abs(d))} mois`,
+      isZero: (d: number) => Math.round(d) === 0,
+    },
+  ];
+  return (
+    <div className="rounded-lg border bg-muted/20 p-3">
+      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        Écart vs {shortLabel(reference)}
+      </p>
+      <dl className="mt-2 space-y-2 text-sm">
+        {rows.map((r) => {
+          const has = r.a !== null && r.b !== null;
+          const d = has ? r.b! - r.a! : 0;
+          return (
+            <div key={r.label}>
+              <dt className="text-xs text-muted-foreground">{r.label}</dt>
+              <dd
                 className={cn(
-                  "flex cursor-pointer items-center gap-1.5 text-sm transition-opacity",
-                  off && "opacity-40",
+                  "font-semibold tabular-nums",
+                  has ? diffTone(d, r.higher, { negligible: r.isZero(d) }) : "text-muted-foreground",
                 )}
               >
-                <span className="size-2.5 rounded-full" style={{ background: STRATEGY_COLOR[s.id] }} />
-                {s.label}
-              </button>
-            );
-          })}
-      </div>
-      {data.length >= 2 ? (
-        <ExplorationChart data={data} lines={lines} height={360} cumulativeTooltip markLast />
-      ) : (
-        <p className="py-12 text-center text-sm text-muted-foreground">Sélectionnez au moins une série.</p>
-      )}
-    </Card>
+                {has ? r.fmt(d) : "—"}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </div>
   );
 }
 
-/** Bloc 4 — drawdowns comparés sur la même chronologie. */
-function DrawdownChart({ strategies }: { strategies: ComparisonStrategyResult[] }) {
-  const visible = strategies.filter((s) => s.metrics);
-  const data = useMemo(
-    () => mergeChart(visible.map((s) => ({ key: s.id, data: s.drawdownSeries }))),
-    [visible],
-  );
-  const lines: ChartLine[] = visible.map((s) => ({
-    key: s.id,
-    label: s.label,
-    color: STRATEGY_COLOR[s.id],
-    fillOpacity: 0.08,
-  }));
-  return (
-    <Card className="gap-3 p-4">
-      <ExplorationChart data={data} lines={lines} height={300} areaFill percentTooltip yDomain={undefined} />
-      <MetricTable
-        rows={[ROW.maxDrawdown, ROW.maxUnderwaterMonths, ROW.worstRolling12m]}
-        strategies={strategies}
-        browne={strategies.find((s) => s.id === "browne") ?? null}
-      />
-    </Card>
-  );
-}
+/** Signe d'affichage d'un écart (« + », « − » ou rien si nul). */
+const signStr = (v: number) => (v > 0 ? "+" : v < 0 ? "−" : "");
 
 /** Bloc 5 — performances annualisées glissantes (5/10/15 ans). */
 function RollingSection({ strategies }: { strategies: ComparisonStrategyResult[] }) {
@@ -383,9 +625,10 @@ function CostSection({
   return (
     <div className="space-y-3">
       <MetricTable
-        rows={[ROW.annualizedTurnover, ROW.reallocationsPerYear, ROW.annualCostEstimate, ROW.cumulativeCost]}
+        groups={[
+          { rows: [ROW.annualizedTurnover, ROW.reallocationsPerYear, ROW.annualCostEstimate, ROW.cumulativeCost] },
+        ]}
         strategies={strategies}
-        browne={strategies.find((s) => s.id === "browne") ?? null}
       />
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[420px] text-sm">
@@ -425,52 +668,86 @@ function CostSection({
   );
 }
 
-/** Bloc 8 — allocations réellement détenues (cible en secondaire si différente). */
-function AllocationSection({ strategies }: { strategies: ComparisonStrategyResult[] }) {
-  const keys = ["equities", "bonds", "gold", "cash"] as const;
+/** Barre empilée d'allocation (largeurs = pourcentages affichés, somme = 100 %). */
+function AllocBar({ pcts }: { pcts: Record<AllocKey, number> }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {strategies
-        .filter((s) => s.currentAllocation)
-        .map((s) => {
-          const held = s.currentAllocation!;
-          const target = s.targetAllocation;
-          return (
-            <Card key={s.id} className="gap-2.5 p-4">
-              <StrategyChip s={s} />
-              <div>
-                <p className="mb-1 text-xs text-muted-foreground">Allocation actuelle du modèle</p>
-                <AllocBar alloc={held} />
-                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
-                  {keys.map((k) => (
-                    <span key={k} className="tabular-nums">
-                      <span className="mr-1 inline-block size-2 rounded-full align-middle" style={{ background: SLEEVE_META[k].hex }} />
-                      {SLEEVE_META[k].label} {Math.round((held[k] ?? 0) * 100)} %
-                    </span>
-                  ))}
-                </div>
-              </div>
-              {target && (
-                <div className="border-t pt-2">
-                  <p className="mb-1 text-xs text-muted-foreground">Allocation cible</p>
-                  <AllocBar alloc={target} muted />
-                </div>
-              )}
-            </Card>
-          );
-        })}
+    <div className="flex h-3.5 w-full overflow-hidden rounded">
+      {ALLOC_KEYS.map((k) => {
+        const w = pcts[k];
+        if (w <= 0) return null;
+        return (
+          <div
+            key={k}
+            style={{ width: `${w}%`, background: SLEEVE_META[k].hex }}
+            title={`${SLEEVE_META[k].label} ${w} %`}
+          />
+        );
+      })}
     </div>
   );
 }
 
-function AllocBar({ alloc, muted }: { alloc: Allocation; muted?: boolean }) {
-  const keys = ["equities", "bonds", "gold", "cash"] as const;
+/** Valeurs détaillées : TOUTES les poches, y compris celles à 0 %. */
+function AllocValues({ pcts }: { pcts: Record<AllocKey, number> }) {
   return (
-    <div className={cn("flex h-3.5 w-full overflow-hidden rounded", muted && "opacity-55")}>
-      {keys.map((k) => {
-        const w = (alloc[k] ?? 0) * 100;
-        if (w <= 0) return null;
-        return <div key={k} style={{ width: `${w}%`, background: SLEEVE_META[k].hex }} title={`${SLEEVE_META[k].label} ${Math.round(w)} %`} />;
+    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+      {ALLOC_KEYS.map((k) => (
+        <span key={k} className="tabular-nums">
+          <span
+            className="mr-1 inline-block size-2 rounded-full align-middle"
+            style={{ background: SLEEVE_META[k].hex }}
+          />
+          {SLEEVE_META[k].label} {pcts[k]} %
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Intitulé + barre + valeurs complètes. */
+function AllocBlock({ label, pcts }: { label: string; pcts: Record<AllocKey, number> }) {
+  return (
+    <div>
+      <p className="mb-1 text-xs text-muted-foreground">{label}</p>
+      <AllocBar pcts={pcts} />
+      <AllocValues pcts={pcts} />
+    </div>
+  );
+}
+
+/**
+ * Bloc 8 — allocation DÉTENUE puis CIBLE, restitution complète (barre + valeurs, mêmes
+ * ordre / couleurs / arrondi). La cible n'est JAMAIS une barre seule ni une zone vide :
+ *  • si elle diffère de la détenue (après arrondi) → barre + valeurs complètes ;
+ *  • si elle est identique après arrondi → « Identique à l'allocation actuelle ».
+ * Le moteur ne renseigne `targetAllocation` que lorsqu'elle diverge (engine.ts) ; son
+ * absence signifie donc « identique », pas « indisponible ». Pour Browne, la cible
+ * permanente 25/25/25/25 s'affiche dès que la détenue a dérivé ; pour 4Q elle reste
+ * indicative (cf. sous-titre de section : pas une instruction de transaction).
+ */
+function AllocationSection({ strategies }: { strategies: ComparisonStrategyResult[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {strategiesWithAllocation(strategies).map((s) => {
+        const held = roundedAllocPercents(s.currentAllocation!);
+        const target = resolveTargetPercents(s.targetAllocation, held);
+        return (
+          <Card key={s.id} className="gap-2.5 p-4">
+            <StrategyChip s={s} />
+            <AllocBlock label="Allocation actuelle du modèle" pcts={held} />
+            <div className="border-t pt-2">
+              <p className="mb-1 text-xs text-muted-foreground">Allocation cible</p>
+              {target ? (
+                <>
+                  <AllocBar pcts={target} />
+                  <AllocValues pcts={target} />
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">Identique à l’allocation actuelle</p>
+              )}
+            </div>
+          </Card>
+        );
       })}
     </div>
   );
@@ -509,6 +786,56 @@ function PedagogySection({
   );
 }
 
+/**
+ * Accordéon — analyse avancée du risque. Fermé par défaut et HORS navigation
+ * principale : regroupe les mesures techniques (queues de distribution, pertes
+ * extrêmes) pour garder la lecture de premier niveau simple. Aucun calcul modifié.
+ */
+function AdvancedRiskSection({
+  strategies,
+}: {
+  strategies: ComparisonStrategyResult[];
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border">
+      <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left">
+        <span className="flex flex-col gap-0.5">
+          <span className="text-base font-semibold">Analyse avancée du risque</span>
+          <span className="text-sm text-muted-foreground">
+            Mesures complémentaires pour analyser les pertes extrêmes et la distribution des rendements.
+          </span>
+        </span>
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="border-t px-4 py-4">
+        <MetricTable
+          groups={[
+            {
+              rows: [
+                ROW.sortino,
+                ROW.worstMonth,
+                ROW.worstQuarter,
+                ROW.expectedShortfall95,
+                ROW.expectedShortfall99,
+                ROW.downsideDeviation,
+                ROW.skewness,
+                ROW.excessKurtosis,
+              ],
+            },
+          ]}
+          strategies={strategies}
+        />
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 // ─── Vue principale ────────────────────────────────────────────────────────────
 
 export function QuadrantsVsBrowneView({
@@ -526,7 +853,6 @@ export function QuadrantsVsBrowneView({
   const strategies = visibleIds
     .map((id) => result.strategies.find((s) => s.id === id))
     .filter((s): s is ComparisonStrategyResult => !!s);
-  const browne = strategies.find((s) => s.id === "browne") ?? null;
   const available = strategies.filter((s) => s.availability.status === "ok");
 
   const grossById = useMemo(
@@ -576,49 +902,35 @@ export function QuadrantsVsBrowneView({
         </div>
       )}
 
-      <Section id="synthese" title="Lecture synthétique" subtitle="Quatre dimensions, sans classement absolu — chaque modèle répond à une logique différente.">
+      <Section id="synthese" title="Repères sur la sélection actuelle" subtitle="Synthèse calculée automatiquement à partir du pays, de la période et des paramètres sélectionnés.">
         <SynthesisCards strategies={available} />
       </Section>
 
-      <Section id="performance" title="Performance cumulée nette de coûts" subtitle="Base 100 au début de la fenêtre commune. Cliquez une série de la légende pour la masquer.">
+      <Section id="performance">
         <CumulativeChart strategies={available} />
       </Section>
 
-      <Section id="indicateurs" title="Indicateurs comparatifs" subtitle="Une valeur élevée n’est pas toujours favorable : volatilité, rotation et drawdown plus élevés sont défavorables.">
-        <MetricTable
-          rows={[ROW.annualized, ROW.volatility, ROW.sharpe, ROW.sortino, ROW.maxDrawdown, ROW.maxUnderwaterMonths, ROW.worstRolling12m, ROW.annualizedTurnover, ROW.reallocationsPerYear, ROW.cumulativeCost]}
-          strategies={available}
-          browne={browne}
-        />
+      <Section id="drawdowns">
+        <DrawdownChart strategies={available} />
       </Section>
 
-      <Section id="drawdowns" title="Drawdowns" subtitle="Pertes depuis le dernier sommet, sur la même chronologie.">
-        <DrawdownChart strategies={available} />
+      <Section id="indicateurs" title="Indicateurs comparatifs" subtitle="Une valeur élevée n’est pas toujours favorable : volatilité, rotation et drawdown plus élevés sont défavorables.">
+        <MetricTable groups={INDICATEUR_GROUPS} strategies={available} />
       </Section>
 
       <Section id="glissante" title="Performance glissante" subtitle="Une stratégie domine-t-elle seulement sur la période totale, ou aussi sur des fenêtres intermédiaires ?">
         <RollingSection strategies={available} />
       </Section>
 
-      <Section id="risque-baisse" title="Risque de baisse" subtitle="Sans hypothèse de loi normale. Complète le Sharpe, ne le remplace pas.">
-        <MetricTable
-          rows={[ROW.worstMonth, ROW.worstQuarter, ROW.expectedShortfall95, ROW.expectedShortfall99, ROW.downsideDeviation, ROW.skewness, ROW.excessKurtosis]}
-          strategies={available}
-          browne={browne}
-        />
-        <p className="mt-2 text-xs text-muted-foreground">
-          La volatilité mesure l’amplitude générale des variations. Les indicateurs de baisse étudient plus
-          spécifiquement les pertes et les épisodes extrêmes.
-        </p>
-      </Section>
-
-      <Section id="couts" title="Rotation et rééquilibrages" subtitle="Le coût de gestion fait partie intégrante du résultat.">
+      <Section id="couts" title="Coûts et rééquilibrages" subtitle="Le coût de gestion fait partie intégrante du résultat.">
         <CostSection strategies={available} gross={grossById} />
       </Section>
 
       <Section id="allocation" title="Allocation actuelle" subtitle="Poids réellement détenus à la date d’analyse. L’allocation cible n’est pas une instruction de transaction.">
         <AllocationSection strategies={available} />
       </Section>
+
+      <AdvancedRiskSection strategies={available} />
 
       <Section id="lecture" title="Lecture pédagogique">
         <PedagogySection strategies={strategies} filter={filter} />
@@ -631,10 +943,9 @@ export function QuadrantsVsBrowneView({
 export const VS_BROWNE_SECTIONS = [
   { id: "synthese", label: "Synthèse" },
   { id: "performance", label: "Performance" },
-  { id: "indicateurs", label: "Indicateurs" },
   { id: "drawdowns", label: "Drawdowns" },
+  { id: "indicateurs", label: "Indicateurs" },
   { id: "glissante", label: "Glissante" },
-  { id: "risque-baisse", label: "Risque de baisse" },
   { id: "couts", label: "Coûts" },
   { id: "allocation", label: "Allocation" },
   { id: "lecture", label: "Lecture" },

@@ -60,7 +60,7 @@ const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[
   { key: "country", label: "Vue pays", icon: LineChart, ready: true },
   { key: "comparison", label: "Comparaison pays", icon: Table2, ready: true },
   { key: "vs_actions", label: "4 Quadrants vs Actions", icon: Swords, ready: true },
-  { key: "vs_browne", label: "4Q vs Browne", icon: Scale, ready: true },
+  { key: "vs_browne", label: "4 Quadrants vs Browne", icon: Scale, ready: true },
   { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: true },
 ];
 
@@ -104,8 +104,8 @@ const MODE_ITEMS: SelectItem[] = [
   { value: "nominal_vs_inflation", label: "Nominal vs Inflation" },
 ];
 const STRATEGY_ITEMS: SelectItem[] = [
-  { value: "binary", label: "Binaire" },
-  { value: "dynamic", label: "Dynamique" },
+  { value: "binary", label: "Allocation par régime" },
+  { value: "dynamic", label: "Allocation continue" },
 ];
 // Onglet « 4Q vs Browne » : mode restreint (Nominal / Réel) + filtre de comparaison + coûts.
 const MODE_ITEMS_VS_BROWNE: SelectItem[] = [
@@ -114,9 +114,9 @@ const MODE_ITEMS_VS_BROWNE: SelectItem[] = [
 ];
 const COMPARISON_ITEMS: SelectItem[] = [
   { value: "all", label: "Toutes les stratégies" },
-  { value: "dyn_browne", label: "Dynamique vs Browne" },
-  { value: "bin_browne", label: "Binaire vs Browne" },
-  { value: "dyn_bin", label: "Dynamique vs Binaire" },
+  { value: "dyn_browne", label: "Continue vs Browne" },
+  { value: "bin_browne", label: "Régime vs Browne" },
+  { value: "dyn_bin", label: "Continue vs Régime" },
 ];
 const COST_ITEMS: SelectItem[] = COST_BPS_OPTIONS.map((b) => ({ value: String(b), label: `${b} bps` }));
 const COST_STORAGE_KEY = "quantsightly:vs-browne-cost-bps";
@@ -285,76 +285,110 @@ export function QuadrantsView({
   // Onglets orientés « groupe de pays » (filtre région, calcul serveur partagé).
   const isRegionTab = tab === "comparison" || tab === "vs_actions";
 
-  // Contrôles complets (bloc initial + panneau « Modifier ») — 1er champ contextuel.
-  const renderControls = () => (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {isRegionTab ? (
-        <Control label="Région">
+  // Contrôles complets (bloc initial + panneau « Modifier »). Barre DÉCLARATIVE : une
+  // liste de 5 champs strictement identiques (Control + SelectDropdown), partagée par
+  // tous les onglets — seuls les items/valeurs varient. Aucune implémentation parallèle.
+  const renderControls = () => {
+    const fields: { key: string; label: string; node: React.ReactNode }[] = [
+      isRegionTab
+        ? {
+            key: "region",
+            label: "Région",
+            node: (
+              <SelectDropdown
+                items={REGION_ITEMS}
+                value={region}
+                onChange={(i) => setRegion(i.value as QuadrantRegion)}
+                width="w-full"
+              />
+            ),
+          }
+        : {
+            key: "country",
+            label: "Pays",
+            node: (
+              <SelectDropdown
+                items={countryItems}
+                value={country}
+                onChange={(i) => onCountry(i.value)}
+                width="w-full"
+              />
+            ),
+          },
+      {
+        key: "period",
+        label: "Période",
+        node: (
           <SelectDropdown
-            items={REGION_ITEMS}
-            value={region}
-            onChange={(i) => setRegion(i.value as QuadrantRegion)}
+            items={PERIOD_ITEMS}
+            value={period}
+            onChange={(i) => setPeriod(i.value as Period)}
             width="w-full"
           />
-        </Control>
-      ) : (
-        <Control label="Pays">
+        ),
+      },
+      {
+        // Devise = LOCALE uniquement (V1) : même contrôle que les autres onglets ;
+        // l'explication passe en note discrète sous la barre (cf. plus bas).
+        key: "devise",
+        label: "Devise d’analyse",
+        node: <SelectDropdown items={DEVISE_ITEMS} value="local" width="w-full" />,
+      },
+      {
+        key: "mode",
+        label: "Mode d’analyse",
+        node: (
           <SelectDropdown
-            items={countryItems}
-            value={country}
-            onChange={(i) => onCountry(i.value)}
+            items={tab === "vs_browne" ? MODE_ITEMS_VS_BROWNE : MODE_ITEMS}
+            value={tab === "vs_browne" ? vsBrowneMode : perfMode}
+            onChange={(i) => setPerfMode(i.value as PerfMode)}
             width="w-full"
           />
-        </Control>
-      )}
-      <Control label="Période">
-        <SelectDropdown
-          items={PERIOD_ITEMS}
-          value={period}
-          onChange={(i) => setPeriod(i.value as Period)}
-          width="w-full"
-        />
-      </Control>
-      {tab === "vs_browne" ? (
-        // Devise = LOCALE uniquement (V1) : pas de sélecteur, note discrète.
-        <div className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">Devise d’analyse</span>
-          <p className="pt-1.5 text-xs text-muted-foreground">Résultats exprimés dans la devise locale du pays</p>
+        ),
+      },
+      tab === "vs_browne"
+        ? {
+            key: "comparison",
+            label: "Comparaison",
+            node: (
+              <SelectDropdown
+                items={COMPARISON_ITEMS}
+                value={comparisonFilter}
+                onChange={(i) => setComparisonFilter(i.value as ComparisonFilter)}
+                width="w-full"
+              />
+            ),
+          }
+        : {
+            key: "strategy",
+            label: "Stratégie",
+            node: (
+              <SelectDropdown
+                items={STRATEGY_ITEMS}
+                value={strategy}
+                onChange={(i) => setStrategy(i.value as Strategy)}
+                width="w-full"
+              />
+            ),
+          },
+    ];
+    return (
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {fields.map((f) => (
+            <Control key={f.key} label={f.label}>
+              {f.node}
+            </Control>
+          ))}
         </div>
-      ) : (
-        <Control label="Devise d’analyse">
-          <SelectDropdown items={DEVISE_ITEMS} value="local" width="w-full" />
-        </Control>
-      )}
-      <Control label="Mode d’analyse">
-        <SelectDropdown
-          items={tab === "vs_browne" ? MODE_ITEMS_VS_BROWNE : MODE_ITEMS}
-          value={tab === "vs_browne" ? vsBrowneMode : perfMode}
-          onChange={(i) => setPerfMode(i.value as PerfMode)}
-          width="w-full"
-        />
-      </Control>
-      {tab === "vs_browne" ? (
-        <Control label="Comparaison">
-          <SelectDropdown
-            items={COMPARISON_ITEMS}
-            value={comparisonFilter}
-            onChange={(i) => setComparisonFilter(i.value as ComparisonFilter)}
-            width="w-full"
-          />
-        </Control>
-      ) : (
-        <Control label="Stratégie">
-          <SelectDropdown
-            items={STRATEGY_ITEMS}
-            value={strategy}
-            onChange={(i) => setStrategy(i.value as Strategy)}
-            width="w-full"
-          />
-        </Control>
-      )}
-    </div>
-  );
+        {tab === "vs_browne" && (
+          <p className="text-xs text-muted-foreground">
+            Résultats exprimés dans la devise locale du pays
+          </p>
+        )}
+      </div>
+    );
+  };
 
   // Résumé compact des valeurs actives (barre condensée).
   const summary: StickySummaryItem[] =
@@ -480,7 +514,7 @@ export function QuadrantsView({
         extra={
           <div>
             <div className="flex items-baseline justify-between">
-              <p className="text-sm font-medium">Coûts de transaction (4Q vs Browne)</p>
+              <p className="text-sm font-medium">Coûts de transaction (4 Quadrants vs Browne)</p>
               <span className="text-sm font-semibold tabular-nums">{costBps} bps</span>
             </div>
             <div className="mt-2.5 flex gap-2">
@@ -498,7 +532,7 @@ export function QuadrantsView({
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
               Appliqués à la rotation réellement exécutée. Les performances et métriques de l’onglet
-              « 4Q vs Browne » sont nettes de ces coûts (25 bps par défaut).
+              « 4 Quadrants vs Browne » sont nettes de ces coûts (25 bps par défaut).
             </p>
           </div>
         }

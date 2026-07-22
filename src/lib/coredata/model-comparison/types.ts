@@ -185,6 +185,8 @@ export interface ComparisonStrategyResult {
   /** Allocation RÉELLEMENT détenue à la date d'analyse (poche principale). */
   currentAllocation: Allocation | null;
   /** Allocation cible — fournie seulement si elle diffère de la détenue. */
+  // targetAllocation is omitted when it is identical to currentAllocation.
+  // An unavailable strategy is represented separately through availability/currentAllocation.
   targetAllocation?: Allocation;
   metrics: ComparisonMetrics | null;
 }

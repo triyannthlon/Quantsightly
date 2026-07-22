@@ -16,10 +16,10 @@ import type { ChartPoint } from "@/app/(admin)/exploration/exploration-chart";
 
 export type PerfMode = "nominal" | "real" | "nominal_vs_inflation";
 
-/** Libellés des stratégies (badge DQAE géré séparément dans l'UI). */
+/** Libellés PUBLICS des stratégies (correspondance des IDs moteur : cf. `four-quadrants/types`). */
 export const STRATEGY_LABELS: Record<Strategy, string> = {
-  binary: "Allocation binaire",
-  dynamic: "Allocation dynamique",
+  binary: "Allocation par régime",
+  dynamic: "Allocation continue",
 };
 
 export const TRANSITION_LABELS: Record<TransitionState, string> = {
@@ -206,6 +206,68 @@ export function compositionDiverges(
   target: Record<SleeveKey, number>,
 ): boolean {
   return CORE_SLEEVES.some((k) => Math.round(held[k] * 100) !== Math.round(target[k] * 100));
+}
+
+// ─── Restitution d'affichage des allocations (détenu / cible) ──────────────────
+// Convention du contrat (cf. model-comparison/types.ts) :
+//   targetAllocation is omitted when it is identical to currentAllocation.
+//   An unavailable strategy is represented separately through availability/currentAllocation.
+// Ces helpers ne font que de la RESTITUTION : ils n'altèrent aucun poids réel du moteur.
+
+/** Poches cœur, dans l'ORDRE d'affichage (mêmes ordre/couleurs pour détenu & cible). */
+export const ALLOC_KEYS = ["equities", "bonds", "gold", "cash"] as const;
+export type AllocKey = (typeof ALLOC_KEYS)[number];
+type CoreAlloc = Partial<Record<AllocKey, number>>;
+
+/**
+ * Pourcentages ENTIERS par poche dont la somme vaut exactement 100 (méthode du plus
+ * grand reste) — évite les totaux visuels à 99/101 % sans toucher aux poids réels.
+ * Les poches à 0 % sont conservées (jamais masquées).
+ */
+export function roundedAllocPercents(alloc: CoreAlloc): Record<AllocKey, number> {
+  const raw = ALLOC_KEYS.map((k) => (alloc[k] ?? 0) * 100);
+  const out = raw.map((v) => Math.floor(v));
+  const rest = 100 - out.reduce((a, b) => a + b, 0);
+  // Les `rest` unités restantes vont aux plus grands restes fractionnaires.
+  const byFrac = raw
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac);
+  for (let n = 0; n < rest && n < byFrac.length; n++) out[byFrac[n].i] += 1;
+  const result = {} as Record<AllocKey, number>;
+  ALLOC_KEYS.forEach((k, i) => {
+    result[k] = out[i];
+  });
+  return result;
+}
+
+/** Deux jeux de pourcentages entiers identiques poche par poche ? */
+export const sameAllocPercents = (
+  a: Record<AllocKey, number>,
+  b: Record<AllocKey, number>,
+): boolean => ALLOC_KEYS.every((k) => a[k] === b[k]);
+
+/**
+ * Pourcentages de la CIBLE à afficher, ou `null` si la cible est identique à la
+ * détenue (au % affiché) OU absente. Dans les deux cas la vue montre « Identique à
+ * l'allocation actuelle » (convention : cible omise = identique, pas indisponible).
+ */
+export function resolveTargetPercents(
+  target: CoreAlloc | undefined,
+  heldPcts: Record<AllocKey, number>,
+): Record<AllocKey, number> | null {
+  if (!target) return null;
+  const t = roundedAllocPercents(target);
+  return sameAllocPercents(heldPcts, t) ? null : t;
+}
+
+/**
+ * Stratégies dotées d'une allocation détenue (celles qui obtiennent une carte). Une
+ * stratégie indisponible a `currentAllocation = null` → exclue (aucune carte affichée).
+ */
+export function strategiesWithAllocation<T extends { currentAllocation: CoreAlloc | null }>(
+  strategies: T[],
+): T[] {
+  return strategies.filter((s) => s.currentAllocation != null);
 }
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
