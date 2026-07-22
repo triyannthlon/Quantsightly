@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { LineChart, Table2, Swords, BookOpen, SlidersHorizontal } from "lucide-react";
+import { LineChart, Table2, Swords, Scale, BookOpen, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Card } from "@/components/ui/card";
@@ -34,10 +34,17 @@ import {
   type StickyNavSection,
   type StickySummaryItem,
 } from "@/components/custom/model-shell/model-sticky-controls";
-import { loadCountryQuadrantModel, loadQuadrantComparison } from "./actions";
+import { loadCountryQuadrantModel, loadQuadrantComparison, loadModelComparison } from "./actions";
 import { ACTIVE_REALLOCATION_BAND, IS_STAGING_V2 } from "./model-version-active";
 import { REGION_ITEMS, type PerfMode, type QuadrantRegion } from "./helpers";
 import { availabilityMessage, type AvailabilityReason } from "./availability-message";
+import {
+  QuadrantsVsBrowneView,
+  VS_BROWNE_SECTIONS,
+  type ComparisonFilter,
+} from "./quadrants-vs-browne-view";
+// Constantes PURES uniquement (jamais le barrel model-comparison côté client).
+import { COST_BPS_OPTIONS, DEFAULT_COST_BPS } from "@/lib/coredata/model-comparison/constants";
 
 // Statut de modèle non-OK → cause d'indisponibilité (message homogène, cf. helper).
 const MODEL_REASON: Record<Exclude<QuadrantModelStatus, "OK">, AvailabilityReason> = {
@@ -46,13 +53,14 @@ const MODEL_REASON: Record<Exclude<QuadrantModelStatus, "OK">, AvailabilityReaso
   INSUFFICIENT_HISTORY: "insufficient_history",
 };
 
-type Tab = "country" | "comparison" | "vs_actions" | "methodology";
+type Tab = "country" | "comparison" | "vs_actions" | "vs_browne" | "methodology";
 type Period = "MAX" | "20A" | "10A" | "5A";
 
 const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[] = [
   { key: "country", label: "Vue pays", icon: LineChart, ready: true },
   { key: "comparison", label: "Comparaison pays", icon: Table2, ready: true },
   { key: "vs_actions", label: "4 Quadrants vs Actions", icon: Swords, ready: true },
+  { key: "vs_browne", label: "4Q vs Browne", icon: Scale, ready: true },
   { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: true },
 ];
 
@@ -78,6 +86,7 @@ const SECTIONS: Record<Tab, StickyNavSection[]> = {
     { id: "comparateur", label: "Comparateur" },
     { id: "carte", label: "Carte" },
   ],
+  vs_browne: VS_BROWNE_SECTIONS,
   methodology: METHODOLOGY_SECTIONS,
 };
 
@@ -98,6 +107,19 @@ const STRATEGY_ITEMS: SelectItem[] = [
   { value: "binary", label: "Binaire" },
   { value: "dynamic", label: "Dynamique" },
 ];
+// Onglet « 4Q vs Browne » : mode restreint (Nominal / Réel) + filtre de comparaison + coûts.
+const MODE_ITEMS_VS_BROWNE: SelectItem[] = [
+  { value: "nominal", label: "Nominal" },
+  { value: "real", label: "Réel" },
+];
+const COMPARISON_ITEMS: SelectItem[] = [
+  { value: "all", label: "Toutes les stratégies" },
+  { value: "dyn_browne", label: "Dynamique vs Browne" },
+  { value: "bin_browne", label: "Binaire vs Browne" },
+  { value: "dyn_bin", label: "Dynamique vs Binaire" },
+];
+const COST_ITEMS: SelectItem[] = COST_BPS_OPTIONS.map((b) => ({ value: String(b), label: `${b} bps` }));
+const COST_STORAGE_KEY = "quantsightly:vs-browne-cost-bps";
 
 function Control({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -140,6 +162,31 @@ export function QuadrantsView({
   // Comparaison pays (calcul serveur) — snapshot + métriques uniquement.
   const [comparison, setComparison] = useState<QuadrantModelRow[] | null>(null);
   const [comparisonLoading, setComparisonLoading] = useState(false);
+
+  // Onglet « 4Q vs Browne » (étape 3) : calcul SERVEUR via action `loadModelComparison`.
+  const [vsBrowne, setVsBrowne] =
+    useState<Awaited<ReturnType<typeof loadModelComparison>> | undefined>(undefined);
+  const [vsBrowneLoading, setVsBrowneLoading] = useState(false);
+  // Étape 5 : filtre d'affichage + hypothèse de coûts (persistée).
+  const [comparisonFilter, setComparisonFilter] = useState<ComparisonFilter>("all");
+  const [costBps, setCostBps] = useState<number>(DEFAULT_COST_BPS);
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(COST_STORAGE_KEY);
+      if (stored !== null && COST_BPS_OPTIONS.includes(Number(stored))) setCostBps(Number(stored));
+    } catch {
+      /* localStorage indisponible → défaut 25 bps */
+    }
+  }, []);
+  const updateCost = (b: number) => {
+    setCostBps(b);
+    try {
+      localStorage.setItem(COST_STORAGE_KEY, String(b));
+    } catch {
+      /* silencieux */
+    }
+  };
+  const vsBrowneMode: "nominal" | "real" = perfMode === "real" ? "real" : "nominal";
 
   const settings = useMemo<FourQuadrantsModelSettings>(
     () => ({ ...DEFAULT_FOUR_QUADRANTS_SETTINGS, strategy, transitionWidth }),
@@ -199,6 +246,30 @@ export function QuadrantsView({
     };
   }, [needsBatch, settings, period]);
 
+  // Onglet « 4Q vs Browne » : calcul SERVEUR (le moteur reste hors du bundle client).
+  // Étape 3 = params simples (mode réel/nominal, coûts 25 bps figés). Le filtre, les
+  // coûts réglables et l'état d'URL viendront aux étapes suivantes.
+  useEffect(() => {
+    if (tab !== "vs_browne") return;
+    let ignore = false;
+    setVsBrowneLoading(true);
+    loadModelComparison(country, {
+      period: PERIOD_YEARS[period],
+      mode: vsBrowneMode,
+      costBps,
+      transitionWidth,
+    })
+      .then((r) => {
+        if (!ignore) setVsBrowne(r);
+      })
+      .finally(() => {
+        if (!ignore) setVsBrowneLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [tab, country, period, vsBrowneMode, costBps, transitionWidth]);
+
   // Depuis la comparaison → Vue pays : conserve stratégie / T / période / mode (état).
   function onPickCountry(iso: string) {
     setTab("country");
@@ -244,41 +315,69 @@ export function QuadrantsView({
           width="w-full"
         />
       </Control>
-      <Control label="Devise d’analyse">
-        <SelectDropdown items={DEVISE_ITEMS} value="local" width="w-full" />
-      </Control>
+      {tab === "vs_browne" ? (
+        // Devise = LOCALE uniquement (V1) : pas de sélecteur, note discrète.
+        <div className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">Devise d’analyse</span>
+          <p className="pt-1.5 text-xs text-muted-foreground">Résultats exprimés dans la devise locale du pays</p>
+        </div>
+      ) : (
+        <Control label="Devise d’analyse">
+          <SelectDropdown items={DEVISE_ITEMS} value="local" width="w-full" />
+        </Control>
+      )}
       <Control label="Mode d’analyse">
         <SelectDropdown
-          items={MODE_ITEMS}
-          value={perfMode}
+          items={tab === "vs_browne" ? MODE_ITEMS_VS_BROWNE : MODE_ITEMS}
+          value={tab === "vs_browne" ? vsBrowneMode : perfMode}
           onChange={(i) => setPerfMode(i.value as PerfMode)}
           width="w-full"
         />
       </Control>
-      <Control label="Stratégie">
-        <SelectDropdown
-          items={STRATEGY_ITEMS}
-          value={strategy}
-          onChange={(i) => setStrategy(i.value as Strategy)}
-          width="w-full"
-        />
-      </Control>
+      {tab === "vs_browne" ? (
+        <Control label="Comparaison">
+          <SelectDropdown
+            items={COMPARISON_ITEMS}
+            value={comparisonFilter}
+            onChange={(i) => setComparisonFilter(i.value as ComparisonFilter)}
+            width="w-full"
+          />
+        </Control>
+      ) : (
+        <Control label="Stratégie">
+          <SelectDropdown
+            items={STRATEGY_ITEMS}
+            value={strategy}
+            onChange={(i) => setStrategy(i.value as Strategy)}
+            width="w-full"
+          />
+        </Control>
+      )}
     </div>
   );
 
   // Résumé compact des valeurs actives (barre condensée).
-  const summary: StickySummaryItem[] = [
-    isRegionTab
-      ? { label: "Région", value: REGION_ITEMS.find((i) => i.value === region)?.label ?? region }
-      : { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
-    { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
-    { label: "Devise", value: "Locale" },
-    { label: "Mode", value: MODE_ITEMS.find((i) => i.value === perfMode)?.label ?? perfMode },
-    {
-      label: "Stratégie",
-      value: STRATEGY_ITEMS.find((i) => i.value === strategy)?.label ?? strategy,
-    },
-  ];
+  const summary: StickySummaryItem[] =
+    tab === "vs_browne"
+      ? [
+          { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
+          { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
+          { label: "Mode", value: MODE_ITEMS_VS_BROWNE.find((i) => i.value === vsBrowneMode)?.label ?? vsBrowneMode },
+          { label: "Comparaison", value: COMPARISON_ITEMS.find((i) => i.value === comparisonFilter)?.label ?? comparisonFilter },
+          { label: "Coûts", value: `${costBps} bps` },
+        ]
+      : [
+          isRegionTab
+            ? { label: "Région", value: REGION_ITEMS.find((i) => i.value === region)?.label ?? region }
+            : { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
+          { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
+          { label: "Devise", value: "Locale" },
+          { label: "Mode", value: MODE_ITEMS.find((i) => i.value === perfMode)?.label ?? perfMode },
+          {
+            label: "Stratégie",
+            value: STRATEGY_ITEMS.find((i) => i.value === strategy)?.label ?? strategy,
+          },
+        ];
 
   const reglagesButton = (
     <Button
@@ -353,12 +452,57 @@ export function QuadrantsView({
             settings={settings}
             years={PERIOD_YEARS[period]}
           />
+        ) : tab === "vs_browne" ? (
+          vsBrowneLoading || vsBrowne === undefined ? (
+            <Card className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+              Calcul de la comparaison…
+            </Card>
+          ) : vsBrowne ? (
+            <QuadrantsVsBrowneView
+              result={vsBrowne.net}
+              grossResult={vsBrowne.gross}
+              filter={comparisonFilter}
+              costBps={costBps}
+            />
+          ) : (
+            <Card className="p-8 text-center text-sm text-muted-foreground">
+              Données insuffisantes pour comparer les modèles sur ce pays.
+            </Card>
+          )
         ) : (
           <QuadrantsMethodology />
         )}
       </ModelStickyControls>
 
-      <ModelSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <ModelSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        extra={
+          <div>
+            <div className="flex items-baseline justify-between">
+              <p className="text-sm font-medium">Coûts de transaction (4Q vs Browne)</p>
+              <span className="text-sm font-semibold tabular-nums">{costBps} bps</span>
+            </div>
+            <div className="mt-2.5 flex gap-2">
+              {COST_ITEMS.map((c) => (
+                <Button
+                  key={c.value}
+                  variant={Number(c.value) === costBps ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1 cursor-pointer"
+                  onClick={() => updateCost(Number(c.value))}
+                >
+                  {c.label}
+                </Button>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Appliqués à la rotation réellement exécutée. Les performances et métriques de l’onglet
+              « 4Q vs Browne » sont nettes de ces coûts (25 bps par défaut).
+            </p>
+          </div>
+        }
+      />
     </>
   );
 }

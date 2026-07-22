@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Dialog, DialogTitle } from "@/components/ui/dialog";
 import { FrostedDialogContent } from "@/components/custom/ui/frosted-dialog";
 import { useTransitionWidth } from "@/hooks/model-settings/transition-context";
@@ -10,8 +11,20 @@ import { useTransitionWidth } from "@/hooks/model-settings/transition-context";
 // ne neutralise que la moitié de chaque quadrant, jamais la totalité).
 const MARKER_20_LEFT = "40%"; // position de 20 sur l'échelle 0-50
 
-/** Fenêtre de réglage partagée (Régimes macro + 4 Quadrants) : largeur de la zone neutre. */
-export function ModelSettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+/**
+ * Fenêtre de réglage partagée (Régimes macro + 4 Quadrants) : largeur de la zone
+ * neutre. `extra` = réglage(s) supplémentaire(s) propres à une page (ex. hypothèse
+ * de coûts de l'onglet « 4Q vs Browne »), affichés sous un séparateur.
+ */
+export function ModelSettingsDialog({
+  open,
+  onOpenChange,
+  extra,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  extra?: ReactNode;
+}) {
   const { transitionWidth, setTransitionWidth } = useTransitionWidth();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -52,6 +65,7 @@ export function ModelSettingsDialog({ open, onOpenChange }: { open: boolean; onO
           À 20 %, les 20 premiers pour cent de chaque quadrant sont considérés comme neutres. Une zone
           plus large rend l’allocation plus stable ; une zone plus étroite la rend plus réactive.
         </p>
+        {extra && <div className="mt-5 border-t pt-4">{extra}</div>}
       </FrostedDialogContent>
     </Dialog>
   );

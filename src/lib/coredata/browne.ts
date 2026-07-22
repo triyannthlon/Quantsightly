@@ -88,6 +88,19 @@ export interface SleeveMetrics {
 }
 
 /**
+ * Rotation exécutée d'un mois — MIROIR de `TurnoverPoint` du module 4 Quadrants,
+ * pour appliquer des coûts de transaction avec la MÊME convention. `turnover` est
+ * le turnover unidirectionnel EXÉCUTÉ ce mois (½·Σ|cible − détenu| au rééquilibrage,
+ * `0` hors rééquilibrage) ; `null` au mois de constitution (aucune transaction).
+ */
+export interface BrowneTurnoverPoint {
+  date: string;
+  turnover: number | null;
+  /** Volume brut échangé = 2·turnover (aller-retour, pour les coûts). */
+  grossTradedWeight: number | null;
+}
+
+/**
  * Rotation du portefeuille (turnover), agrégée sur les rééquilibrages — même
  * définition que les portefeuilles 4 Quadrants : à chaque rééquilibrage,
  * turnover UNIDIRECTIONNEL = ½·Σ|cible − poids réellement détenus (dérivés)|.
@@ -103,6 +116,13 @@ export interface BrowneTurnover {
   rebalances: number;
   /** Durée exacte du backtest, en années (span calendaire des mois alignés). */
   years: number;
+  /**
+   * Rotation exécutée mois par mois (miroir du 4 Quadrants), alignée sur `series.nominal` :
+   * `null` à la constitution, `0` les mois sans rééquilibrage, la valeur du turnover
+   * au mois de rééquilibrage. Sert à appliquer des coûts de transaction — n'affecte
+   * AUCUN calcul de poids/performance existant (purement descriptif).
+   */
+  monthly: BrowneTurnoverPoint[];
 }
 
 /** Courbes produites (base 100 à leur première date respective). */
@@ -140,6 +160,13 @@ export type BrowneResult =
       };
       /** Rotation du portefeuille (indépendante du mode ; suit la fréquence de rééquilibrage). */
       turnover: BrowneTurnover;
+      /**
+       * Poids RÉELLEMENT détenus au dernier mois (dérivés depuis le dernier
+       * rééquilibrage) — position courante du modèle à la date d'analyse.
+       */
+      heldAllocation: Record<SleeveKey, number>;
+      /** Poids CIBLES (25 % chacun) — invariant du portefeuille permanent. */
+      targetAllocation: Record<SleeveKey, number>;
     }
   | {
       status: Exclude<BrowneStatus, "OK">;
@@ -419,20 +446,32 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
   // Rotation cumulée : ½·Σ|cible − poids détenus| à chaque rééquilibrage (hors constitution).
   let turnoverCumulative = 0;
   let rebalanceCount = 0;
+  // Rotation exécutée mois par mois (miroir 4Q), alignée sur `nominal`. Le 1er mois =
+  // constitution (aucune transaction) → `null`.
+  const turnoverMonthly: BrowneTurnoverPoint[] = [
+    { date: valid[0].date, turnover: null, grossTradedWeight: null },
+  ];
 
   for (let i = 1; i < valid.length; i++) {
+    let monthTurnover = 0;
     if (periodKey(valid[i].date, rebalance) !== periodKey(valid[i - 1].date, rebalance)) {
       // Rééquilibrage : les poids détenus (dérivés depuis le dernier reset) reviennent
       // à 25 %. Turnover UNIDIRECTIONNEL = ½·Σ|cible − détenu| (≠ achats + ventes).
-      turnoverCumulative +=
+      monthTurnover =
         0.5 *
         (Math.abs(SLEEVE_WEIGHT - w[0]) +
           Math.abs(SLEEVE_WEIGHT - w[1]) +
           Math.abs(SLEEVE_WEIGHT - w[2]) +
           Math.abs(SLEEVE_WEIGHT - w[3]));
+      turnoverCumulative += monthTurnover;
       rebalanceCount += 1;
       w = [SLEEVE_WEIGHT, SLEEVE_WEIGHT, SLEEVE_WEIGHT, SLEEVE_WEIGHT];
     }
+    turnoverMonthly.push({
+      date: valid[i].date,
+      turnover: monthTurnover,
+      grossTradedWeight: 2 * monthTurnover,
+    });
     const r = SLEEVE_KEYS.map((k) => level(valid[i], k) / level(valid[i - 1], k) - 1);
     const rp = w[0] * r[0] + w[1] * r[1] + w[2] * r[2] + w[3] * r[3];
     for (let j = 0; j < 4; j++) contrib[j] += w[j] * r[j];
@@ -486,6 +525,21 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
     cumulative: turnoverCumulative,
     rebalances: rebalanceCount,
     years,
+    monthly: turnoverMonthly,
+  };
+
+  // Poids RÉELLEMENT détenus au dernier mois = `w` après la dernière dérive.
+  const heldAllocation: Record<SleeveKey, number> = {
+    equity: w[0],
+    bond: w[1],
+    cash: w[2],
+    gold: w[3],
+  };
+  const targetAllocation: Record<SleeveKey, number> = {
+    equity: SLEEVE_WEIGHT,
+    bond: SLEEVE_WEIGHT,
+    cash: SLEEVE_WEIGHT,
+    gold: SLEEVE_WEIGHT,
   };
 
   return {
@@ -497,6 +551,8 @@ export function computeBrowne(input: ComputeBrowneInput): BrowneResult {
     months: valid.length,
     series: { nominal, real, equityBenchmark, equityReal, inflationIndex, sleeves },
     turnover,
+    heldAllocation,
+    targetAllocation,
     metrics: {
       nominal: indexMetrics(nominal, rfNominal),
       real: real ? indexMetrics(real, rfReal) : null,

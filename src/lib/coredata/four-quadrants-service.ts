@@ -32,6 +32,12 @@ import {
   type ModelVersion,
 } from "./four-quadrants";
 import { readEnergyOverlay, type EnergyOverlayVersion } from "./energy-overlay-config";
+import {
+  computeModelComparison,
+  withCurrentMonthExcluded,
+  type ModelComparisonResult,
+  type ComparisonMode,
+} from "./model-comparison";
 
 /** Séries globales cotées en USD, communes à tous les pays. */
 const GLOBAL_OIL_ID = "CL1 comdty-XX-5-1"; // WTI
@@ -533,4 +539,51 @@ export async function computeAllCountryQuadrantModels(
       };
     }),
   );
+}
+
+// ─── Comparaison « 4 Quadrants vs Browne » (onglet interne) ──────────────────
+
+export interface BrowneComparisonOptions {
+  /** Fenêtre en années (`null` = Max). */
+  period: number | null;
+  mode: ComparisonMode;
+  /** Coûts (bps sur la rotation exécutée). */
+  costBps: number;
+  /** Demi-largeur de la zone de transition (réglage global). */
+  transitionWidth: number;
+}
+
+/**
+ * Comparaison Browne / 4Q Dynamique / 4Q Binaire d'UN pays, calculée CÔTÉ SERVEUR
+ * (le moteur pur `model-comparison` + `browne` restent hors du bundle client). Charge
+ * les mêmes séries que la Vue pays, applique la garde « mois courant exclu » (horloge
+ * serveur), puis renvoie la version NETTE (coûts) et la version BRUTE (0 bps) pour
+ * l'écart brut/net. `null` si le pays n'a pas de configuration exploitable.
+ */
+export async function computeModelComparisonForCountry(
+  countryCode: string,
+  opts: BrowneComparisonOptions,
+  version: ModelVersion = DEFAULT_MODEL_VERSION,
+  overlay: EnergyOverlayVersion = readEnergyOverlay(),
+): Promise<{ net: ModelComparisonResult; gross: ModelComparisonResult } | null> {
+  const ctx = await loadContext(overlay);
+  const config = deriveQuadrantConfig(countryCode, ctx.series, ctx.countries);
+  if (!config) return null;
+
+  const { signal, perf } = await loadSeries(config, ctx);
+  const guarded = withCurrentMonthExcluded(
+    {
+      countryCode,
+      signal,
+      perf,
+      transitionWidth: opts.transitionWidth,
+      reallocationBand: REALLOCATION_BAND[version],
+    },
+    new Date().toISOString().slice(0, 7),
+  );
+  const base = { period: opts.period, mode: opts.mode, costBps: opts.costBps };
+  return {
+    net: computeModelComparison(guarded, base),
+    gross: computeModelComparison(guarded, { ...base, costBps: 0 }),
+  };
 }

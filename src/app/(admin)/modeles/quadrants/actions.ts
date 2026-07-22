@@ -4,6 +4,8 @@ import {
   getCountryQuadrantModel,
   computeAllCountryQuadrantModels,
   computeQuadrantsRealSeries,
+  computeModelComparisonForCountry,
+  type BrowneComparisonOptions,
 } from "@/lib/coredata/four-quadrants-service";
 import type { FourQuadrantsModelSettings } from "@/lib/coredata/four-quadrants";
 import { ACTIVE_MODEL_VERSION } from "./model-version-active";
@@ -38,4 +40,12 @@ export async function loadQuadrantsRealSeries(
   years: number | null,
 ) {
   return computeQuadrantsRealSeries(codes, settings, years, ACTIVE_MODEL_VERSION);
+}
+
+/**
+ * Comparaison « 4Q vs Browne » d'un pays (calcul SERVEUR : le moteur reste hors du
+ * bundle client). Renvoie la version nette de coûts + la version brute (0 bps).
+ */
+export async function loadModelComparison(countryCode: string, opts: BrowneComparisonOptions) {
+  return computeModelComparisonForCountry(countryCode, opts, ACTIVE_MODEL_VERSION);
 }

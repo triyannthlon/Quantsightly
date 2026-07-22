@@ -1,0 +1,2530 @@
+{
+  "US|nominal|MAX": {
+    "window": {
+      "start": "1985-06",
+      "end": "2026-06",
+      "months": 493
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 1785.91,
+          "annualized": 7.43,
+          "volatility": 5.94,
+          "sharpe": 0.64,
+          "sortino": 2.25,
+          "maxDrawdown": -12.8,
+          "maxUnderwaterMonths": 22,
+          "worstRolling12m": -9.7,
+          "es95": -3.29,
+          "es99": -5.49,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.86
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 3586.86,
+          "annualized": 9.2,
+          "volatility": 7.51,
+          "sharpe": 0.74,
+          "sortino": 2.21,
+          "maxDrawdown": -11.5,
+          "maxUnderwaterMonths": 28,
+          "worstRolling12m": -8.57,
+          "es95": -4.26,
+          "es99": -6.63,
+          "annualizedTurnover": 0.24,
+          "reallocationsPerYear": 3.39,
+          "cumulativeCost": 4.96
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 5670.18,
+          "annualized": 10.4,
+          "volatility": 9.06,
+          "sharpe": 0.75,
+          "sortino": 2.03,
+          "maxDrawdown": -15.14,
+          "maxUnderwaterMonths": 25,
+          "worstRolling12m": -9.3,
+          "es95": -5.21,
+          "es99": -8.02,
+          "annualizedTurnover": 0.46,
+          "reallocationsPerYear": 2.05,
+          "cumulativeCost": 9.35
+        }
+      }
+    }
+  },
+  "US|nominal|20A": {
+    "window": {
+      "start": "2006-06",
+      "end": "2026-06",
+      "months": 241
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 297.23,
+          "annualized": 7.14,
+          "volatility": 6.69,
+          "sharpe": 0.78,
+          "sortino": 1.83,
+          "maxDrawdown": -12.8,
+          "maxUnderwaterMonths": 22,
+          "worstRolling12m": -9.7,
+          "es95": -3.8,
+          "es99": -6.58,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.44
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 422.86,
+          "annualized": 8.62,
+          "volatility": 8.44,
+          "sharpe": 0.79,
+          "sortino": 1.77,
+          "maxDrawdown": -11.5,
+          "maxUnderwaterMonths": 28,
+          "worstRolling12m": -8.57,
+          "es95": -4.81,
+          "es99": -7.34,
+          "annualizedTurnover": 0.27,
+          "reallocationsPerYear": 3.65,
+          "cumulativeCost": 2.72
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 588.68,
+          "annualized": 10.13,
+          "volatility": 9.49,
+          "sharpe": 0.86,
+          "sortino": 1.83,
+          "maxDrawdown": -12.72,
+          "maxUnderwaterMonths": 25,
+          "worstRolling12m": -9.3,
+          "es95": -5.56,
+          "es99": -8.25,
+          "annualizedTurnover": 0.51,
+          "reallocationsPerYear": 2.25,
+          "cumulativeCost": 5.1
+        }
+      }
+    }
+  },
+  "US|nominal|10A": {
+    "window": {
+      "start": "2016-06",
+      "end": "2026-06",
+      "months": 121
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 111.49,
+          "annualized": 7.78,
+          "volatility": 6.74,
+          "sharpe": 0.79,
+          "sortino": 2.02,
+          "maxDrawdown": -12.3,
+          "maxUnderwaterMonths": 22,
+          "worstRolling12m": -9.7,
+          "es95": -3.67,
+          "es99": -5.09,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.21
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 172.56,
+          "annualized": 10.55,
+          "volatility": 8.72,
+          "sharpe": 0.93,
+          "sortino": 2.17,
+          "maxDrawdown": -11.5,
+          "maxUnderwaterMonths": 18,
+          "worstRolling12m": -8.53,
+          "es95": -4.68,
+          "es99": -7.82,
+          "annualizedTurnover": 0.28,
+          "reallocationsPerYear": 3.8,
+          "cumulativeCost": 1.41
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 227.2,
+          "annualized": 12.59,
+          "volatility": 9.73,
+          "sharpe": 1.04,
+          "sortino": 2.3,
+          "maxDrawdown": -11.99,
+          "maxUnderwaterMonths": 14,
+          "worstRolling12m": -5.1,
+          "es95": -5.51,
+          "es99": -8.54,
+          "annualizedTurnover": 0.63,
+          "reallocationsPerYear": 2.8,
+          "cumulativeCost": 3.17
+        }
+      }
+    }
+  },
+  "US|nominal|5A": {
+    "window": {
+      "start": "2021-06",
+      "end": "2026-06",
+      "months": 61
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 52.54,
+          "annualized": 8.81,
+          "volatility": 7.84,
+          "sharpe": 0.65,
+          "sortino": 1.83,
+          "maxDrawdown": -12.3,
+          "maxUnderwaterMonths": 22,
+          "worstRolling12m": -9.7,
+          "es95": -4.3,
+          "es99": -5.09,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.14
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 78.02,
+          "annualized": 12.23,
+          "volatility": 9.82,
+          "sharpe": 0.87,
+          "sortino": 2.09,
+          "maxDrawdown": -11.5,
+          "maxUnderwaterMonths": 18,
+          "worstRolling12m": -8.53,
+          "es95": -5.77,
+          "es99": -7.82,
+          "annualizedTurnover": 0.28,
+          "reallocationsPerYear": 3.8,
+          "cumulativeCost": 0.69
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 101.69,
+          "annualized": 15.06,
+          "volatility": 10.45,
+          "sharpe": 1.09,
+          "sortino": 2.47,
+          "maxDrawdown": -11.99,
+          "maxUnderwaterMonths": 14,
+          "worstRolling12m": -5.1,
+          "es95": -6.56,
+          "es99": -8.54,
+          "annualizedTurnover": 0.64,
+          "reallocationsPerYear": 2.8,
+          "cumulativeCost": 1.59
+        }
+      }
+    }
+  },
+  "US|real|MAX": {
+    "window": {
+      "start": "1985-06",
+      "end": "2026-06",
+      "months": 493
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 507.03,
+          "annualized": 4.5,
+          "volatility": 6.06,
+          "sharpe": 0.61,
+          "sortino": 1.22,
+          "maxDrawdown": -18.84,
+          "maxUnderwaterMonths": 47,
+          "worstRolling12m": -16.17,
+          "es95": -3.54,
+          "es99": -5.63,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.86
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 1086.71,
+          "annualized": 6.22,
+          "volatility": 7.61,
+          "sharpe": 0.71,
+          "sortino": 1.38,
+          "maxDrawdown": -18.43,
+          "maxUnderwaterMonths": 57,
+          "worstRolling12m": -15.08,
+          "es95": -4.45,
+          "es99": -6.89,
+          "annualizedTurnover": 0.24,
+          "reallocationsPerYear": 3.39,
+          "cumulativeCost": 4.96
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 1757.29,
+          "annualized": 7.39,
+          "volatility": 9.11,
+          "sharpe": 0.72,
+          "sortino": 1.34,
+          "maxDrawdown": -15.95,
+          "maxUnderwaterMonths": 59,
+          "worstRolling12m": -12.13,
+          "es95": -5.42,
+          "es99": -8.16,
+          "annualizedTurnover": 0.46,
+          "reallocationsPerYear": 2.05,
+          "cumulativeCost": 9.35
+        }
+      }
+    }
+  },
+  "US|real|20A": {
+    "window": {
+      "start": "2006-06",
+      "end": "2026-06",
+      "months": 241
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 140.02,
+          "annualized": 4.48,
+          "volatility": 6.87,
+          "sharpe": 0.74,
+          "sortino": 1.05,
+          "maxDrawdown": -18.84,
+          "maxUnderwaterMonths": 47,
+          "worstRolling12m": -16.17,
+          "es95": -4.11,
+          "es99": -6.58,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.44
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 215.93,
+          "annualized": 5.92,
+          "volatility": 8.55,
+          "sharpe": 0.76,
+          "sortino": 1.14,
+          "maxDrawdown": -18.43,
+          "maxUnderwaterMonths": 57,
+          "worstRolling12m": -15.08,
+          "es95": -4.91,
+          "es99": -7.83,
+          "annualizedTurnover": 0.27,
+          "reallocationsPerYear": 3.65,
+          "cumulativeCost": 2.72
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 316.12,
+          "annualized": 7.39,
+          "volatility": 9.54,
+          "sharpe": 0.84,
+          "sortino": 1.27,
+          "maxDrawdown": -14.58,
+          "maxUnderwaterMonths": 41,
+          "worstRolling12m": -12.13,
+          "es95": -5.64,
+          "es99": -8.24,
+          "annualizedTurnover": 0.51,
+          "reallocationsPerYear": 2.25,
+          "cumulativeCost": 5.1
+        }
+      }
+    }
+  },
+  "US|real|10A": {
+    "window": {
+      "start": "2016-06",
+      "end": "2026-06",
+      "months": 121
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 52.09,
+          "annualized": 4.28,
+          "volatility": 6.93,
+          "sharpe": 0.74,
+          "sortino": 0.96,
+          "maxDrawdown": -18.84,
+          "maxUnderwaterMonths": 47,
+          "worstRolling12m": -16.17,
+          "es95": -4.18,
+          "es99": -5.91,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.21
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 96,
+          "annualized": 6.96,
+          "volatility": 8.89,
+          "sharpe": 0.88,
+          "sortino": 1.29,
+          "maxDrawdown": -18.43,
+          "maxUnderwaterMonths": 36,
+          "worstRolling12m": -15.08,
+          "es95": -4.93,
+          "es99": -8.61,
+          "annualizedTurnover": 0.28,
+          "reallocationsPerYear": 3.8,
+          "cumulativeCost": 1.41
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 135.29,
+          "annualized": 8.93,
+          "volatility": 9.83,
+          "sharpe": 1,
+          "sortino": 1.5,
+          "maxDrawdown": -14.58,
+          "maxUnderwaterMonths": 32,
+          "worstRolling12m": -12.13,
+          "es95": -5.69,
+          "es99": -9.32,
+          "annualizedTurnover": 0.63,
+          "reallocationsPerYear": 2.8,
+          "cumulativeCost": 3.17
+        }
+      }
+    }
+  },
+  "US|real|5A": {
+    "window": {
+      "start": "2021-06",
+      "end": "2026-06",
+      "months": 61
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 23.77,
+          "annualized": 4.36,
+          "volatility": 8.13,
+          "sharpe": 0.61,
+          "sortino": 0.78,
+          "maxDrawdown": -18.02,
+          "maxUnderwaterMonths": 35,
+          "worstRolling12m": -16.17,
+          "es95": -4.8,
+          "es99": -5.91,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.14
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 44.44,
+          "annualized": 7.63,
+          "volatility": 10.07,
+          "sharpe": 0.81,
+          "sortino": 1.16,
+          "maxDrawdown": -17.34,
+          "maxUnderwaterMonths": 32,
+          "worstRolling12m": -15.08,
+          "es95": -6.16,
+          "es99": -8.61,
+          "annualizedTurnover": 0.28,
+          "reallocationsPerYear": 3.8,
+          "cumulativeCost": 0.69
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 63.64,
+          "annualized": 10.35,
+          "volatility": 10.69,
+          "sharpe": 1.02,
+          "sortino": 1.53,
+          "maxDrawdown": -14.49,
+          "maxUnderwaterMonths": 29,
+          "worstRolling12m": -12.13,
+          "es95": -6.96,
+          "es99": -9.32,
+          "annualizedTurnover": 0.64,
+          "reallocationsPerYear": 2.8,
+          "cumulativeCost": 1.59
+        }
+      }
+    }
+  },
+  "FR|nominal|MAX": {
+    "window": {
+      "start": "2004-06",
+      "end": "2026-06",
+      "months": 265
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 265,
+          "start": "2004-06",
+          "end": "2026-06",
+          "cumulative": 270.58,
+          "annualized": 6.13,
+          "volatility": 5.79,
+          "sharpe": 0.86,
+          "sortino": 1.87,
+          "maxDrawdown": -8.18,
+          "maxUnderwaterMonths": 16,
+          "worstRolling12m": -6.71,
+          "es95": -3.3,
+          "es99": -5.22,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.47
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 265,
+          "start": "2004-06",
+          "end": "2026-06",
+          "cumulative": 346.73,
+          "annualized": 7.04,
+          "volatility": 7.31,
+          "sharpe": 0.8,
+          "sortino": 1.66,
+          "maxDrawdown": -13.11,
+          "maxUnderwaterMonths": 27,
+          "worstRolling12m": -10.86,
+          "es95": -4.43,
+          "es99": -7.06,
+          "annualizedTurnover": 0.32,
+          "reallocationsPerYear": 4.09,
+          "cumulativeCost": 3.56
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 265,
+          "start": "2004-06",
+          "end": "2026-06",
+          "cumulative": 374.03,
+          "annualized": 7.33,
+          "volatility": 8.61,
+          "sharpe": 0.72,
+          "sortino": 1.44,
+          "maxDrawdown": -19.57,
+          "maxUnderwaterMonths": 60,
+          "worstRolling12m": -17.18,
+          "es95": -5.24,
+          "es99": -9.01,
+          "annualizedTurnover": 0.58,
+          "reallocationsPerYear": 2.45,
+          "cumulativeCost": 6.34
+        }
+      }
+    }
+  },
+  "FR|nominal|20A": {
+    "window": {
+      "start": "2006-06",
+      "end": "2026-06",
+      "months": 241
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 195.08,
+          "annualized": 5.56,
+          "volatility": 5.86,
+          "sharpe": 0.77,
+          "sortino": 1.64,
+          "maxDrawdown": -8.18,
+          "maxUnderwaterMonths": 16,
+          "worstRolling12m": -6.71,
+          "es95": -3.39,
+          "es99": -5.22,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.43
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 267.34,
+          "annualized": 6.72,
+          "volatility": 7.55,
+          "sharpe": 0.75,
+          "sortino": 1.53,
+          "maxDrawdown": -13.11,
+          "maxUnderwaterMonths": 27,
+          "worstRolling12m": -10.86,
+          "es95": -4.52,
+          "es99": -7.06,
+          "annualizedTurnover": 0.32,
+          "reallocationsPerYear": 4.15,
+          "cumulativeCost": 3.23
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 295.06,
+          "annualized": 7.11,
+          "volatility": 8.91,
+          "sharpe": 0.68,
+          "sortino": 1.34,
+          "maxDrawdown": -19.57,
+          "maxUnderwaterMonths": 60,
+          "worstRolling12m": -17.18,
+          "es95": -5.37,
+          "es99": -9.01,
+          "annualizedTurnover": 0.61,
+          "reallocationsPerYear": 2.55,
+          "cumulativeCost": 6.06
+        }
+      }
+    }
+  },
+  "FR|nominal|10A": {
+    "window": {
+      "start": "2016-06",
+      "end": "2026-06",
+      "months": 121
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 70.11,
+          "annualized": 5.46,
+          "volatility": 5.89,
+          "sharpe": 0.8,
+          "sortino": 1.57,
+          "maxDrawdown": -8.18,
+          "maxUnderwaterMonths": 15,
+          "worstRolling12m": -5.92,
+          "es95": -3.44,
+          "es99": -5.78,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.2
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 117.32,
+          "annualized": 8.07,
+          "volatility": 7.34,
+          "sharpe": 1,
+          "sortino": 1.93,
+          "maxDrawdown": -12.02,
+          "maxUnderwaterMonths": 8,
+          "worstRolling12m": -1.58,
+          "es95": -4.18,
+          "es99": -8.27,
+          "annualizedTurnover": 0.32,
+          "reallocationsPerYear": 4.1,
+          "cumulativeCost": 1.61
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 139.58,
+          "annualized": 9.13,
+          "volatility": 8.72,
+          "sharpe": 0.96,
+          "sortino": 1.75,
+          "maxDrawdown": -14.89,
+          "maxUnderwaterMonths": 10,
+          "worstRolling12m": -2.83,
+          "es95": -5.34,
+          "es99": -9.48,
+          "annualizedTurnover": 0.71,
+          "reallocationsPerYear": 2.9,
+          "cumulativeCost": 3.54
+        }
+      }
+    }
+  },
+  "FR|nominal|5A": {
+    "window": {
+      "start": "2021-06",
+      "end": "2026-06",
+      "months": 61
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 37.91,
+          "annualized": 6.64,
+          "volatility": 6.77,
+          "sharpe": 0.69,
+          "sortino": 1.66,
+          "maxDrawdown": -8.18,
+          "maxUnderwaterMonths": 15,
+          "worstRolling12m": -5.92,
+          "es95": -3.84,
+          "es99": -5.78,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.13
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 63.81,
+          "annualized": 10.37,
+          "volatility": 8.14,
+          "sharpe": 1.03,
+          "sortino": 2.26,
+          "maxDrawdown": -12.02,
+          "maxUnderwaterMonths": 8,
+          "worstRolling12m": 0.34,
+          "es95": -4.8,
+          "es99": -8.27,
+          "annualizedTurnover": 0.32,
+          "reallocationsPerYear": 4,
+          "cumulativeCost": 0.8
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 66.46,
+          "annualized": 10.73,
+          "volatility": 9.06,
+          "sharpe": 0.97,
+          "sortino": 2.08,
+          "maxDrawdown": -14.89,
+          "maxUnderwaterMonths": 10,
+          "worstRolling12m": 1.56,
+          "es95": -5.45,
+          "es99": -9.48,
+          "annualizedTurnover": 0.67,
+          "reallocationsPerYear": 2.6,
+          "cumulativeCost": 1.68
+        }
+      }
+    }
+  },
+  "FR|real|MAX": {
+    "window": {
+      "start": "2004-06",
+      "end": "2026-06",
+      "months": 265
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 265,
+          "start": "2004-06",
+          "end": "2026-06",
+          "cumulative": 158.88,
+          "annualized": 4.42,
+          "volatility": 6.07,
+          "sharpe": 0.81,
+          "sortino": 1.22,
+          "maxDrawdown": -12.16,
+          "maxUnderwaterMonths": 32,
+          "worstRolling12m": -11.11,
+          "es95": -3.56,
+          "es99": -5.69,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.47
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 265,
+          "start": "2004-06",
+          "end": "2026-06",
+          "cumulative": 212.07,
+          "annualized": 5.31,
+          "volatility": 7.54,
+          "sharpe": 0.77,
+          "sortino": 1.18,
+          "maxDrawdown": -14.01,
+          "maxUnderwaterMonths": 27,
+          "worstRolling12m": -11.64,
+          "es95": -4.58,
+          "es99": -7.52,
+          "annualizedTurnover": 0.32,
+          "reallocationsPerYear": 4.09,
+          "cumulativeCost": 3.56
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 265,
+          "start": "2004-06",
+          "end": "2026-06",
+          "cumulative": 231.14,
+          "annualized": 5.59,
+          "volatility": 8.81,
+          "sharpe": 0.69,
+          "sortino": 1.04,
+          "maxDrawdown": -20.41,
+          "maxUnderwaterMonths": 78,
+          "worstRolling12m": -17.9,
+          "es95": -5.38,
+          "es99": -9.47,
+          "annualizedTurnover": 0.58,
+          "reallocationsPerYear": 2.45,
+          "cumulativeCost": 6.34
+        }
+      }
+    }
+  },
+  "FR|real|20A": {
+    "window": {
+      "start": "2006-06",
+      "end": "2026-06",
+      "months": 241
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 113.63,
+          "annualized": 3.87,
+          "volatility": 6.15,
+          "sharpe": 0.72,
+          "sortino": 1.03,
+          "maxDrawdown": -12.16,
+          "maxUnderwaterMonths": 32,
+          "worstRolling12m": -11.11,
+          "es95": -3.68,
+          "es99": -5.69,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.43
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 165.94,
+          "annualized": 5.01,
+          "volatility": 7.77,
+          "sharpe": 0.72,
+          "sortino": 1.07,
+          "maxDrawdown": -14.01,
+          "maxUnderwaterMonths": 27,
+          "worstRolling12m": -11.64,
+          "es95": -4.68,
+          "es99": -7.52,
+          "annualizedTurnover": 0.32,
+          "reallocationsPerYear": 4.15,
+          "cumulativeCost": 3.23
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 186.01,
+          "annualized": 5.39,
+          "volatility": 9.11,
+          "sharpe": 0.65,
+          "sortino": 0.96,
+          "maxDrawdown": -20.41,
+          "maxUnderwaterMonths": 78,
+          "worstRolling12m": -17.9,
+          "es95": -5.52,
+          "es99": -9.47,
+          "annualizedTurnover": 0.61,
+          "reallocationsPerYear": 2.55,
+          "cumulativeCost": 6.06
+        }
+      }
+    }
+  },
+  "FR|real|10A": {
+    "window": {
+      "start": "2016-06",
+      "end": "2026-06",
+      "months": 121
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 38.24,
+          "annualized": 3.29,
+          "volatility": 6.12,
+          "sharpe": 0.75,
+          "sortino": 0.85,
+          "maxDrawdown": -12.16,
+          "maxUnderwaterMonths": 32,
+          "worstRolling12m": -11.11,
+          "es95": -3.73,
+          "es99": -6.68,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.2
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 76.6,
+          "annualized": 5.85,
+          "volatility": 7.57,
+          "sharpe": 0.95,
+          "sortino": 1.29,
+          "maxDrawdown": -13.86,
+          "maxUnderwaterMonths": 20,
+          "worstRolling12m": -5.2,
+          "es95": -4.45,
+          "es99": -9.15,
+          "annualizedTurnover": 0.32,
+          "reallocationsPerYear": 4.1,
+          "cumulativeCost": 1.61
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 94.7,
+          "annualized": 6.89,
+          "volatility": 8.94,
+          "sharpe": 0.92,
+          "sortino": 1.24,
+          "maxDrawdown": -16.67,
+          "maxUnderwaterMonths": 22,
+          "worstRolling12m": -4.44,
+          "es95": -5.55,
+          "es99": -10.34,
+          "annualizedTurnover": 0.71,
+          "reallocationsPerYear": 2.9,
+          "cumulativeCost": 3.54
+        }
+      }
+    }
+  },
+  "FR|real|5A": {
+    "window": {
+      "start": "2021-06",
+      "end": "2026-06",
+      "months": 61
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 18.43,
+          "annualized": 3.44,
+          "volatility": 7.22,
+          "sharpe": 0.63,
+          "sortino": 0.75,
+          "maxDrawdown": -12.16,
+          "maxUnderwaterMonths": 32,
+          "worstRolling12m": -11.11,
+          "es95": -4.46,
+          "es99": -6.68,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.13
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 40.67,
+          "annualized": 7.06,
+          "volatility": 8.66,
+          "sharpe": 0.94,
+          "sortino": 1.37,
+          "maxDrawdown": -13.86,
+          "maxUnderwaterMonths": 20,
+          "worstRolling12m": -5.2,
+          "es95": -5.31,
+          "es99": -9.15,
+          "annualizedTurnover": 0.32,
+          "reallocationsPerYear": 4,
+          "cumulativeCost": 0.8
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 42.95,
+          "annualized": 7.41,
+          "volatility": 9.61,
+          "sharpe": 0.89,
+          "sortino": 1.27,
+          "maxDrawdown": -16.67,
+          "maxUnderwaterMonths": 22,
+          "worstRolling12m": -4.44,
+          "es95": -5.95,
+          "es99": -10.34,
+          "annualizedTurnover": 0.67,
+          "reallocationsPerYear": 2.6,
+          "cumulativeCost": 1.68
+        }
+      }
+    }
+  },
+  "JP|nominal|MAX": {
+    "window": {
+      "start": "1985-06",
+      "end": "2026-06",
+      "months": 493
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 462.65,
+          "annualized": 4.3,
+          "volatility": 6.35,
+          "sharpe": 0.47,
+          "sortino": 1.04,
+          "maxDrawdown": -16.55,
+          "maxUnderwaterMonths": 71,
+          "worstRolling12m": -16.55,
+          "es95": -4,
+          "es99": -6.82,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.96
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 1011.9,
+          "annualized": 6.05,
+          "volatility": 7.39,
+          "sharpe": 0.64,
+          "sortino": 1.35,
+          "maxDrawdown": -19.06,
+          "maxUnderwaterMonths": 45,
+          "worstRolling12m": -16.99,
+          "es95": -4.67,
+          "es99": -7.72,
+          "annualizedTurnover": 0.25,
+          "reallocationsPerYear": 3.24,
+          "cumulativeCost": 5.16
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 1546.3,
+          "annualized": 7.07,
+          "volatility": 9,
+          "sharpe": 0.64,
+          "sortino": 1.28,
+          "maxDrawdown": -25.88,
+          "maxUnderwaterMonths": 67,
+          "worstRolling12m": -24.45,
+          "es95": -5.82,
+          "es99": -9.7,
+          "annualizedTurnover": 0.45,
+          "reallocationsPerYear": 2.02,
+          "cumulativeCost": 9.33
+        }
+      }
+    }
+  },
+  "JP|nominal|20A": {
+    "window": {
+      "start": "2006-06",
+      "end": "2026-06",
+      "months": 241
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 187.84,
+          "annualized": 5.43,
+          "volatility": 6.24,
+          "sharpe": 0.83,
+          "sortino": 1.33,
+          "maxDrawdown": -16.55,
+          "maxUnderwaterMonths": 45,
+          "worstRolling12m": -16.55,
+          "es95": -3.87,
+          "es99": -7.99,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.45
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 339.83,
+          "annualized": 7.69,
+          "volatility": 8.11,
+          "sharpe": 0.92,
+          "sortino": 1.56,
+          "maxDrawdown": -12.1,
+          "maxUnderwaterMonths": 26,
+          "worstRolling12m": -9.98,
+          "es95": -5.01,
+          "es99": -8.74,
+          "annualizedTurnover": 0.29,
+          "reallocationsPerYear": 3.55,
+          "cumulativeCost": 2.88
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 418.17,
+          "annualized": 8.57,
+          "volatility": 9.75,
+          "sharpe": 0.86,
+          "sortino": 1.42,
+          "maxDrawdown": -15.72,
+          "maxUnderwaterMonths": 27,
+          "worstRolling12m": -13.02,
+          "es95": -6.12,
+          "es99": -11.07,
+          "annualizedTurnover": 0.46,
+          "reallocationsPerYear": 2.05,
+          "cumulativeCost": 4.59
+        }
+      }
+    }
+  },
+  "JP|nominal|10A": {
+    "window": {
+      "start": "2016-06",
+      "end": "2026-06",
+      "months": 121
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 110.32,
+          "annualized": 7.72,
+          "volatility": 5.53,
+          "sharpe": 1.36,
+          "sortino": 2.55,
+          "maxDrawdown": -6.01,
+          "maxUnderwaterMonths": 19,
+          "worstRolling12m": -4.91,
+          "es95": -2.8,
+          "es99": -5.95,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.21
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 212.99,
+          "annualized": 12.09,
+          "volatility": 8.17,
+          "sharpe": 1.46,
+          "sortino": 2.87,
+          "maxDrawdown": -10.67,
+          "maxUnderwaterMonths": 20,
+          "worstRolling12m": -5.84,
+          "es95": -4.04,
+          "es99": -8.52,
+          "annualizedTurnover": 0.25,
+          "reallocationsPerYear": 3.3,
+          "cumulativeCost": 1.25
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 266.1,
+          "annualized": 13.86,
+          "volatility": 9.55,
+          "sharpe": 1.43,
+          "sortino": 2.75,
+          "maxDrawdown": -12.57,
+          "maxUnderwaterMonths": 20,
+          "worstRolling12m": -9.56,
+          "es95": -5.15,
+          "es99": -10.32,
+          "annualizedTurnover": 0.67,
+          "reallocationsPerYear": 2.9,
+          "cumulativeCost": 3.34
+        }
+      }
+    }
+  },
+  "JP|nominal|5A": {
+    "window": {
+      "start": "2021-06",
+      "end": "2026-06",
+      "months": 61
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 66.91,
+          "annualized": 10.79,
+          "volatility": 6.39,
+          "sharpe": 1.64,
+          "sortino": 3.13,
+          "maxDrawdown": -6.01,
+          "maxUnderwaterMonths": 5,
+          "worstRolling12m": 2,
+          "es95": -3.4,
+          "es99": -5.95,
+          "annualizedTurnover": 0.06,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.14
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 117.41,
+          "annualized": 16.8,
+          "volatility": 9.57,
+          "sharpe": 1.73,
+          "sortino": 3.42,
+          "maxDrawdown": -10.67,
+          "maxUnderwaterMonths": 6,
+          "worstRolling12m": 5.01,
+          "es95": -5.15,
+          "es99": -8.52,
+          "annualizedTurnover": 0.24,
+          "reallocationsPerYear": 3.2,
+          "cumulativeCost": 0.6
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 137.86,
+          "annualized": 18.92,
+          "volatility": 10.96,
+          "sharpe": 1.7,
+          "sortino": 3.39,
+          "maxDrawdown": -12.57,
+          "maxUnderwaterMonths": 8,
+          "worstRolling12m": 5.32,
+          "es95": -5.85,
+          "es99": -10.32,
+          "annualizedTurnover": 0.65,
+          "reallocationsPerYear": 3,
+          "cumulativeCost": 1.62
+        }
+      }
+    }
+  },
+  "JP|real|MAX": {
+    "window": {
+      "start": "1985-06",
+      "end": "2026-06",
+      "months": 493
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 315.92,
+          "annualized": 3.54,
+          "volatility": 6.48,
+          "sharpe": 0.45,
+          "sortino": 0.82,
+          "maxDrawdown": -20.36,
+          "maxUnderwaterMonths": 168,
+          "worstRolling12m": -18,
+          "es95": -4.15,
+          "es99": -6.8,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.96
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 721.92,
+          "annualized": 5.27,
+          "volatility": 7.5,
+          "sharpe": 0.62,
+          "sortino": 1.13,
+          "maxDrawdown": -21.9,
+          "maxUnderwaterMonths": 77,
+          "worstRolling12m": -20.18,
+          "es95": -4.79,
+          "es99": -7.84,
+          "annualizedTurnover": 0.25,
+          "reallocationsPerYear": 3.24,
+          "cumulativeCost": 5.16
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 493,
+          "start": "1985-06",
+          "end": "2026-06",
+          "cumulative": 1116.96,
+          "annualized": 6.28,
+          "volatility": 9.1,
+          "sharpe": 0.63,
+          "sortino": 1.11,
+          "maxDrawdown": -27.93,
+          "maxUnderwaterMonths": 103,
+          "worstRolling12m": -26.37,
+          "es95": -5.91,
+          "es99": -9.85,
+          "annualizedTurnover": 0.45,
+          "reallocationsPerYear": 2.02,
+          "cumulativeCost": 9.33
+        }
+      }
+    }
+  },
+  "JP|real|20A": {
+    "window": {
+      "start": "2006-06",
+      "end": "2026-06",
+      "months": 241
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 142.44,
+          "annualized": 4.53,
+          "volatility": 6.31,
+          "sharpe": 0.82,
+          "sortino": 1.08,
+          "maxDrawdown": -18,
+          "maxUnderwaterMonths": 39,
+          "worstRolling12m": -18,
+          "es95": -3.99,
+          "es99": -8.15,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.45
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 270.46,
+          "annualized": 6.77,
+          "volatility": 8.15,
+          "sharpe": 0.91,
+          "sortino": 1.34,
+          "maxDrawdown": -13.9,
+          "maxUnderwaterMonths": 26,
+          "worstRolling12m": -10.02,
+          "es95": -5.06,
+          "es99": -8.9,
+          "annualizedTurnover": 0.29,
+          "reallocationsPerYear": 3.55,
+          "cumulativeCost": 2.88
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 241,
+          "start": "2006-06",
+          "end": "2026-06",
+          "cumulative": 336.45,
+          "annualized": 7.65,
+          "volatility": 9.78,
+          "sharpe": 0.84,
+          "sortino": 1.24,
+          "maxDrawdown": -17.44,
+          "maxUnderwaterMonths": 27,
+          "worstRolling12m": -12.87,
+          "es95": -6.16,
+          "es99": -11.22,
+          "annualizedTurnover": 0.46,
+          "reallocationsPerYear": 2.05,
+          "cumulativeCost": 4.59
+        }
+      }
+    }
+  },
+  "JP|real|10A": {
+    "window": {
+      "start": "2016-06",
+      "end": "2026-06",
+      "months": 121
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 81.79,
+          "annualized": 6.16,
+          "volatility": 5.59,
+          "sharpe": 1.33,
+          "sortino": 1.9,
+          "maxDrawdown": -7.09,
+          "maxUnderwaterMonths": 19,
+          "worstRolling12m": -5.2,
+          "es95": -2.97,
+          "es99": -6.37,
+          "annualizedTurnover": 0.04,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.21
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 170.52,
+          "annualized": 10.46,
+          "volatility": 8.2,
+          "sharpe": 1.43,
+          "sortino": 2.37,
+          "maxDrawdown": -11.69,
+          "maxUnderwaterMonths": 20,
+          "worstRolling12m": -6.13,
+          "es95": -4.16,
+          "es99": -8.93,
+          "annualizedTurnover": 0.25,
+          "reallocationsPerYear": 3.3,
+          "cumulativeCost": 1.25
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 216.43,
+          "annualized": 12.21,
+          "volatility": 9.55,
+          "sharpe": 1.41,
+          "sortino": 2.35,
+          "maxDrawdown": -13.57,
+          "maxUnderwaterMonths": 20,
+          "worstRolling12m": -9.83,
+          "es95": -5.18,
+          "es99": -10.72,
+          "annualizedTurnover": 0.67,
+          "reallocationsPerYear": 2.9,
+          "cumulativeCost": 3.34
+        }
+      }
+    }
+  },
+  "JP|real|5A": {
+    "window": {
+      "start": "2021-06",
+      "end": "2026-06",
+      "months": 61
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 46.33,
+          "annualized": 7.91,
+          "volatility": 6.53,
+          "sharpe": 1.57,
+          "sortino": 2.1,
+          "maxDrawdown": -7.09,
+          "maxUnderwaterMonths": 10,
+          "worstRolling12m": -1.92,
+          "es95": -3.66,
+          "es99": -6.37,
+          "annualizedTurnover": 0.06,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.14
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 90.59,
+          "annualized": 13.77,
+          "volatility": 9.67,
+          "sharpe": 1.66,
+          "sortino": 2.63,
+          "maxDrawdown": -11.69,
+          "maxUnderwaterMonths": 10,
+          "worstRolling12m": 0.97,
+          "es95": -5.43,
+          "es99": -8.93,
+          "annualizedTurnover": 0.24,
+          "reallocationsPerYear": 3.2,
+          "cumulativeCost": 0.6
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 108.52,
+          "annualized": 15.83,
+          "volatility": 11.05,
+          "sharpe": 1.64,
+          "sortino": 2.69,
+          "maxDrawdown": -13.57,
+          "maxUnderwaterMonths": 10,
+          "worstRolling12m": 1.71,
+          "es95": -6.13,
+          "es99": -10.72,
+          "annualizedTurnover": 0.65,
+          "reallocationsPerYear": 3,
+          "cumulativeCost": 1.62
+        }
+      }
+    }
+  },
+  "BR|nominal|MAX": {
+    "window": {
+      "start": "2008-10",
+      "end": "2026-06",
+      "months": 213
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 715.4,
+          "annualized": 12.61,
+          "volatility": 7.2,
+          "sharpe": 0.43,
+          "sortino": 3.69,
+          "maxDrawdown": -8.71,
+          "maxUnderwaterMonths": 24,
+          "worstRolling12m": -5.52,
+          "es95": -3.45,
+          "es99": -4.57,
+          "annualizedTurnover": 0.06,
+          "reallocationsPerYear": 1.02,
+          "cumulativeCost": 0.49
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 610.87,
+          "annualized": 11.74,
+          "volatility": 8.12,
+          "sharpe": 0.27,
+          "sortino": 2.67,
+          "maxDrawdown": -12.94,
+          "maxUnderwaterMonths": 23,
+          "worstRolling12m": -4.77,
+          "es95": -4.64,
+          "es99": -7.18,
+          "annualizedTurnover": 0.4,
+          "reallocationsPerYear": 4.92,
+          "cumulativeCost": 3.5
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 508.35,
+          "annualized": 10.76,
+          "volatility": 10.72,
+          "sharpe": 0.12,
+          "sortino": 1.58,
+          "maxDrawdown": -23.44,
+          "maxUnderwaterMonths": 35,
+          "worstRolling12m": -8.33,
+          "es95": -6.56,
+          "es99": -13.45,
+          "annualizedTurnover": 1.2,
+          "reallocationsPerYear": 4.64,
+          "cumulativeCost": 10.61
+        }
+      }
+    }
+  },
+  "BR|nominal|20A": {
+    "window": {
+      "start": "2008-10",
+      "end": "2026-06",
+      "months": 213
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 715.4,
+          "annualized": 12.61,
+          "volatility": 7.2,
+          "sharpe": 0.43,
+          "sortino": 3.69,
+          "maxDrawdown": -8.71,
+          "maxUnderwaterMonths": 24,
+          "worstRolling12m": -5.52,
+          "es95": -3.45,
+          "es99": -4.57,
+          "annualizedTurnover": 0.06,
+          "reallocationsPerYear": 1.02,
+          "cumulativeCost": 0.49
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 610.87,
+          "annualized": 11.74,
+          "volatility": 8.12,
+          "sharpe": 0.27,
+          "sortino": 2.67,
+          "maxDrawdown": -12.94,
+          "maxUnderwaterMonths": 23,
+          "worstRolling12m": -4.77,
+          "es95": -4.64,
+          "es99": -7.18,
+          "annualizedTurnover": 0.4,
+          "reallocationsPerYear": 4.92,
+          "cumulativeCost": 3.5
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 508.35,
+          "annualized": 10.76,
+          "volatility": 10.72,
+          "sharpe": 0.12,
+          "sortino": 1.58,
+          "maxDrawdown": -23.44,
+          "maxUnderwaterMonths": 35,
+          "worstRolling12m": -8.33,
+          "es95": -6.56,
+          "es99": -13.45,
+          "annualizedTurnover": 1.2,
+          "reallocationsPerYear": 4.64,
+          "cumulativeCost": 10.61
+        }
+      }
+    }
+  },
+  "BR|nominal|10A": {
+    "window": {
+      "start": "2016-06",
+      "end": "2026-06",
+      "months": 121
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 242.74,
+          "annualized": 13.11,
+          "volatility": 7.5,
+          "sharpe": 0.53,
+          "sortino": 3.74,
+          "maxDrawdown": -7.81,
+          "maxUnderwaterMonths": 24,
+          "worstRolling12m": -5.52,
+          "es95": -3.35,
+          "es99": -4.58,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.25
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 243.38,
+          "annualized": 13.13,
+          "volatility": 8.99,
+          "sharpe": 0.44,
+          "sortino": 2.71,
+          "maxDrawdown": -12.94,
+          "maxUnderwaterMonths": 23,
+          "worstRolling12m": -4.77,
+          "es95": -5.18,
+          "es99": -8.92,
+          "annualizedTurnover": 0.41,
+          "reallocationsPerYear": 4.9,
+          "cumulativeCost": 2.06
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 243.82,
+          "annualized": 13.14,
+          "volatility": 12.47,
+          "sharpe": 0.32,
+          "sortino": 1.61,
+          "maxDrawdown": -23.44,
+          "maxUnderwaterMonths": 11,
+          "worstRolling12m": -7.73,
+          "es95": -7.91,
+          "es99": -19.87,
+          "annualizedTurnover": 1,
+          "reallocationsPerYear": 3.9,
+          "cumulativeCost": 4.98
+        }
+      }
+    }
+  },
+  "BR|nominal|5A": {
+    "window": {
+      "start": "2021-06",
+      "end": "2026-06",
+      "months": 61
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 73.68,
+          "annualized": 11.67,
+          "volatility": 6.94,
+          "sharpe": -0.03,
+          "sortino": 3.67,
+          "maxDrawdown": -7.58,
+          "maxUnderwaterMonths": 15,
+          "worstRolling12m": -4.63,
+          "es95": -2.83,
+          "es99": -3.11,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.13
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 84.16,
+          "annualized": 12.99,
+          "volatility": 7.83,
+          "sharpe": 0.14,
+          "sortino": 3.34,
+          "maxDrawdown": -12.94,
+          "maxUnderwaterMonths": 8,
+          "worstRolling12m": -0.62,
+          "es95": -4.06,
+          "es99": -5.45,
+          "annualizedTurnover": 0.22,
+          "reallocationsPerYear": 3.2,
+          "cumulativeCost": 0.54
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 90.99,
+          "annualized": 13.82,
+          "volatility": 9,
+          "sharpe": 0.21,
+          "sortino": 2.92,
+          "maxDrawdown": -11.95,
+          "maxUnderwaterMonths": 11,
+          "worstRolling12m": -2.49,
+          "es95": -4.68,
+          "es99": -6.07,
+          "annualizedTurnover": 0.77,
+          "reallocationsPerYear": 3.2,
+          "cumulativeCost": 1.92
+        }
+      }
+    }
+  },
+  "BR|real|MAX": {
+    "window": {
+      "start": "2008-10",
+      "end": "2026-06",
+      "months": 213
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 206.78,
+          "annualized": 6.55,
+          "volatility": 7.53,
+          "sharpe": 0.39,
+          "sortino": 1.5,
+          "maxDrawdown": -22.04,
+          "maxUnderwaterMonths": 47,
+          "worstRolling12m": -15.44,
+          "es95": -4.09,
+          "es99": -4.72,
+          "annualizedTurnover": 0.06,
+          "reallocationsPerYear": 1.02,
+          "cumulativeCost": 0.49
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 167.45,
+          "annualized": 5.73,
+          "volatility": 8.35,
+          "sharpe": 0.25,
+          "sortino": 1.1,
+          "maxDrawdown": -19.86,
+          "maxUnderwaterMonths": 55,
+          "worstRolling12m": -14.76,
+          "es95": -5.16,
+          "es99": -7.63,
+          "annualizedTurnover": 0.4,
+          "reallocationsPerYear": 4.92,
+          "cumulativeCost": 3.5
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 128.88,
+          "annualized": 4.8,
+          "volatility": 10.79,
+          "sharpe": 0.11,
+          "sortino": 0.65,
+          "maxDrawdown": -23.84,
+          "maxUnderwaterMonths": 62,
+          "worstRolling12m": -13.4,
+          "es95": -7.01,
+          "es99": -13.66,
+          "annualizedTurnover": 1.2,
+          "reallocationsPerYear": 4.64,
+          "cumulativeCost": 10.61
+        }
+      }
+    }
+  },
+  "BR|real|20A": {
+    "window": {
+      "start": "2008-10",
+      "end": "2026-06",
+      "months": 213
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 206.78,
+          "annualized": 6.55,
+          "volatility": 7.53,
+          "sharpe": 0.39,
+          "sortino": 1.5,
+          "maxDrawdown": -22.04,
+          "maxUnderwaterMonths": 47,
+          "worstRolling12m": -15.44,
+          "es95": -4.09,
+          "es99": -4.72,
+          "annualizedTurnover": 0.06,
+          "reallocationsPerYear": 1.02,
+          "cumulativeCost": 0.49
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 167.45,
+          "annualized": 5.73,
+          "volatility": 8.35,
+          "sharpe": 0.25,
+          "sortino": 1.1,
+          "maxDrawdown": -19.86,
+          "maxUnderwaterMonths": 55,
+          "worstRolling12m": -14.76,
+          "es95": -5.16,
+          "es99": -7.63,
+          "annualizedTurnover": 0.4,
+          "reallocationsPerYear": 4.92,
+          "cumulativeCost": 3.5
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 213,
+          "start": "2008-10",
+          "end": "2026-06",
+          "cumulative": 128.88,
+          "annualized": 4.8,
+          "volatility": 10.79,
+          "sharpe": 0.11,
+          "sortino": 0.65,
+          "maxDrawdown": -23.84,
+          "maxUnderwaterMonths": 62,
+          "worstRolling12m": -13.4,
+          "es95": -7.01,
+          "es99": -13.66,
+          "annualizedTurnover": 1.2,
+          "reallocationsPerYear": 4.64,
+          "cumulativeCost": 10.61
+        }
+      }
+    }
+  },
+  "BR|real|10A": {
+    "window": {
+      "start": "2016-06",
+      "end": "2026-06",
+      "months": 121
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 110.47,
+          "annualized": 7.73,
+          "volatility": 7.93,
+          "sharpe": 0.48,
+          "sortino": 1.73,
+          "maxDrawdown": -22.04,
+          "maxUnderwaterMonths": 47,
+          "worstRolling12m": -15.44,
+          "es95": -4.03,
+          "es99": -4.64,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.25
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 110.86,
+          "annualized": 7.75,
+          "volatility": 9.26,
+          "sharpe": 0.41,
+          "sortino": 1.39,
+          "maxDrawdown": -19.86,
+          "maxUnderwaterMonths": 47,
+          "worstRolling12m": -14.76,
+          "es95": -5.61,
+          "es99": -8.98,
+          "annualizedTurnover": 0.41,
+          "reallocationsPerYear": 4.9,
+          "cumulativeCost": 2.06
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 121,
+          "start": "2016-06",
+          "end": "2026-06",
+          "cumulative": 111.13,
+          "annualized": 7.76,
+          "volatility": 12.5,
+          "sharpe": 0.3,
+          "sortino": 0.9,
+          "maxDrawdown": -23.84,
+          "maxUnderwaterMonths": 43,
+          "worstRolling12m": -12.62,
+          "es95": -8.24,
+          "es99": -19.93,
+          "annualizedTurnover": 1,
+          "reallocationsPerYear": 3.9,
+          "cumulativeCost": 4.98
+        }
+      }
+    }
+  },
+  "BR|real|5A": {
+    "window": {
+      "start": "2021-06",
+      "end": "2026-06",
+      "months": 61
+    },
+    "disabledReason": null,
+    "strategies": {
+      "browne": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 31.16,
+          "annualized": 5.58,
+          "volatility": 7.53,
+          "sharpe": -0.03,
+          "sortino": 1.26,
+          "maxDrawdown": -14.56,
+          "maxUnderwaterMonths": 28,
+          "worstRolling12m": -14.14,
+          "es95": -3.77,
+          "es99": -3.96,
+          "annualizedTurnover": 0.05,
+          "reallocationsPerYear": 1,
+          "cumulativeCost": 0.13
+        }
+      },
+      "quadrants-dynamic-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 39.08,
+          "annualized": 6.82,
+          "volatility": 8.16,
+          "sharpe": 0.13,
+          "sortino": 1.41,
+          "maxDrawdown": -14.77,
+          "maxUnderwaterMonths": 27,
+          "worstRolling12m": -9.71,
+          "es95": -4.55,
+          "es99": -6.27,
+          "annualizedTurnover": 0.22,
+          "reallocationsPerYear": 3.2,
+          "cumulativeCost": 0.54
+        }
+      },
+      "quadrants-binary-v2": {
+        "availability": {
+          "status": "ok"
+        },
+        "metrics": {
+          "months": 61,
+          "start": "2021-06",
+          "end": "2026-06",
+          "cumulative": 44.24,
+          "annualized": 7.6,
+          "volatility": 9.01,
+          "sharpe": 0.2,
+          "sortino": 1.38,
+          "maxDrawdown": -13.79,
+          "maxUnderwaterMonths": 30,
+          "worstRolling12m": -8.41,
+          "es95": -5.26,
+          "es99": -6.89,
+          "annualizedTurnover": 0.77,
+          "reallocationsPerYear": 3.2,
+          "cumulativeCost": 1.92
+        }
+      }
+    }
+  }
+}
