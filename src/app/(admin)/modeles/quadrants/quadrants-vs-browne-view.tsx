@@ -393,6 +393,7 @@ function cellValue(r: MetricRow, s: ComparisonStrategyResult, v: number | null) 
         <Tooltip>
           <TooltipTrigger asChild>
             <span
+              tabIndex={0}
               aria-label={reason}
               className="cursor-help decoration-dotted underline-offset-2 hover:underline"
             >
@@ -858,8 +859,13 @@ function CostSection({
 
 /** Barre empilée d'allocation (largeurs = pourcentages affichés, somme = 100 %). */
 function AllocBar({ pcts }: { pcts: Record<AllocKey, number> }) {
+  // Récapitulatif accessible (lecteurs d'écran) — évite de rendre chaque segment focusable
+  // (surcharge du parcours clavier) ; les infobulles souris restent un complément.
+  const summary = ALLOC_KEYS.filter((k) => pcts[k] > 0)
+    .map((k) => `${SLEEVE_META[k].label} ${pcts[k]} %`)
+    .join(", ");
   return (
-    <div className="flex h-3.5 w-full overflow-hidden rounded">
+    <div className="flex h-3.5 w-full overflow-hidden rounded" role="img" aria-label={summary}>
       {ALLOC_KEYS.map((k) => {
         const w = pcts[k];
         if (w <= 0) return null;

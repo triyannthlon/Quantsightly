@@ -342,7 +342,10 @@ function CrisisRow({
       ) : (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="relative w-full cursor-help select-none">
+            {/* `overflow-x-clip` : sur colonne très étroite (mobile), une étiquette de valeur ne
+                déborde plus hors de la carte — la valeur complète reste dans l'infobulle / le
+                dialogue. `-x-clip` laisse l'axe Y visible. */}
+            <div className="relative w-full cursor-help overflow-x-clip select-none">
               {/* Graduations (faibles) + axe zéro (plus marqué) */}
               {ticks.map((t) => (
                 <div
