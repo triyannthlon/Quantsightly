@@ -431,97 +431,95 @@ function MetricTable({
   };
 
   return (
-    <TooltipProvider delayDuration={150}>
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[520px] text-sm">
-          <thead className="border-b bg-muted/40">
-            <tr>
-              <Th className="sticky left-0 bg-muted/40">Indicateur</Th>
-              {strategies.map((s) => (
-                <Th key={s.id} className="text-right">
-                  <span className="flex justify-end">
-                    <StrategyChip s={s} />
-                  </span>
-                </Th>
-              ))}
-              {isPair && <Th className="whitespace-nowrap text-right">Écart vs {refShort}</Th>}
-            </tr>
-          </thead>
-          <tbody>
-            {groups.map((g, gi) => (
-              <Fragment key={g.label ?? `g${gi}`}>
-                {g.label && (
-                  <tr>
-                    <td
-                      colSpan={colCount}
-                      className="bg-muted/20 px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-                    >
-                      {g.label}
-                    </td>
-                  </tr>
-                )}
-                {g.rows.map((r) => {
-                  const refV = raw(reference, r);
-                  return (
-                    <tr
-                      key={r.key}
-                      className="group border-b transition-colors last:border-0 hover:bg-muted/30"
-                    >
-                      <Td className="sticky left-0 bg-background font-medium group-hover:bg-muted/30">
-                        <MetricLabel label={r.label} tip={r.tip} />
-                      </Td>
-                      {strategies.map((s) => {
-                        const v = raw(s, r);
-                        const showSecondary =
-                          isTrio && s.id !== reference?.id && v !== null && refV !== null;
-                        const d = showSecondary ? v! - refV! : 0;
-                        const neg = showSecondary && diffIsNegligible(r, d);
-                        return (
-                          <Td key={s.id} className="text-right">
-                            <div>{cellValue(r, s, v)}</div>
-                            {showSecondary && (
-                              <div
-                                className={cn(
-                                  "whitespace-nowrap text-xs",
-                                  neg
-                                    ? "text-muted-foreground"
-                                    : diffTone(d, r.higherBetter, { soft: true }),
-                                )}
-                              >
-                                {neg ? "≈ identique" : `${r.diff(d)} vs ${refShort}`}
-                              </div>
-                            )}
-                          </Td>
-                        );
-                      })}
-                      {isPair &&
-                        (() => {
-                          const ov = raw(strategies[1], r);
-                          const canDiff = refV !== null && ov !== null;
-                          const d = canDiff ? ov! - refV! : 0;
-                          const neg = canDiff && diffIsNegligible(r, d);
-                          return (
-                            <Td
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="w-full min-w-[520px] text-sm">
+        <thead className="border-b bg-muted/40">
+          <tr>
+            <Th className="sticky left-0 bg-muted/40">Indicateur</Th>
+            {strategies.map((s) => (
+              <Th key={s.id} className="text-right">
+                <span className="flex justify-end">
+                  <StrategyChip s={s} />
+                </span>
+              </Th>
+            ))}
+            {isPair && <Th className="whitespace-nowrap text-right">Écart vs {refShort}</Th>}
+          </tr>
+        </thead>
+        <tbody>
+          {groups.map((g, gi) => (
+            <Fragment key={g.label ?? `g${gi}`}>
+              {g.label && (
+                <tr>
+                  <td
+                    colSpan={colCount}
+                    className="bg-muted/20 px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                  >
+                    {g.label}
+                  </td>
+                </tr>
+              )}
+              {g.rows.map((r) => {
+                const refV = raw(reference, r);
+                return (
+                  <tr
+                    key={r.key}
+                    className="group border-b transition-colors last:border-0 hover:bg-muted/30"
+                  >
+                    <Td className="sticky left-0 bg-background font-medium group-hover:bg-muted/30">
+                      <MetricLabel label={r.label} tip={r.tip} />
+                    </Td>
+                    {strategies.map((s) => {
+                      const v = raw(s, r);
+                      const showSecondary =
+                        isTrio && s.id !== reference?.id && v !== null && refV !== null;
+                      const d = showSecondary ? v! - refV! : 0;
+                      const neg = showSecondary && diffIsNegligible(r, d);
+                      return (
+                        <Td key={s.id} className="text-right">
+                          <div>{cellValue(r, s, v)}</div>
+                          {showSecondary && (
+                            <div
                               className={cn(
-                                "whitespace-nowrap text-right",
-                                !canDiff || neg
+                                "whitespace-nowrap text-xs",
+                                neg
                                   ? "text-muted-foreground"
-                                  : diffTone(d, r.higherBetter),
+                                  : diffTone(d, r.higherBetter, { soft: true }),
                               )}
                             >
-                              {!canDiff ? "—" : neg ? "≈ identique" : r.diff(d)}
-                            </Td>
-                          );
-                        })()}
-                    </tr>
-                  );
-                })}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </TooltipProvider>
+                              {neg ? "≈ identique" : `${r.diff(d)} vs ${refShort}`}
+                            </div>
+                          )}
+                        </Td>
+                      );
+                    })}
+                    {isPair &&
+                      (() => {
+                        const ov = raw(strategies[1], r);
+                        const canDiff = refV !== null && ov !== null;
+                        const d = canDiff ? ov! - refV! : 0;
+                        const neg = canDiff && diffIsNegligible(r, d);
+                        return (
+                          <Td
+                            className={cn(
+                              "whitespace-nowrap text-right",
+                              !canDiff || neg
+                                ? "text-muted-foreground"
+                                : diffTone(d, r.higherBetter),
+                            )}
+                          >
+                            {!canDiff ? "—" : neg ? "≈ identique" : r.diff(d)}
+                          </Td>
+                        );
+                      })()}
+                  </tr>
+                );
+              })}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -859,11 +857,14 @@ function AllocBar({ pcts }: { pcts: Record<AllocKey, number> }) {
         const w = pcts[k];
         if (w <= 0) return null;
         return (
-          <div
-            key={k}
-            style={{ width: `${w}%`, background: SLEEVE_META[k].hex }}
-            title={`${SLEEVE_META[k].label} ${w} %`}
-          />
+          <Tooltip key={k}>
+            <TooltipTrigger asChild>
+              <div style={{ width: `${w}%`, background: SLEEVE_META[k].hex }} />
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {SLEEVE_META[k].label} {w} %
+            </TooltipContent>
+          </Tooltip>
         );
       })}
     </div>
@@ -1061,92 +1062,94 @@ export function QuadrantsVsBrowneView({
   const modeLabel = result.mode === "real" ? "réelle" : "nominale";
 
   return (
-    <div className="space-y-8">
-      {/* Bandeau fenêtre + hypothèses */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        {w && (
+    <TooltipProvider delayDuration={150}>
+      <div className="space-y-8">
+        {/* Bandeau fenêtre + hypothèses */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          {w && (
+            <span>
+              Fenêtre commune :{" "}
+              <span className="font-medium text-foreground">
+                {w.start} → {w.end}
+              </span>{" "}
+              ({w.months} mois)
+            </span>
+          )}
           <span>
-            Fenêtre commune :{" "}
-            <span className="font-medium text-foreground">
-              {w.start} → {w.end}
-            </span>{" "}
-            ({w.months} mois)
+            Performance {modeLabel}, nette de coûts ({costBps} bps)
           </span>
-        )}
-        <span>
-          Performance {modeLabel}, nette de coûts ({costBps} bps)
-        </span>
-        <span>Résultats exprimés dans la devise locale du pays</span>
-      </div>
-
-      {unavailable.length > 0 && (
-        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-          {unavailable.map((s) => (
-            <div key={s.id}>
-              {s.label} indisponible
-              {s.availability.status === "unavailable"
-                ? ` — ${UNAVAILABLE_REASON_FR[s.availability.reason]}`
-                : ""}
-              .
-            </div>
-          ))}
+          <span>Résultats exprimés dans la devise locale du pays</span>
         </div>
-      )}
 
-      <Section
-        id="synthese"
-        title="Repères sur la sélection actuelle"
-        subtitle="Synthèse calculée automatiquement à partir du pays, de la période et des paramètres sélectionnés."
-      >
-        <SynthesisCards strategies={available} />
-      </Section>
+        {unavailable.length > 0 && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            {unavailable.map((s) => (
+              <div key={s.id}>
+                {s.label} indisponible
+                {s.availability.status === "unavailable"
+                  ? ` — ${UNAVAILABLE_REASON_FR[s.availability.reason]}`
+                  : ""}
+                .
+              </div>
+            ))}
+          </div>
+        )}
 
-      <Section id="performance">
-        <CumulativeChart strategies={available} />
-      </Section>
+        <Section
+          id="synthese"
+          title="Repères sur la sélection actuelle"
+          subtitle="Synthèse calculée automatiquement à partir du pays, de la période et des paramètres sélectionnés."
+        >
+          <SynthesisCards strategies={available} />
+        </Section>
 
-      <Section id="drawdowns">
-        <DrawdownChart strategies={available} />
-      </Section>
+        <Section id="performance">
+          <CumulativeChart strategies={available} />
+        </Section>
 
-      <Section
-        id="indicateurs"
-        title="Indicateurs comparatifs"
-        subtitle="Une valeur élevée n’est pas toujours favorable : volatilité, rotation et drawdown plus élevés sont défavorables."
-      >
-        <MetricTable groups={INDICATEUR_GROUPS} strategies={available} />
-      </Section>
+        <Section id="drawdowns">
+          <DrawdownChart strategies={available} />
+        </Section>
 
-      <Section
-        id="glissante"
-        title="Performance glissante"
-        subtitle="Une stratégie domine-t-elle seulement sur la période totale, ou aussi sur des fenêtres intermédiaires ?"
-      >
-        <RollingSection strategies={available} />
-      </Section>
+        <Section
+          id="indicateurs"
+          title="Indicateurs comparatifs"
+          subtitle="Une valeur élevée n’est pas toujours favorable : volatilité, rotation et drawdown plus élevés sont défavorables."
+        >
+          <MetricTable groups={INDICATEUR_GROUPS} strategies={available} />
+        </Section>
 
-      <Section
-        id="couts"
-        title="Coûts et rééquilibrages"
-        subtitle="Le coût de gestion fait partie intégrante du résultat."
-      >
-        <CostSection strategies={available} gross={grossById} />
-      </Section>
+        <Section
+          id="glissante"
+          title="Performance glissante"
+          subtitle="Une stratégie domine-t-elle seulement sur la période totale, ou aussi sur des fenêtres intermédiaires ?"
+        >
+          <RollingSection strategies={available} />
+        </Section>
 
-      <Section
-        id="allocation"
-        title="Allocation actuelle"
-        subtitle="Poids réellement détenus à la date d’analyse. L’allocation cible n’est pas une instruction de transaction."
-      >
-        <AllocationSection strategies={available} />
-      </Section>
+        <Section
+          id="couts"
+          title="Coûts et rééquilibrages"
+          subtitle="Le coût de gestion fait partie intégrante du résultat."
+        >
+          <CostSection strategies={available} gross={grossById} />
+        </Section>
 
-      <AdvancedRiskSection strategies={available} />
+        <Section
+          id="allocation"
+          title="Allocation actuelle"
+          subtitle="Poids réellement détenus à la date d’analyse. L’allocation cible n’est pas une instruction de transaction."
+        >
+          <AllocationSection strategies={available} />
+        </Section>
 
-      <Section id="lecture" title="Lecture pédagogique">
-        <PedagogySection strategies={strategies} filter={filter} />
-      </Section>
-    </div>
+        <AdvancedRiskSection strategies={available} />
+
+        <Section id="lecture" title="Lecture pédagogique">
+          <PedagogySection strategies={strategies} filter={filter} />
+        </Section>
+      </div>
+    </TooltipProvider>
   );
 }
 
