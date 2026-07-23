@@ -1,10 +1,27 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Info, ShieldCheck, TrendingUp, Trophy, Scale, Users, Map as MapIcon } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+  Info,
+  ShieldCheck,
+  TrendingUp,
+  Trophy,
+  Scale,
+  Users,
+  Map as MapIcon,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CountryFlag } from "@/components/ui/CountryFlag";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider, TooltipBody } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+  TooltipBody,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { FourQuadrantsModelSettings } from "@/lib/coredata/four-quadrants";
 import type { QuadrantModelRow } from "@/lib/coredata/four-quadrants-service";
@@ -30,8 +47,10 @@ interface Item {
   ve: QuadrantsVsEquity;
 }
 
-const fmtPts = (v: number | null): string => (v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)} pts`);
-const fmtSignedRatio = (v: number | null): string => (v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(2)}`);
+const fmtPts = (v: number | null): string =>
+  v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)} pts`;
+const fmtSignedRatio = (v: number | null): string =>
+  v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(2)}`;
 const fmtMonth = (iso: string): string =>
   new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(new Date(iso));
 
@@ -43,19 +62,31 @@ function FlagsRow({ items, max = 6 }: { items: Item[]; max?: number }) {
   return (
     <div className="mt-2 flex items-center gap-1">
       {shown.map((it) => (
-        <CountryFlag key={it.row.countryCode} code={it.row.countryCode} countryName={it.row.countryFr ?? it.row.countryCode} size={16} />
+        <CountryFlag
+          key={it.row.countryCode}
+          code={it.row.countryCode}
+          countryName={it.row.countryFr ?? it.row.countryCode}
+          size={16}
+        />
       ))}
       {overflow.length > 0 && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className="cursor-pointer rounded-md border bg-background/60 px-1 text-[11px] font-medium text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              className="cursor-pointer rounded-md border bg-background/60 px-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+            >
               +{overflow.length}
             </button>
           </TooltipTrigger>
           <TooltipContent className="flex max-w-[240px] flex-wrap gap-1.5">
             {overflow.map((it) => (
               <span key={it.row.countryCode} className="inline-flex items-center gap-1 text-[11px]">
-                <CountryFlag code={it.row.countryCode} countryName={it.row.countryFr ?? it.row.countryCode} size={14} />
+                <CountryFlag
+                  code={it.row.countryCode}
+                  countryName={it.row.countryFr ?? it.row.countryCode}
+                  size={14}
+                />
                 <span className="font-medium tabular-nums">{it.row.countryCode}</span>
               </span>
             ))}
@@ -66,7 +97,17 @@ function FlagsRow({ items, max = 6 }: { items: Item[]; max?: number }) {
   );
 }
 
-function CardHead({ icon: Icon, label, desc, formula }: { icon: typeof ShieldCheck; label: string; desc: string; formula?: string }) {
+function CardHead({
+  icon: Icon,
+  label,
+  desc,
+  formula,
+}: {
+  icon: typeof ShieldCheck;
+  label: string;
+  desc: string;
+  formula?: string;
+}) {
   return (
     <div className="flex items-center gap-1.5 text-[11px] font-medium tracking-wide uppercase opacity-80">
       <Icon className="size-3.5 shrink-0" />
@@ -87,7 +128,19 @@ function CardHead({ icon: Icon, label, desc, formula }: { icon: typeof ShieldChe
   );
 }
 
-function CountCard({ icon: Icon, label, desc, tone, items }: { icon: typeof ShieldCheck; label: string; desc: string; tone: string; items: Item[] }) {
+function CountCard({
+  icon: Icon,
+  label,
+  desc,
+  tone,
+  items,
+}: {
+  icon: typeof ShieldCheck;
+  label: string;
+  desc: string;
+  tone: string;
+  items: Item[];
+}) {
   return (
     <Card className={cn("gap-0 p-4", tone)}>
       <CardHead icon={Icon} label={label} desc={desc} />
@@ -100,7 +153,23 @@ function CountCard({ icon: Icon, label, desc, tone, items }: { icon: typeof Shie
   );
 }
 
-function LeaderCard({ icon: Icon, label, desc, formula, tone, item, value }: { icon: typeof Trophy; label: string; desc: string; formula?: string; tone: string; item: Item | null; value: string }) {
+function LeaderCard({
+  icon: Icon,
+  label,
+  desc,
+  formula,
+  tone,
+  item,
+  value,
+}: {
+  icon: typeof Trophy;
+  label: string;
+  desc: string;
+  formula?: string;
+  tone: string;
+  item: Item | null;
+  value: string;
+}) {
   return (
     <Card className={cn("gap-0 p-4", tone)}>
       <CardHead icon={Icon} label={label} desc={desc} formula={formula} />
@@ -108,8 +177,14 @@ function LeaderCard({ icon: Icon, label, desc, formula, tone, item, value }: { i
         <>
           <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
           <div className="mt-2 flex items-center gap-1.5">
-            <CountryFlag code={item.row.countryCode} countryName={item.row.countryFr ?? item.row.countryCode} size={16} />
-            <span className="truncate text-sm font-medium">{item.row.countryFr ?? item.row.countryCode}</span>
+            <CountryFlag
+              code={item.row.countryCode}
+              countryName={item.row.countryFr ?? item.row.countryCode}
+              size={16}
+            />
+            <span className="truncate text-sm font-medium">
+              {item.row.countryFr ?? item.row.countryCode}
+            </span>
           </div>
         </>
       ) : (
@@ -131,14 +206,70 @@ interface NumCol {
 }
 
 const COLS: NumCol[] = [
-  { key: "q", label: "4Q réel", tip: "Rendement réel annualisé du portefeuille 4 Quadrants.", get: (it) => it.row.metrics?.real?.annualized ?? null, fmt: (it) => fmtPctN(it.row.metrics?.real?.annualized ?? null), better: "desc" },
-  { key: "act", label: "Actions réelles", tip: "Rendement réel annualisé de l’indice actions local.", get: (it) => it.row.equityReal?.annualized ?? null, fmt: (it) => fmtPctN(it.row.equityReal?.annualized ?? null), better: "desc" },
-  { key: "er", label: "Écart rendement", tip: "Rendement 4Q − Rendement Actions (points).", get: (it) => it.ve.ecartReturn, fmt: (it) => fmtPts(it.ve.ecartReturn), better: "desc" },
-  { key: "ev", label: "Écart volatilité", tip: "Volatilité 4Q − Volatilité Actions (points) : négatif = 4Q moins volatil.", get: (it) => it.ve.ecartVol, fmt: (it) => fmtPts(it.ve.ecartVol), better: "asc" },
-  { key: "dd", label: "Réduction drawdown", tip: "|Max DD Actions| − |Max DD 4Q| (points) : positif = 4Q protège mieux.", get: (it) => it.ve.drawdownReduction, fmt: (it) => fmtPts(it.ve.drawdownReduction), better: "desc" },
-  { key: "es", label: "Écart Sharpe", tip: "Sharpe 4Q − Sharpe Actions.", get: (it) => it.ve.ecartSharpe, fmt: (it) => fmtSignedRatio(it.ve.ecartSharpe), better: "desc" },
-  { key: "uwQ", label: "Sous l’eau 4Q", tip: "Plus longue durée sous le dernier sommet (4Q).", get: (it) => it.row.metrics?.real?.maxUnderwaterMonths ?? null, fmt: (it) => fmtMonths(it.row.metrics?.real?.maxUnderwaterMonths ?? null), better: "asc" },
-  { key: "uwA", label: "Sous l’eau Actions", tip: "Plus longue durée sous le dernier sommet (Actions).", get: (it) => it.row.equityReal?.maxUnderwaterMonths ?? null, fmt: (it) => fmtMonths(it.row.equityReal?.maxUnderwaterMonths ?? null), better: "asc" },
+  {
+    key: "q",
+    label: "4Q réel",
+    tip: "Rendement réel annualisé du portefeuille 4 Quadrants.",
+    get: (it) => it.row.metrics?.real?.annualized ?? null,
+    fmt: (it) => fmtPctN(it.row.metrics?.real?.annualized ?? null),
+    better: "desc",
+  },
+  {
+    key: "act",
+    label: "Actions réelles",
+    tip: "Rendement réel annualisé de l’indice actions local.",
+    get: (it) => it.row.equityReal?.annualized ?? null,
+    fmt: (it) => fmtPctN(it.row.equityReal?.annualized ?? null),
+    better: "desc",
+  },
+  {
+    key: "er",
+    label: "Écart rendement",
+    tip: "Rendement 4Q − Rendement Actions (points).",
+    get: (it) => it.ve.ecartReturn,
+    fmt: (it) => fmtPts(it.ve.ecartReturn),
+    better: "desc",
+  },
+  {
+    key: "ev",
+    label: "Écart volatilité",
+    tip: "Volatilité 4Q − Volatilité Actions (points) : négatif = 4Q moins volatil.",
+    get: (it) => it.ve.ecartVol,
+    fmt: (it) => fmtPts(it.ve.ecartVol),
+    better: "asc",
+  },
+  {
+    key: "dd",
+    label: "Réduction drawdown",
+    tip: "|Max DD Actions| − |Max DD 4Q| (points) : positif = 4Q protège mieux.",
+    get: (it) => it.ve.drawdownReduction,
+    fmt: (it) => fmtPts(it.ve.drawdownReduction),
+    better: "desc",
+  },
+  {
+    key: "es",
+    label: "Écart Sharpe",
+    tip: "Sharpe 4Q − Sharpe Actions.",
+    get: (it) => it.ve.ecartSharpe,
+    fmt: (it) => fmtSignedRatio(it.ve.ecartSharpe),
+    better: "desc",
+  },
+  {
+    key: "uwQ",
+    label: "Sous l’eau 4Q",
+    tip: "Plus longue durée sous le dernier sommet (4Q).",
+    get: (it) => it.row.metrics?.real?.maxUnderwaterMonths ?? null,
+    fmt: (it) => fmtMonths(it.row.metrics?.real?.maxUnderwaterMonths ?? null),
+    better: "asc",
+  },
+  {
+    key: "uwA",
+    label: "Sous l’eau Actions",
+    tip: "Plus longue durée sous le dernier sommet (Actions).",
+    get: (it) => it.row.equityReal?.maxUnderwaterMonths ?? null,
+    fmt: (it) => fmtMonths(it.row.equityReal?.maxUnderwaterMonths ?? null),
+    better: "asc",
+  },
 ];
 
 const verdictRank = (it: Item) => (it.ve.verdict ? VERDICT_ORDER.indexOf(it.ve.verdict) : 99);
@@ -174,8 +305,12 @@ export function QuadrantsVsEquityView({
   const cards = useMemo(() => {
     const superieur = items.filter((it) => it.ve.verdict === "Supérieur aux actions");
     const excellent = items.filter((it) => it.ve.verdict === "Excellent compromis");
-    const byDd = [...items].filter((it) => it.ve.drawdownReduction != null).sort((a, b) => b.ve.drawdownReduction! - a.ve.drawdownReduction!);
-    const bySharpe = [...items].filter((it) => it.ve.ecartSharpe != null).sort((a, b) => b.ve.ecartSharpe! - a.ve.ecartSharpe!);
+    const byDd = [...items]
+      .filter((it) => it.ve.drawdownReduction != null)
+      .sort((a, b) => b.ve.drawdownReduction! - a.ve.drawdownReduction!);
+    const bySharpe = [...items]
+      .filter((it) => it.ve.ecartSharpe != null)
+      .sort((a, b) => b.ve.ecartSharpe! - a.ve.ecartSharpe!);
     return { superieur, excellent, topDd: byDd[0] ?? null, topSharpe: bySharpe[0] ?? null };
   }, [items]);
 
@@ -186,7 +321,8 @@ export function QuadrantsVsEquityView({
       if (sortKey === "verdict") return (verdictRank(a) - verdictRank(b)) * sign;
       const va = col?.get(a) ?? null;
       const vb = col?.get(b) ?? null;
-      if (va === null && vb === null) return (a.row.countryFr ?? "").localeCompare(b.row.countryFr ?? "", "fr");
+      if (va === null && vb === null)
+        return (a.row.countryFr ?? "").localeCompare(b.row.countryFr ?? "", "fr");
       if (va === null) return 1;
       if (vb === null) return -1;
       return (va - vb) * sign;
@@ -209,14 +345,21 @@ export function QuadrantsVsEquityView({
     );
   }
   if (!items.length) {
-    return <Card className="p-10 text-center text-sm text-muted-foreground">Aucune donnée 4 Quadrants vs Actions disponible.</Card>;
+    return (
+      <Card className="p-10 text-center text-sm text-muted-foreground">
+        Aucune donnée 4 Quadrants vs Actions disponible.
+      </Card>
+    );
   }
 
   return (
     <TooltipProvider delayDuration={150}>
       <div className={cn("space-y-4", loading && "opacity-60 transition-opacity")}>
         {/* Cartes de synthèse */}
-        <div id="synthese" className="grid scroll-mt-[var(--model-header-offset,96px)] grid-cols-2 gap-3 lg:grid-cols-4">
+        <div
+          id="synthese"
+          className="grid scroll-mt-[var(--model-header-offset,96px)] grid-cols-2 gap-3 lg:grid-cols-4"
+        >
           <CountCard
             icon={TrendingUp}
             label="Supérieur aux actions"
@@ -257,7 +400,10 @@ export function QuadrantsVsEquityView({
             <h3 className="text-sm font-semibold">Compromis 4 Quadrants vs Actions</h3>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
+                <button
+                  type="button"
+                  className="cursor-help text-muted-foreground/60 hover:text-foreground"
+                >
                   <Info className="size-3.5" />
                 </button>
               </TooltipTrigger>
@@ -284,12 +430,15 @@ export function QuadrantsVsEquityView({
         </Card>
 
         {/* Tableau */}
-        <Card id="detail" className="scroll-mt-[var(--model-header-offset,96px)] gap-0 overflow-hidden p-0">
+        <Card
+          id="detail"
+          className="scroll-mt-[var(--model-header-offset,96px)] gap-0 overflow-hidden p-0"
+        >
           <div className="border-b p-4">
             <h3 className="text-sm font-semibold">Détail par pays</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {sorted.length} pays, en réel · triez les colonnes ou cliquez sur un pays pour ouvrir sa
-              vue détaillée. Survolez un pays pour sa période effective.
+              {sorted.length} pays, en réel · triez les colonnes ou cliquez sur un pays pour ouvrir
+              sa vue détaillée. Survolez un pays pour sa période effective.
             </p>
             {years === null && (
               <p className="mt-1 text-xs text-amber-600/90 dark:text-amber-400/90">
@@ -303,10 +452,18 @@ export function QuadrantsVsEquityView({
                 <tr className="border-b text-xs text-muted-foreground">
                   <th className="px-4 py-2 text-left font-medium">Pays</th>
                   <th className="px-3 py-2 text-left font-medium">
-                    <button type="button" onClick={() => toggle("verdict", "asc")} className="inline-flex cursor-pointer items-center gap-1 hover:text-foreground">
+                    <button
+                      type="button"
+                      onClick={() => toggle("verdict", "asc")}
+                      className="inline-flex cursor-pointer items-center gap-1 hover:text-foreground"
+                    >
                       <span className={cn(sortKey === "verdict" && "text-foreground")}>Profil</span>
                       {sortKey === "verdict" ? (
-                        dir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
+                        dir === "asc" ? (
+                          <ArrowUp className="size-3" />
+                        ) : (
+                          <ArrowDown className="size-3" />
+                        )
                       ) : (
                         <ChevronsUpDown className="size-3 opacity-40" />
                       )}
@@ -314,17 +471,27 @@ export function QuadrantsVsEquityView({
                   </th>
                   {COLS.map((c) => (
                     <th key={c.key} className="px-3 py-2 text-right font-medium">
-                      <button type="button" onClick={() => toggle(c.key, c.better)} className="ml-auto inline-flex cursor-pointer items-center gap-1 hover:text-foreground">
+                      <button
+                        type="button"
+                        onClick={() => toggle(c.key, c.better)}
+                        className="ml-auto inline-flex cursor-pointer items-center gap-1 hover:text-foreground"
+                      >
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className={cn(sortKey === c.key && "text-foreground")}>{c.label}</span>
+                            <span className={cn(sortKey === c.key && "text-foreground")}>
+                              {c.label}
+                            </span>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="max-w-56">
                             {c.tip}
                           </TooltipContent>
                         </Tooltip>
                         {sortKey === c.key ? (
-                          dir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
+                          dir === "asc" ? (
+                            <ArrowUp className="size-3" />
+                          ) : (
+                            <ArrowDown className="size-3" />
+                          )
                         ) : (
                           <ChevronsUpDown className="size-3 opacity-40" />
                         )}
@@ -339,37 +506,53 @@ export function QuadrantsVsEquityView({
                     ? `Période : ${fmtMonth(it.row.effectivePeriod.start)} → ${fmtMonth(it.row.effectivePeriod.end)} (${it.row.effectivePeriod.months} mois)`
                     : "Période indisponible";
                   return (
-                  <tr
-                    key={it.row.countryCode}
-                    onClick={() => onPick(it.row.countryCode)}
-                    className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-muted/40"
-                  >
-                    <td className="px-4 py-2.5" title={windowTitle}>
-                      <div className="flex items-center gap-2">
-                        <CountryFlag code={it.row.countryCode} countryName={it.row.countryFr ?? it.row.countryCode} size={18} />
-                        <span className="font-medium">{it.row.countryFr ?? it.row.countryCode}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {it.ve.verdict && (
+                    <tr
+                      key={it.row.countryCode}
+                      onClick={() => onPick(it.row.countryCode)}
+                      className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-muted/40"
+                    >
+                      <td className="px-4 py-2.5">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className={cn("inline-block min-w-[150px] cursor-help rounded-md border px-2 py-0.5 text-center text-[11px] font-medium whitespace-nowrap", VERDICT_TONE[it.ve.verdict])}>
-                              {it.ve.verdict}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <CountryFlag
+                                code={it.row.countryCode}
+                                countryName={it.row.countryFr ?? it.row.countryCode}
+                                size={18}
+                              />
+                              <span className="font-medium">
+                                {it.row.countryFr ?? it.row.countryCode}
+                              </span>
+                            </div>
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-60">
-                            {VERDICT_DESC[it.ve.verdict]}
-                          </TooltipContent>
+                          <TooltipContent side="top">{windowTitle}</TooltipContent>
                         </Tooltip>
-                      )}
-                    </td>
-                    {COLS.map((c) => (
-                      <td key={c.key} className="px-3 py-2.5 text-right tabular-nums">
-                        {c.fmt(it)}
                       </td>
-                    ))}
-                  </tr>
+                      <td className="px-3 py-2.5">
+                        {it.ve.verdict && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span
+                                className={cn(
+                                  "inline-block min-w-[150px] cursor-help rounded-md border px-2 py-0.5 text-center text-[11px] font-medium whitespace-nowrap",
+                                  VERDICT_TONE[it.ve.verdict],
+                                )}
+                              >
+                                {it.ve.verdict}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-60">
+                              {VERDICT_DESC[it.ve.verdict]}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </td>
+                      {COLS.map((c) => (
+                        <td key={c.key} className="px-3 py-2.5 text-right tabular-nums">
+                          {c.fmt(it)}
+                        </td>
+                      ))}
+                    </tr>
                   );
                 })}
               </tbody>
@@ -384,18 +567,25 @@ export function QuadrantsVsEquityView({
               <h3 className="text-sm font-semibold">Régularité par horizon</h3>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" className="cursor-help text-muted-foreground/60 hover:text-foreground">
+                  <button
+                    type="button"
+                    className="cursor-help text-muted-foreground/60 hover:text-foreground"
+                  >
                     <Info className="size-3.5" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-72">
-                  Taux de réussite du 4 Quadrants selon la durée de détention, sur deux mesures : gagner
-                  du pouvoir d’achat (bat l’inflation) ou faire mieux que les actions locales. Plus c’est
-                  vert, plus c’est fréquent.
+                  Taux de réussite du 4 Quadrants selon la durée de détention, sur deux mesures :
+                  gagner du pouvoir d’achat (bat l’inflation) ou faire mieux que les actions
+                  locales. Plus c’est vert, plus c’est fréquent.
                 </TooltipContent>
               </Tooltip>
             </div>
-            <button type="button" onClick={() => setShowHeatmap((v) => !v)} className="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => setShowHeatmap((v) => !v)}
+              className="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
               {showHeatmap ? "Masquer" : "Afficher"}
             </button>
           </div>
@@ -413,13 +603,22 @@ export function QuadrantsVsEquityView({
               <Users className="size-4 text-muted-foreground" />
               <h3 className="text-sm font-semibold">Comparer des pays</h3>
             </div>
-            <button type="button" onClick={() => setShowCompare((v) => !v)} className="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => setShowCompare((v) => !v)}
+              className="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
               {showCompare ? "Masquer" : "Ouvrir le comparateur"}
             </button>
           </div>
           {showCompare && (
             <div className="mt-3">
-              <QuadrantsMultiCompare rows={items.map((it) => it.row)} settings={settings} years={years} onPick={onPick} />
+              <QuadrantsMultiCompare
+                rows={items.map((it) => it.row)}
+                settings={settings}
+                years={years}
+                onPick={onPick}
+              />
             </div>
           )}
         </Card>
@@ -431,7 +630,11 @@ export function QuadrantsVsEquityView({
               <MapIcon className="size-4 text-muted-foreground" />
               <h3 className="text-sm font-semibold">Carte internationale des profils</h3>
             </div>
-            <button type="button" onClick={() => setShowMap((v) => !v)} className="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => setShowMap((v) => !v)}
+              className="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
               {showMap ? "Masquer" : "Afficher la carte"}
             </button>
           </div>
