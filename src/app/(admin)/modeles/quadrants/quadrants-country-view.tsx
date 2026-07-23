@@ -140,7 +140,8 @@ function KpiCard({
   family,
   badge,
   badgeTone = "positive",
-}: KpiData) {
+  modelLabel,
+}: KpiData & { modelLabel: string }) {
   const showBars = portfolioRaw != null && actionsRaw != null;
   const maxAbs = Math.max(Math.abs(portfolioRaw ?? 0), Math.abs(actionsRaw ?? 0)) || 1;
   return (
@@ -167,7 +168,7 @@ function KpiCard({
       {showBars && (
         <div className="mt-2.5 space-y-1.5">
           <CmpBar
-            label="4 Quadrants"
+            label={modelLabel}
             width={(Math.abs(portfolioRaw ?? 0) / maxAbs) * 100}
             value={value}
             strong
@@ -468,9 +469,25 @@ function perfSeriesData(
   return null;
 }
 
-function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode }) {
+function PerfChart({
+  bt,
+  displayMode,
+  q4Label,
+}: {
+  bt: OkBacktest;
+  displayMode: PerfMode;
+  q4Label: string;
+}) {
   const defs = PERF_SERIES[displayMode];
   const months = bt.metrics.nominal.months;
+  // Libellé de la courbe 4Q = nom de stratégie active + suffixe de mode (cohérent avec les autres
+  // cartes). Le tableau `PERF_SERIES` ne fournit que la structure/couleur ; le nom vient d'ici.
+  const q4ModeLabel =
+    displayMode === "real"
+      ? `${q4Label} réel`
+      : displayMode === "nominal_vs_inflation"
+        ? `${q4Label} nominal`
+        : q4Label;
 
   // Séries déclaratives (ordre de légende = ordre `defs`). La carte partagée gère la
   // visibilité, l'échelle Linéaire/Log, le zoom et l'ordre de tracé.
@@ -483,13 +500,13 @@ function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode 
         )
         .map(({ def, data }) => ({
           id: def.key,
-          label: def.label,
+          label: def.key === "q4" ? q4ModeLabel : def.label,
           color: def.color,
           dashed: def.dashed,
           data,
           width: def.key === "q4" ? 2.6 : 1.4,
         })),
-    [defs, displayMode, bt.series],
+    [defs, displayMode, bt.series, q4ModeLabel],
   );
   const defaultHidden = defs.filter((d) => !d.defaultOn).map((d) => d.key);
 
@@ -524,13 +541,26 @@ function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode 
   );
 }
 
-function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode }) {
+function DrawdownCard({
+  bt,
+  displayMode,
+  q4Label,
+}: {
+  bt: OkBacktest;
+  displayMode: PerfMode;
+  q4Label: string;
+}) {
   // Drawdown réel en mode Réel (si dispo) ; nominal sinon (y compris NvI).
   const useReal = displayMode === "real" && !!bt.series.real && !!bt.series.equityReal;
   const bSeries = useReal ? bt.series.real! : bt.series.nominal;
   const aSeries = useReal ? bt.series.equityReal! : bt.series.equityBenchmark;
   const bMetrics = useReal ? bt.metrics.real! : bt.metrics.nominal;
   const aMetrics = useReal ? bt.metrics.equityReal! : bt.metrics.equity;
+
+  // Suffixe de mode « réel / réelles » en mode réel (cohérent avec « Performance cumulée » et
+  // « Mois extrêmes ») ; libellés de base en nominal.
+  const modelLabel = useReal ? `${q4Label} réel` : q4Label;
+  const actionsLabel = useReal ? "Actions réelles" : "Actions";
 
   const { series, floor } = useMemo(() => {
     const bDD = drawdownSeries(bSeries);
@@ -541,7 +571,7 @@ function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMo
     const s: ChartSeries[] = [
       {
         id: "q4",
-        label: "4 Quadrants",
+        label: modelLabel,
         color: COLOR.portfolio,
         data: bDD,
         width: 2.6,
@@ -549,7 +579,7 @@ function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMo
       },
       {
         id: "actions",
-        label: "Actions",
+        label: actionsLabel,
         color: COLOR.actions,
         data: aDD,
         width: 1.4,
@@ -557,26 +587,26 @@ function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMo
       },
     ];
     return { series: s, floor: Math.min(-5, Math.floor(worst / 10) * 10) };
-  }, [bSeries, aSeries]);
+  }, [bSeries, aSeries, modelLabel, actionsLabel]);
 
   const kpis = (
     <DrawdownKpiRow
       blocks={[
         {
-          label: "4 Quadrants",
+          label: modelLabel,
           color: COLOR.portfolio,
           maxDrawdown: bMetrics.maxDrawdown,
           underwaterMonths: bMetrics.maxUnderwaterMonths,
         },
         {
-          label: "Actions",
+          label: actionsLabel,
           color: COLOR.actions,
           maxDrawdown: aMetrics.maxDrawdown,
           underwaterMonths: aMetrics.maxUnderwaterMonths,
         },
       ]}
       delta={{
-        refLabel: "Actions",
+        refLabel: actionsLabel,
         maxDrawdown:
           bMetrics.maxDrawdown !== null && aMetrics.maxDrawdown !== null
             ? bMetrics.maxDrawdown - aMetrics.maxDrawdown
@@ -642,7 +672,7 @@ function CompositionCard({
                 </span>
                 <span className="font-semibold tabular-nums">{fmtPct0(w)}</span>
               </div>
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted/40">
+              <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-muted/40">
                 <div
                   className="h-full rounded-full"
                   style={{ width: `${Math.min(100, w * 100)}%`, background: meta.hex }}
@@ -756,7 +786,7 @@ function ContributionCard({ bt }: { bt: OkBacktest }) {
               key={r.key}
               className="grid grid-cols-[6rem_1fr_5rem] items-center gap-2.5 text-sm"
             >
-              <span className="text-muted-foreground">{r.label}</span>
+              <span className="font-medium">{r.label}</span>
               <span className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <span
                   className="block h-full rounded-full"
@@ -867,10 +897,13 @@ export function QuadrantsCountryView({
   // « Mois extrêmes des actions » : Actions locales + stratégie 4Q active, dérivées du backtest
   // CLIENT déjà calculé (aucun recalcul). Mode / période / devise / stratégie = paramètres actifs.
   const extremeModelId = strategy === "dynamic" ? "quadrants-dynamic-v2" : "quadrants-binary-v2";
+  // Nom de la stratégie 4Q active, utilisé PARTOUT (Perf cumulée, Drawdowns, Mois extrêmes) ;
+  // le suffixe de mode « réel » est ajouté par chaque carte.
+  const q4Label = strategy === "dynamic" ? "4Q Continue" : "4Q Régime";
   const extremeSeries = bt
     ? buildEquityModelSeries(bt.series, displayMode === "real", {
         id: extremeModelId,
-        label: strategy === "dynamic" ? "4Q Continue" : "4Q Régime",
+        label: q4Label,
       })
     : null;
 
@@ -969,7 +1002,7 @@ export function QuadrantsCountryView({
           {kpis.length ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {kpis.map((k) => (
-                <KpiCard key={k.title} {...k} />
+                <KpiCard key={k.title} {...k} modelLabel={q4Label} />
               ))}
             </div>
           ) : (
@@ -990,10 +1023,10 @@ export function QuadrantsCountryView({
         {bt && !cpiMissing && (
           <>
             <section id="performance" className="scroll-mt-[var(--model-header-offset,96px)]">
-              <PerfChart bt={bt} displayMode={displayMode} />
+              <PerfChart bt={bt} displayMode={displayMode} q4Label={q4Label} />
             </section>
             <section id="drawdown" className="scroll-mt-[var(--model-header-offset,96px)]">
-              <DrawdownCard bt={bt} displayMode={displayMode} />
+              <DrawdownCard bt={bt} displayMode={displayMode} q4Label={q4Label} />
             </section>
             <ExtremeMonthsCard
               series={extremeSeries ?? []}

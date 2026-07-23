@@ -27,14 +27,11 @@ import {
 
 // ─── Formatage ────────────────────────────────────────────────────────────────
 
-const MONTHS_ABBR = [
-  "janv.", "févr.", "mars", "avr.", "mai", "juin",
-  "juil.", "août", "sept.", "oct.", "nov.", "déc.",
-]; // prettier-ignore
-
+// Date d'un point mensuel → notation MM/AAAA, identique au formateur d'axe du graphe historique
+// (`formatAxisDate` dans exploration-chart.tsx). Utilisée partout : axe, infobulle, mobile.
 const monthYear = (d: string) => {
   const [y, m] = d.split("-");
-  return `${MONTHS_ABBR[Number(m) - 1]} ${y}`;
+  return `${m}/${y}`;
 };
 const nf = (v: number, d = 1) =>
   v.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -99,19 +96,24 @@ function Tile({
   chip?: string;
   tooltip?: string;
 }) {
-  // Styles alignés sur les cartes KPI de « Drawdowns successifs » (`DrawdownKpiRow`) :
-  // même conteneur, même padding, pastille ronde, valeur `font-semibold tabular-nums`.
+  // Styles alignés sur les cartes KPI de « Drawdowns successifs » (`DrawdownKpiRow`, la NORME) :
+  // même conteneur, même padding, pastille ronde, LIBELLÉ en foreground à la taille de base (pas
+  // de `text-muted-foreground`/`text-xs`), valeur `text-sm font-semibold tabular-nums`.
   return (
     <div className="rounded-lg border bg-muted/20 p-3">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        {chip && <span className="size-2.5 shrink-0 rounded-full" style={{ background: chip }} />}
-        <span>{label}</span>
+      {/* Libellé sur hauteur réservée = 2 lignes (`min-h` + `leading-snug`) → la valeur démarre au
+          même Y dans les 3 tuiles : baseline commune, que le libellé tienne sur 1 ou 2 lignes. */}
+      <div className="flex min-h-[2.75rem] items-start gap-1.5">
+        {chip && (
+          <span className="mt-1.5 size-2.5 shrink-0 rounded-full" style={{ background: chip }} />
+        )}
+        <span className="leading-snug">{label}</span>
         {tooltip && (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="cursor-help text-muted-foreground/60 hover:text-foreground"
+                className="mt-1 shrink-0 cursor-help text-muted-foreground/60 hover:text-foreground"
               >
                 <Info className="size-3" />
               </button>
@@ -122,7 +124,7 @@ function Tile({
           </Tooltip>
         )}
       </div>
-      <div className="mt-2 text-base font-semibold tabular-nums">{value}</div>
+      <div className="mt-2 text-sm font-semibold tabular-nums">{value}</div>
       {secondary && <div className="mt-0.5 text-xs text-muted-foreground">{secondary}</div>}
     </div>
   );
@@ -146,38 +148,48 @@ function SynthesisTiles({
   const byId = new Map(synthesis.map((s) => [s.seriesId, s]));
   return (
     <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
+      {/* Ordre modèle → Actions → écart, cohérent avec « Perf cumulée » / « Drawdowns ». */}
+      {models.map((id) => {
+        const s = byId.get(id);
+        return s ? (
+          <Tile
+            key={`avg-${id}`}
+            label={`Rendement moyen — ${labels[id]}`}
+            value={pctSigned(view === "worst" ? s.avgDuringWorst : s.avgDuringBest)}
+            chip={colors[id]}
+          />
+        ) : null;
+      })}
       <Tile label="Rendement moyen des actions" value={pctSigned(avgEquity)} chip={colors.equity} />
       {models.map((id) => {
         const s = byId.get(id);
         if (!s) return null;
-        return (
-          <Fragment key={id}>
-            <Tile
-              label={`Rendement moyen — ${labels[id]}`}
-              value={pctSigned(view === "worst" ? s.avgDuringWorst : s.avgDuringBest)}
-              chip={colors[id]}
-            />
-            {view === "worst" ? (
-              <Tile
-                label="Mois mieux protégés"
-                value={
-                  s.evaluatedCount > 0
-                    ? `${s.betterCount} sur ${s.evaluatedCount} · ${nf((s.betterShare ?? 0) * 100, 0)} %`
-                    : "—"
-                }
-                secondary={`Écart moyen : ${ptsLong(s.avgOutperformanceWorst)} par mois`}
-                chip={colors[id]}
-              />
-            ) : (
-              <Tile
-                label="Part moyenne de la hausse captée"
-                value={ratioPct(s.upsideParticipation)}
-                secondary={`${pctSigned(s.avgDuringBest)} contre ${pctSigned(avgEquity)} pour les Actions`}
-                chip={colors[id]}
-                tooltip="Part de la progression moyenne des Actions captée par le modèle pendant les 12 meilleurs mois des Actions. Une valeur de 100 % signifie que le modèle a progressé autant que les Actions en moyenne."
-              />
-            )}
-          </Fragment>
+        return view === "worst" ? (
+          <Tile
+            key={`ecart-${id}`}
+            label="Écart moyen vs Actions"
+            value={s.evaluatedCount > 0 ? `${ptsLong(s.avgOutperformanceWorst)} par mois` : "—"}
+            secondary={
+              s.avgDuringWorst != null
+                ? `${pctSigned(s.avgDuringWorst)} pour ${labels[id]} contre ${pctSigned(avgEquity)} pour les Actions`
+                : undefined
+            }
+            chip={colors[id]}
+            tooltip={
+              s.evaluatedCount > 0
+                ? `Rendement supérieur à celui des Actions : ${s.betterCount} mois sur ${s.evaluatedCount}`
+                : undefined
+            }
+          />
+        ) : (
+          <Tile
+            key={`part-${id}`}
+            label="Part moyenne de la hausse captée"
+            value={ratioPct(s.upsideParticipation)}
+            secondary={`${pctSigned(s.avgDuringBest)} pour ${labels[id]} contre ${pctSigned(avgEquity)} pour les Actions`}
+            chip={colors[id]}
+            tooltip="Part de la progression moyenne des Actions captée par le modèle pendant les 12 meilleurs mois des Actions. Une valeur de 100 % signifie que le modèle a progressé autant que les Actions en moyenne."
+          />
         );
       })}
     </div>
@@ -246,6 +258,9 @@ function MonthRow({
 
 // ─── Graphique (desktop) : colonnes verticales groupées ──────────────────────
 
+/** Hauteur du graphe desktop (px) — sert aussi à décider si une étiquette tient dans la barre. */
+const CHART_H = 280;
+
 function VerticalChart({
   months,
   seriesOrder,
@@ -273,15 +288,15 @@ function VerticalChart({
         maxV = Math.max(maxV, v);
       }
     }
-  const pad = (maxV - minV || 1) * 0.08;
+  const pad = (maxV - minV || 1) * 0.14; // marge haut/bas pour les étiquettes hors barres
   const lo = minV - pad;
   const hi = maxV + pad;
   const yOf = (v: number) => ((hi - v) / (hi - lo)) * 100; // % depuis le haut
   const y0 = yOf(0);
 
   return (
-    <div>
-      <div className="relative" style={{ height: 280 }}>
+    <div className="@container/xmonths">
+      <div className="relative" style={{ height: CHART_H }}>
         {/* Ligne du 0 % */}
         <div
           aria-hidden
@@ -289,62 +304,123 @@ function VerticalChart({
           style={{ top: `${y0}%` }}
         />
         <div className="absolute inset-0 flex">
-          {months.map((m) => (
-            <Tooltip key={m.date}>
-              <TooltipTrigger asChild>
-                <div className="relative flex h-full flex-1 cursor-help items-stretch justify-center gap-[5px]">
-                  {seriesOrder.map((id) => {
-                    const v = m.returns[id];
-                    if (v == null) return <div key={id} className="w-3.5 lg:w-4 xl:w-[18px]" />;
-                    const yTop = yOf(Math.max(v, 0));
-                    const yBot = yOf(Math.min(v, 0));
-                    return (
-                      <div key={id} className="relative w-3.5 lg:w-4 xl:w-[18px]">
-                        <div
-                          className="absolute inset-x-0 rounded-[1px]"
-                          style={{
-                            top: `${yTop}%`,
-                            height: `${Math.max(yBot - yTop, 0.5)}%`,
-                            backgroundColor: colors[id],
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
+          {months.map((m, mi) => {
+            // Anti-collision des étiquettes d'un même mois : si les deux valeurs sont du même côté
+            // (au-dessus / en dessous) et à des hauteurs trop proches, on repousse celle du modèle
+            // vers l'extérieur d'une ligne pour qu'elles se lisent l'une au-dessus de l'autre —
+            // jamais de superposition. (Les collisions entre mois voisins n'apparaissent qu'en
+            // dessous du seuil `@[520px]`, où les étiquettes sont de toute façon masquées.)
+            const LABEL_H = 13; // hauteur approx d'une étiquette (px)
+            const ends = seriesOrder.map((id) => {
+              const v = m.returns[id];
+              return v == null ? null : { positive: v >= 0, endPct: yOf(v) };
+            });
+            const labelOffset = seriesOrder.map(() => 0);
+            const [e0, e1] = ends;
+            if (e0 && e1 && e0.positive === e1.positive) {
+              const gapPx = (Math.abs(e0.endPct - e1.endPct) / 100) * CHART_H;
+              if (gapPx < LABEL_H + 3) labelOffset[1] = LABEL_H + 3;
+            }
+            return (
+              <Tooltip key={m.date}>
+                <div className="flex h-full flex-1 justify-center">
+                  <TooltipTrigger asChild>
+                    <div className="relative flex h-full cursor-help items-stretch gap-[7px]">
+                      {seriesOrder.map((id, i) => {
+                        const v = m.returns[id];
+                        if (v == null) return <div key={id} className="w-4 lg:w-[18px] xl:w-5" />;
+                        const positive = v >= 0;
+                        const yTop = yOf(Math.max(v, 0));
+                        const yBot = yOf(Math.min(v, 0));
+                        const heightPct = Math.max(yBot - yTop, 0.5);
+                        // Remplissage semi-transparent + bordure fine pleine couleur (langage des
+                        // drawdowns), mais moins transparent qu'une zone de drawdown (marques discrètes
+                        // à garder lisibles) : Actions ~0,50, modèle ~0,60. `--fp` passe à 100 % au
+                        // survol de LA barre exacte (`hover`) ; bordure = couleur pleine (opacité 1).
+                        const fillPct = id === equityId ? 50 : 60;
+                        // Étiquette HORIZONTALE, à l'extérieur de la barre : au-dessus de l'extrémité
+                        // haute si positif, sous l'extrémité basse si négatif. Décalée horizontalement
+                        // vers l'EXTÉRIEUR de sa barre (colonne de gauche ← / droite →) pour que chaque
+                        // valeur s'associe sans ambiguïté à sa série. `labelOffset` ajoute un décalage
+                        // vertical si les deux valeurs d'un mois sont trop proches (cf. calcul par mois).
+                        // Masquée si le conteneur est trop étroit (@container) ; tooltip = référence.
+                        const out = 3 + labelOffset[i];
+                        const dx = i === 0 ? -6 : 6;
+                        const labelStyle: CSSProperties = positive
+                          ? { bottom: `calc(${100 - yTop}% + ${out}px)` }
+                          : { top: `calc(${yBot}% + ${out}px)` };
+                        return (
+                          <div key={id} className="relative w-4 lg:w-[18px] xl:w-5">
+                            <div
+                              className="absolute inset-x-0 rounded-[1px] border transition-colors hover:[--fp:100%]"
+                              style={
+                                {
+                                  top: `${yTop}%`,
+                                  height: `${heightPct}%`,
+                                  borderColor: colors[id],
+                                  "--fp": `${fillPct}%`,
+                                  backgroundColor: `color-mix(in srgb, ${colors[id]} var(--fp), transparent)`,
+                                } as CSSProperties
+                              }
+                            />
+                            <span
+                              className="pointer-events-none absolute left-1/2 z-10 hidden text-[10px] leading-none font-medium whitespace-nowrap tabular-nums @[520px]/xmonths:block"
+                              style={{
+                                ...labelStyle,
+                                color: colors[id],
+                                transform: `translateX(calc(-50% + ${dx}px))`,
+                              }}
+                            >
+                              {pctSigned(v)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </TooltipTrigger>
                 </div>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-56">
-                <TooltipBody title={monthYear(m.date)}>
-                  <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-[11px]">
-                    <span>Actions locales</span>
-                    <span className="tabular-nums">{pctSigned(m.returns[equityId])}</span>
-                    {models.map((id) => {
-                      const mv = m.returns[id];
-                      const ev = m.returns[equityId];
-                      const diff = mv != null && ev != null ? mv - ev : null;
-                      return (
-                        <Fragment key={id}>
-                          <span>{labels[id]}</span>
-                          <span className="tabular-nums">{pctSigned(mv)}</span>
-                          <span className="text-muted-foreground">Écart</span>
-                          <span className="tabular-nums text-muted-foreground">
-                            {ptsSigned(diff)}
-                          </span>
-                        </Fragment>
-                      );
-                    })}
-                  </div>
-                </TooltipBody>
-              </TooltipContent>
-            </Tooltip>
-          ))}
+                {/* Trigger = groupe de barres (pas toute la colonne `flex-1`) → l'infobulle s'ancre
+                  juste à côté des barres, pas au bord de la colonne. Placement latéral, centré
+                  verticalement (une infobulle « top » flotterait par-dessus les KPI vu la hauteur du
+                  trigger), pointant vers l'intérieur pour ne jamais sortir de la carte. */}
+                <TooltipContent
+                  side={mi < months.length / 2 ? "right" : "left"}
+                  align="center"
+                  collisionPadding={12}
+                  className="max-w-56"
+                >
+                  <TooltipBody title={monthYear(m.date)}>
+                    <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-[11px]">
+                      <span>{labels[equityId]}</span>
+                      <span className="tabular-nums">{pctSigned(m.returns[equityId])}</span>
+                      {models.map((id) => {
+                        const mv = m.returns[id];
+                        const ev = m.returns[equityId];
+                        const diff = mv != null && ev != null ? mv - ev : null;
+                        return (
+                          <Fragment key={id}>
+                            <span>{labels[id]}</span>
+                            <span className="tabular-nums">{pctSigned(mv)}</span>
+                            <span className="text-muted-foreground">Écart</span>
+                            <span className="tabular-nums text-muted-foreground">
+                              {ptsSigned(diff)}
+                            </span>
+                          </Fragment>
+                        );
+                      })}
+                    </div>
+                  </TooltipBody>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
         </div>
       </div>
       {/* Axe X : dates courtes inclinées à −45°. */}
       <div className="mt-1 flex h-10">
         {months.map((m) => (
           <div key={m.date} className="flex flex-1 justify-center overflow-visible">
-            <span className="origin-top-right -rotate-45 text-[10px] whitespace-nowrap text-muted-foreground">
+            <span className="origin-top-right -rotate-45 text-[11px] whitespace-nowrap text-muted-foreground">
               {monthYear(m.date)}
             </span>
           </div>

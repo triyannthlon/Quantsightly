@@ -57,6 +57,11 @@ export function DrawdownCard({
   const bMetrics = useReal ? result.metrics.real! : result.metrics.nominal;
   const aMetrics = useReal ? result.metrics.equityReal! : result.metrics.equity;
 
+  // Suffixe de mode « réel / réelles » en mode réel (cohérent avec « Performance cumulée » et
+  // « Mois extrêmes ») ; libellés de base en nominal.
+  const modelLabel = useReal ? "Browne réel" : "Browne";
+  const actionsLabel = useReal ? "Actions réelles" : "Actions";
+
   const { series, floor } = useMemo(() => {
     const bDD = drawdownSeries(bSeries);
     const aDD = drawdownSeries(aSeries);
@@ -66,7 +71,7 @@ export function DrawdownCard({
     const s: ChartSeries[] = [
       {
         id: "browne",
-        label: "Browne",
+        label: modelLabel,
         color: DD_COLOR.browne,
         data: bDD,
         width: 2.6,
@@ -74,7 +79,7 @@ export function DrawdownCard({
       },
       {
         id: "equity",
-        label: "Actions",
+        label: actionsLabel,
         color: DD_COLOR.equity,
         data: aDD,
         width: 1.4,
@@ -82,26 +87,26 @@ export function DrawdownCard({
       },
     ];
     return { series: s, floor: Math.min(-5, Math.floor(worst / 10) * 10) };
-  }, [bSeries, aSeries]);
+  }, [bSeries, aSeries, modelLabel, actionsLabel]);
 
   const kpis = (
     <DrawdownKpiRow
       blocks={[
         {
-          label: "Browne",
+          label: modelLabel,
           color: DD_COLOR.browne,
           maxDrawdown: bMetrics.maxDrawdown,
           underwaterMonths: bMetrics.maxUnderwaterMonths,
         },
         {
-          label: "Actions",
+          label: actionsLabel,
           color: DD_COLOR.equity,
           maxDrawdown: aMetrics.maxDrawdown,
           underwaterMonths: aMetrics.maxUnderwaterMonths,
         },
       ]}
       delta={{
-        refLabel: "Actions",
+        refLabel: actionsLabel,
         maxDrawdown:
           bMetrics.maxDrawdown !== null && aMetrics.maxDrawdown !== null
             ? bMetrics.maxDrawdown - aMetrics.maxDrawdown
@@ -245,7 +250,7 @@ export function ContributionCard({ result }: { result: OkResult }) {
               key={r.key}
               className="grid grid-cols-[6rem_1fr_5rem] items-center gap-2.5 text-sm"
             >
-              <span className="text-muted-foreground">{r.label}</span>
+              <span className="font-medium">{r.label}</span>
               <span className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <span
                   className="block h-full rounded-full"

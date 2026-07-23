@@ -200,8 +200,14 @@ export function buildEquityModelSeries(
   if (!equityLevels || !modelLevels || equityLevels.length < 2 || modelLevels.length < 2) {
     return null;
   }
+  // Ordre modèle → Actions (cohérent avec « Performance cumulée » et « Drawdowns successifs »).
+  // L'ordre du tableau pilote la légende et les barres ; le calcul retrouve l'indice actions via
+  // `isEquity` (indépendant de l'ordre). Suffixe de mode « réel / réelles » en mode réel, comme la
+  // carte « Performance cumulée » (rien en nominal) ; le modèle reçoit son libellé de base.
+  const modelLabel = realMode ? `${model.label} réel` : model.label;
+  const equityLabel = realMode ? "Actions réelles" : "Actions";
   return [
-    { id: "equity", label: "Actions locales", isEquity: true, levels: equityLevels },
-    { id: model.id, label: model.label, isEquity: false, levels: modelLevels },
+    { id: model.id, label: modelLabel, isEquity: false, levels: modelLevels },
+    { id: "equity", label: equityLabel, isEquity: true, levels: equityLevels },
   ];
 }

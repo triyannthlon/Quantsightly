@@ -287,7 +287,7 @@ function Section({
     <section id={id} className="scroll-mt-[var(--model-header-offset,96px)] space-y-3">
       {title && (
         <div className="space-y-0.5">
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         </div>
       )}
@@ -310,7 +310,7 @@ function Td({ children, className }: { children: React.ReactNode; className?: st
 /** Pastille de couleur + libellé de stratégie. */
 function StrategyChip({ s }: { s: ComparisonStrategyResult }) {
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+    <span className="inline-flex items-center gap-1.5 font-medium whitespace-nowrap text-foreground">
       <span
         className="size-2.5 shrink-0 rounded-full"
         style={{ background: STRATEGY_COLOR[s.id] }}
@@ -455,7 +455,7 @@ function MetricTable({
                 <tr>
                   <td
                     colSpan={colCount}
-                    className="bg-muted/20 px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                    className="bg-muted/20 px-3 pt-2.5 pb-1 text-xs uppercase tracking-wide text-muted-foreground"
                   >
                     {g.label}
                   </td>
@@ -468,7 +468,7 @@ function MetricTable({
                     key={r.key}
                     className="group border-b transition-colors last:border-0 hover:bg-muted/30"
                   >
-                    <Td className="sticky left-0 bg-background font-medium group-hover:bg-muted/30">
+                    <Td className="sticky left-0 bg-background font-medium text-foreground group-hover:bg-muted/30">
                       <MetricLabel label={r.label} tip={r.tip} />
                     </Td>
                     {strategies.map((s) => {
@@ -827,7 +827,7 @@ function CostSection({
           </thead>
           <tbody>
             <tr>
-              <Td className="font-medium">Coût cumulé en performance</Td>
+              <Td className="font-medium text-foreground">Coût cumulé en performance</Td>
               {strategies.map((s) => {
                 const g = gross.get(s.id);
                 const net = s.metrics?.cumulative ?? null;

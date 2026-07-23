@@ -468,7 +468,7 @@ export function QuadrantsView({
         renderControls={renderControls}
         summary={summary}
         sections={SECTIONS[tab]}
-        loading={pending}
+        loading={pending || (tab === "vs_browne" && vsBrowneLoading)}
       >
         {tab === "country" ? (
           <div className={cn(pending && "pointer-events-none opacity-60 transition-opacity")}>
@@ -509,18 +509,26 @@ export function QuadrantsView({
             years={PERIOD_YEARS[period]}
           />
         ) : tab === "vs_browne" ? (
-          vsBrowneLoading || vsBrowne === undefined ? (
+          vsBrowne === undefined ? (
+            // Premier chargement uniquement : aucun contenu antérieur à préserver.
             <Card className="flex h-64 items-center justify-center text-sm text-muted-foreground">
               Calcul de la comparaison…
             </Card>
           ) : vsBrowne ? (
-            <QuadrantsVsBrowneView
-              result={vsBrowne.net}
-              grossResult={vsBrowne.gross}
-              crisisResults={vsBrowne.crisisResults}
-              filter={comparisonFilter}
-              costBps={costBps}
-            />
+            // Recalcul (période / pays / mode) : on GARDE le contenu précédent monté (juste
+            // atténué) au lieu de le remplacer par une carte courte → la hauteur reste stable et
+            // la position de scroll est préservée, comme sur l'onglet « pays ».
+            <div
+              className={cn(vsBrowneLoading && "pointer-events-none opacity-60 transition-opacity")}
+            >
+              <QuadrantsVsBrowneView
+                result={vsBrowne.net}
+                grossResult={vsBrowne.gross}
+                crisisResults={vsBrowne.crisisResults}
+                filter={comparisonFilter}
+                costBps={costBps}
+              />
+            </div>
           ) : (
             <Card className="p-8 text-center text-sm text-muted-foreground">
               Données insuffisantes pour comparer les modèles sur ce pays.

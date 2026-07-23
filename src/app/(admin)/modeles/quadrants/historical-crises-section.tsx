@@ -258,15 +258,20 @@ function CrisisDetailPanel({
       </div>
 
       {bestPerf && bestDd && (
-        <div className="space-y-0.5 rounded-md bg-muted/50 p-2.5 text-xs">
-          <div>
-            <span className="font-semibold">Performance la plus élevée</span> :{" "}
+        <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-0.5 rounded-md bg-muted/50 p-2.5 text-xs">
+          {/* Deux lignes de synthèse : libellé + « : » alignés à droite, valeurs alignées. */}
+          <span className="justify-self-end whitespace-nowrap">
+            <span className="font-semibold">Performance la plus élevée</span> :
+          </span>
+          <span>
             {labels[bestPerf.strategyId]}, {pctSigned(bestPerf.cumulativeReturn)}
-          </div>
-          <div>
-            <span className="font-semibold">Perte la moins profonde</span> :{" "}
+          </span>
+          <span className="justify-self-end whitespace-nowrap">
+            <span className="font-semibold">Perte la moins profonde</span> :
+          </span>
+          <span>
             {labels[bestDd.strategyId]}, {pctSigned(bestDd.maxDrawdown)}
-          </div>
+          </span>
         </div>
       )}
     </div>
@@ -308,7 +313,7 @@ function CrisisRow({
             <DialogTrigger asChild>
               <button
                 type="button"
-                className="min-w-0 cursor-pointer text-left text-sm font-medium leading-tight hover:underline"
+                className="min-w-0 cursor-pointer text-left text-sm font-medium leading-tight text-foreground/90 hover:text-foreground hover:underline"
               >
                 {r.crisis.name}
               </button>
@@ -386,13 +391,19 @@ function CrisisRow({
                   }
                   return (
                     <div key={id} className="relative h-3.5">
+                      {/* Fond translucide + bordure fine pleine couleur (même langage que les
+                          barres de Vue pays / les aires de drawdown) ; survol → 100 %. */}
                       <div
-                        className="absolute inset-y-0 rounded-[2px]"
-                        style={{
-                          left: `${left}%`,
-                          width: `${width}%`,
-                          backgroundColor: colors[id],
-                        }}
+                        className="absolute inset-y-0 rounded-[2px] border transition-colors hover:[--fp:100%]"
+                        style={
+                          {
+                            left: `${left}%`,
+                            width: `${width}%`,
+                            borderColor: colors[id],
+                            "--fp": "60%",
+                            backgroundColor: `color-mix(in srgb, ${colors[id]} var(--fp), transparent)`,
+                          } as CSSProperties
+                        }
                       />
                       <span
                         className={cn(
@@ -433,7 +444,7 @@ function Axis({ ticks, xOf }: { ticks: number[]; xOf: (v: number) => number }) {
             <span
               key={t}
               className={cn(
-                "absolute top-1.5 whitespace-nowrap text-[10px] tabular-nums",
+                "absolute top-1.5 whitespace-nowrap text-[11px] tabular-nums",
                 t === 0 ? "font-semibold text-foreground" : "text-muted-foreground",
               )}
               style={{ left: `${x}%`, transform }}

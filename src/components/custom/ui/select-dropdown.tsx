@@ -45,7 +45,11 @@ export function SelectDropdown({
   const selected = items.find((i) => i.value === value) ?? null;
 
   return (
-    <DropdownMenu>
+    // `modal={false}` : le menu Radix modal verrouille le scroll (`react-remove-scroll`). Combiné à
+    // un conteneur de défilement custom (`<main>` et non `body`), la fermeture du menu réinitialise
+    // la position de scroll en haut de page. En non-modal, plus de verrou → le scroll est préservé
+    // au changement de paramètre (pays, période…). Le reste (clavier, clic-dehors, Échap) est intact.
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
