@@ -857,6 +857,8 @@ export function ExplorationCanvas({
                           type="button"
                           disabled={d === "base100" && !canRebase}
                           onClick={() => setDisplayState(d)}
+                          // `title=` NATIF volontaire : Radix Tooltip ne se déclenche pas sur un bouton
+                          // `disabled` (pas d'événements pointeur). Exception assumée, cf. feedback-ui-consistency.
                           title={
                             d === "base100" && !canRebase
                               ? "Rebasage indisponible (mode différence ou valeurs ≤ 0)"
@@ -884,6 +886,7 @@ export function ExplorationCanvas({
                           type="button"
                           disabled={s === "log" && !canLog}
                           onClick={() => setChartScale(s)}
+                          // `title=` NATIF volontaire (bouton `disabled`, même raison que ci-dessus).
                           title={
                             s === "log" && !canLog
                               ? "Échelle log indisponible (valeurs négatives ou nulles)"
@@ -905,7 +908,12 @@ export function ExplorationCanvas({
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="cursor-pointer" onClick={copyLink}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer"
+                      onClick={copyLink}
+                    >
                       <Link2 className="size-3.5" />
                       Copier le lien
                     </Button>

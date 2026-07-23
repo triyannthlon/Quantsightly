@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { CountryFlag } from "@/components/ui/CountryFlag";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { REGIME, type RegimeKey } from "./regime-palette";
 import type { Region } from "./world-map";
 import type { HistoryMatrixData } from "./history";
@@ -116,9 +117,7 @@ export function HistoryMatrix({ data, region }: { data: HistoryMatrixData; regio
     if (wasDragging) snapToColumn();
   };
 
-  const januaries = months
-    .map((m, i) => ({ i, m }))
-    .filter(({ m }) => m.slice(5, 7) === "01");
+  const januaries = months.map((m, i) => ({ i, m })).filter(({ m }) => m.slice(5, 7) === "01");
 
   const totalW = LABEL_W + GUTTER * 2 + months.length * CELL;
 
@@ -129,9 +128,7 @@ export function HistoryMatrix({ data, region }: { data: HistoryMatrixData; regio
           Historique mensuel des régimes — {monthLabel(months[0])} →{" "}
           {monthLabel(months[months.length - 1])}
         </span>
-        <span className="text-[11px] text-muted-foreground/70">
-          Glisser ou ←/→ pour parcourir
-        </span>
+        <span className="text-[11px] text-muted-foreground/70">Glisser ou ←/→ pour parcourir</span>
       </div>
 
       <div
@@ -235,15 +232,19 @@ export function HistoryMatrix({ data, region }: { data: HistoryMatrixData; regio
                       );
                     })}
                   </div>
-                  <div
-                    className="sticky right-0 z-10 flex h-full items-center gap-1 bg-card pl-3"
-                    style={{ width: LABEL_W }}
-                    title={row.name}
-                  >
-                    <span className="pointer-events-none absolute right-full top-0 h-full w-6 bg-gradient-to-l from-card to-transparent" />
-                    <CountryFlag code={row.code} countryName={row.name} size={14} />
-                    <span className="text-[10px] font-medium tabular-nums">{row.code}</span>
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="sticky right-0 z-10 flex h-full items-center gap-1 bg-card pl-3"
+                        style={{ width: LABEL_W }}
+                      >
+                        <span className="pointer-events-none absolute right-full top-0 h-full w-6 bg-gradient-to-l from-card to-transparent" />
+                        <CountryFlag code={row.code} countryName={row.name} size={14} />
+                        <span className="text-[10px] font-medium tabular-nums">{row.code}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{row.name}</TooltipContent>
+                  </Tooltip>
                 </div>
               ))}
             </div>
@@ -264,9 +265,13 @@ export function HistoryMatrix({ data, region }: { data: HistoryMatrixData; regio
             <div className="grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-0.5">
               <span className="whitespace-nowrap text-right text-muted-foreground">Régime :</span>
               <span>{REGIME[tip.key].label}</span>
-              <span className="whitespace-nowrap text-right text-muted-foreground">Croissance :</span>
+              <span className="whitespace-nowrap text-right text-muted-foreground">
+                Croissance :
+              </span>
               <span>{tip.growth}</span>
-              <span className="whitespace-nowrap text-right text-muted-foreground">Inflation :</span>
+              <span className="whitespace-nowrap text-right text-muted-foreground">
+                Inflation :
+              </span>
               <span>{tip.inflation}</span>
               <span className="whitespace-nowrap text-right text-muted-foreground">Signal :</span>
               <span>{tip.signal}</span>

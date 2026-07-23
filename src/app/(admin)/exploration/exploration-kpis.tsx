@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { SeriesKpis } from "@/lib/coredata/compute";
 import React from "react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 export interface KpiColumn {
   title?: string;
@@ -69,43 +70,49 @@ export function ExplorationKpis({
   const sectionLabel = "text-xs font-medium uppercase tracking-wide text-muted-foreground";
 
   return (
-    <div className="space-y-4 rounded-lg border bg-card p-5">
-      {title && <h3 className="text-base font-semibold">{title}</h3>}
+    <TooltipProvider delayDuration={150}>
+      <div className="space-y-4 rounded-lg border bg-card p-5">
+        {title && <h3 className="text-base font-semibold">{title}</h3>}
 
-      {hasTitles && (
-        <div className="grid items-center gap-x-3 border-b pb-3" style={gridStyle}>
-          <span />
-          {columns.map((c, i) => (
-            <span
-              key={i}
-              className="flex items-center justify-end gap-1.5 text-xs font-medium"
-              title={c.title}
-            >
-              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
-              <span>Série {String.fromCharCode(65 + i)}</span>
-            </span>
-          ))}
+        {hasTitles && (
+          <div className="grid items-center gap-x-3 border-b pb-3" style={gridStyle}>
+            <span />
+            {columns.map((c, i) => (
+              <Tooltip key={i}>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center justify-end gap-1.5 text-xs font-medium">
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: c.color }}
+                    />
+                    <span>Série {String.fromCharCode(65 + i)}</span>
+                  </span>
+                </TooltipTrigger>
+                {c.title && <TooltipContent side="top">{c.title}</TooltipContent>}
+              </Tooltip>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-2.5">
+          <p className={sectionLabel}>Variation</p>
+          <MetricRow label="Dernier mois" values={pick((k) => k.lastMonth)} gridStyle={gridStyle} />
+          <MetricRow label="1 an" values={pick((k) => k.oneYear)} gridStyle={gridStyle} />
+          <MetricRow label="3 ans" values={pick((k) => k.threeYear)} gridStyle={gridStyle} />
+          <MetricRow label="5 ans" values={pick((k) => k.fiveYear)} gridStyle={gridStyle} />
         </div>
-      )}
 
-      <div className="space-y-2.5">
-        <p className={sectionLabel}>Variation</p>
-        <MetricRow label="Dernier mois" values={pick((k) => k.lastMonth)} gridStyle={gridStyle} />
-        <MetricRow label="1 an" values={pick((k) => k.oneYear)} gridStyle={gridStyle} />
-        <MetricRow label="3 ans" values={pick((k) => k.threeYear)} gridStyle={gridStyle} />
-        <MetricRow label="5 ans" values={pick((k) => k.fiveYear)} gridStyle={gridStyle} />
+        <div className="space-y-2.5 border-t pt-4">
+          <p className={sectionLabel}>{secondTitle}</p>
+          <MetricRow label="Rendement" values={pick((k) => k.annualized)} gridStyle={gridStyle} />
+          <MetricRow
+            label="Volatilité"
+            values={pick((k) => k.volatility)}
+            signed={false}
+            gridStyle={gridStyle}
+          />
+        </div>
       </div>
-
-      <div className="space-y-2.5 border-t pt-4">
-        <p className={sectionLabel}>{secondTitle}</p>
-        <MetricRow label="Rendement" values={pick((k) => k.annualized)} gridStyle={gridStyle} />
-        <MetricRow
-          label="Volatilité"
-          values={pick((k) => k.volatility)}
-          signed={false}
-          gridStyle={gridStyle}
-        />
-      </div>
-    </div>
+    </TooltipProvider>
   );
 }
