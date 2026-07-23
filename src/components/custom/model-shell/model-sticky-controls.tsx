@@ -71,6 +71,7 @@ export function ModelStickyControls({
   const tabsRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   // Instant (ms) jusqu'auquel le scrollspy ne réécrit pas la section active
   // (le temps du défilement animé déclenché par un clic sur un raccourci).
   const spyLockUntil = useRef(0);
@@ -183,6 +184,23 @@ export function ModelStickyControls({
     setActiveId(sections[0]?.id ?? null);
   }, [sections]);
 
+  // L'onglet de section actif reste visible dans la nav (défilement HORIZONTAL interne
+  // uniquement — n'affecte pas le défilement de la page). Garantit la visibilité du
+  // dernier onglet quand la liste déborde.
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || !activeId) return;
+    const pill = nav.querySelector<HTMLElement>(`[data-section="${CSS.escape(activeId)}"]`);
+    if (!pill) return;
+    const navBox = nav.getBoundingClientRect();
+    const pillBox = pill.getBoundingClientRect();
+    if (pillBox.left < navBox.left + 8) {
+      nav.scrollBy({ left: pillBox.left - navBox.left - 12, behavior: "smooth" });
+    } else if (pillBox.right > navBox.right - 8) {
+      nav.scrollBy({ left: pillBox.right - navBox.right + 12, behavior: "smooth" });
+    }
+  }, [activeId]);
+
   const goToSection = useCallback(
     (id: string, index: number) => {
       // Verrouille le scrollspy le temps du défilement animé (sinon il réécrit
@@ -261,16 +279,18 @@ export function ModelStickyControls({
             condensed && "shadow-[0_6px_12px_-6px_rgb(0_0_0/0.28)]",
           )}
         >
-          <div className="flex flex-nowrap items-center justify-between gap-x-4 py-2">
-            {/* Résumé des valeurs actives + Modifier — seulement une fois condensée
-                (en état 1 les paramètres complets sont déjà visibles au-dessus). */}
-            {showParams && condensed ? (
-              <div className="flex min-w-0 items-center gap-2">
+          {/* Une seule ligne compacte : résumé (largeur fixe) à gauche, navigation
+              (flexible, scrollable) à droite. Jamais de retour à la ligne. */}
+          <div className="flex flex-nowrap items-center gap-3 py-2">
+            {/* Résumé des valeurs actives + Modifier — `shrink-0` (ne se fait pas
+                écraser par la nav), troncature interne bornée. Visible une fois condensée. */}
+            {showParams && condensed && (
+              <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setExpanded((v) => !v)}
                   aria-expanded={expanded}
-                  className="inline-flex min-w-0 cursor-pointer items-center gap-2 rounded-md border border-foreground/20 bg-background/60 px-2.5 py-1 text-xs hover:border-foreground/40"
+                  className="inline-flex max-w-[13rem] cursor-pointer items-center gap-2 rounded-md border border-foreground/20 bg-background/60 px-2.5 py-1 text-xs hover:border-foreground/40 sm:max-w-[22rem]"
                 >
                   <SlidersHorizontal className="size-3.5 shrink-0 opacity-70" />
                   <span
@@ -283,27 +303,40 @@ export function ModelStickyControls({
                     {expanded ? "Fermer" : "Modifier"}
                   </span>
                   <ChevronDown
-                    className={cn("size-3.5 shrink-0 transition-transform", expanded && "rotate-180")}
+                    className={cn(
+                      "size-3.5 shrink-0 transition-transform",
+                      expanded && "rotate-180",
+                    )}
                   />
                 </button>
-                {loading && <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />}
+                {loading && (
+                  <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+                )}
               </div>
-            ) : (
-              <span aria-hidden className="shrink-0" />
             )}
 
-            {/* Navigation interne — scrollable horizontalement (jamais sur 2 lignes). */}
+            {/* Séparateur discret entre résumé et navigation. */}
+            {showParams && condensed && sections.length > 0 && (
+              <div aria-hidden className="h-5 w-px shrink-0 bg-border/60" />
+            )}
+
+            {/* Navigation interne — prend l'espace restant, défile horizontalement (jamais
+                sur 2 lignes) ; l'onglet actif est ramené dans la vue (voir l'effet dédié). */}
             {sections.length > 0 && (
-              <nav className="-mx-1 flex min-w-0 items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <nav
+                ref={navRef}
+                className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-0.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
                 {sections.map((s, index) => {
                   const active = activeId === s.id;
                   return (
                     <button
                       key={s.id}
                       type="button"
+                      data-section={s.id}
                       onClick={() => goToSection(s.id, index)}
                       className={cn(
-                        "cursor-pointer rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+                        "shrink-0 cursor-pointer rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
                         active
                           ? "border-primary bg-primary/20 text-foreground ring-1 ring-primary/30"
                           : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground",
