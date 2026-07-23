@@ -14,7 +14,13 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipBody,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { WatchlistRow } from "./watchlist-row";
 import { AssetPanel } from "@/components/custom/asset-panel/asset-panel";
@@ -76,26 +82,24 @@ function ColumnInfo({ label }: { label: string }) {
   const tooltip = COLUMN_TOOLTIPS[label];
   if (!tooltip) return null;
   return (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            aria-label={`Définition de ${label.replace("\n", " ")}`}
-            onClick={(e) => e.stopPropagation()}
-            className="cursor-help outline-none focus-visible:ring-2 focus-visible:ring-ring rounded shrink-0"
-          >
-            <Info className="h-3 w-3 text-muted-foreground/40 hover:text-muted-foreground/80 transition-colors" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs p-3">
-          <p className="font-semibold text-xs leading-snug">{tooltip.definition}</p>
-          <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
-            {tooltip.interpretation}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Définition de ${label.replace("\n", " ")}`}
+          onClick={(e) => e.stopPropagation()}
+          className="cursor-help outline-none focus-visible:ring-2 focus-visible:ring-ring rounded shrink-0"
+        >
+          <Info className="h-3 w-3 text-muted-foreground/40 hover:text-muted-foreground/80 transition-colors" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        <TooltipBody title={label.replace("\n", " ")}>
+          {tooltip.definition}
+          <span className="mt-1.5 block opacity-70">{tooltip.interpretation}</span>
+        </TooltipBody>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -250,159 +254,163 @@ export function WatchlistTable<TRow>({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between min-h-8">
-        {showLoading ? (
-          <span className="flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            {loadingCount > 0
-              ? `Chargement de ${loadingCount} actif${loadingCount > 1 ? "s" : ""}…`
-              : "Mise à jour…"}
-          </span>
-        ) : (
-          <span />
-        )}
+    <TooltipProvider delayDuration={150}>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between min-h-8">
+          {showLoading ? (
+            <span className="flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {loadingCount > 0
+                ? `Chargement de ${loadingCount} actif${loadingCount > 1 ? "s" : ""}…`
+                : "Mise à jour…"}
+            </span>
+          ) : (
+            <span />
+          )}
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={refresh}
-          disabled={refreshing}
-          className="gap-2 text-muted-foreground cursor-pointer"
-        >
-          <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
-          Actualiser
-        </Button>
-      </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={refresh}
+            disabled={refreshing}
+            className="gap-2 text-muted-foreground cursor-pointer"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+            Actualiser
+          </Button>
+        </div>
 
-      <div className="rounded-lg border overflow-hidden bg-card">
-        <Table className="table-fixed w-full">
-          <TableHeader>
-            <TableRow className="border-b border-border">
-              {columns.map((c) => {
-                const sortable = !!c.sortValue;
-                const isActive = sort?.key === c.key;
-                return (
-                  <TableHead
-                    key={c.key}
-                    onClick={sortable ? () => handleSort(c) : undefined}
-                    className={cn(
-                      "group select-none py-3",
-                      c.align === "right"
-                        ? "text-right"
-                        : c.align === "left"
-                          ? "text-left"
-                          : "text-center",
-                      c.width,
-                      c.hideSm && "hidden md:table-cell",
-                      sortable && "cursor-pointer hover:bg-muted/50 transition-colors",
-                      isActive && "text-foreground",
-                      c.headerClassName,
-                    )}
-                  >
-                    {sortable ? (
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 w-full",
-                          c.align === "right"
-                            ? "justify-end"
-                            : c.align === "left"
-                              ? "justify-start"
-                              : "justify-center",
-                          c.label.includes("\n") && "whitespace-pre-line leading-tight",
-                        )}
-                      >
-                        {c.label}
-                        <ColumnInfo label={c.label} />
-                        <SortIcon active={isActive} dir={isActive ? sort!.dir : undefined} />
-                      </span>
-                    ) : (
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1",
-                          c.align === "right"
-                            ? "justify-end"
-                            : c.align === "left"
-                              ? "justify-start"
-                              : "justify-center",
-                          c.label.includes("\n") && "whitespace-pre-line leading-tight",
-                        )}
-                      >
-                        {c.label}
-                        <ColumnInfo label={c.label} />
-                      </span>
-                    )}
-                  </TableHead>
-                );
-              })}
-              <TableHead className="w-16" />
-            </TableRow>
-          </TableHeader>
-          <TableBody className={cn("transition-opacity duration-200", refreshing && "opacity-60")}>
-            {favorites.map((item) => (
-              <React.Fragment key={item.id}>
-                <WatchlistRow
-                  ctx={makeCtx(item)}
-                  columns={columns}
-                  onRemoveAction={handleRemove}
-                  isExpanded={expandedId === item.id}
-                  onToggleExpandAction={() =>
-                    setExpandedId((id) => (id === item.id ? null : item.id))
-                  }
-                />
-                {expandedId === item.id && (
-                  <TableRow className="bg-primary/[0.05] hover:bg-primary/[0.05] border-l-2 border-primary border-t-0 border-b border-primary/20">
-                    <TableCell
-                      colSpan={columns.length + 1}
-                      className="p-0 animate-in slide-in-from-top-1 duration-200 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.2)]"
+        <div className="rounded-lg border overflow-hidden bg-card">
+          <Table className="table-fixed w-full">
+            <TableHeader>
+              <TableRow className="border-b border-border">
+                {columns.map((c) => {
+                  const sortable = !!c.sortValue;
+                  const isActive = sort?.key === c.key;
+                  return (
+                    <TableHead
+                      key={c.key}
+                      onClick={sortable ? () => handleSort(c) : undefined}
+                      className={cn(
+                        "group select-none py-3",
+                        c.align === "right"
+                          ? "text-right"
+                          : c.align === "left"
+                            ? "text-left"
+                            : "text-center",
+                        c.width,
+                        c.hideSm && "hidden md:table-cell",
+                        sortable && "cursor-pointer hover:bg-muted/50 transition-colors",
+                        isActive && "text-foreground",
+                        c.headerClassName,
+                      )}
                     >
-                      <AssetPanel
-                        item={item}
-                        mode="inline"
-                        onCloseAction={() => setExpandedId(null)}
-                        period={period}
-                        onPeriodChangeAction={setPeriod}
-                      />
-                    </TableCell>
-                  </TableRow>
-                )}
-              </React.Fragment>
-            ))}
+                      {sortable ? (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 w-full",
+                            c.align === "right"
+                              ? "justify-end"
+                              : c.align === "left"
+                                ? "justify-start"
+                                : "justify-center",
+                            c.label.includes("\n") && "whitespace-pre-line leading-tight",
+                          )}
+                        >
+                          {c.label}
+                          <ColumnInfo label={c.label} />
+                          <SortIcon active={isActive} dir={isActive ? sort!.dir : undefined} />
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1",
+                            c.align === "right"
+                              ? "justify-end"
+                              : c.align === "left"
+                                ? "justify-start"
+                                : "justify-center",
+                            c.label.includes("\n") && "whitespace-pre-line leading-tight",
+                          )}
+                        >
+                          {c.label}
+                          <ColumnInfo label={c.label} />
+                        </span>
+                      )}
+                    </TableHead>
+                  );
+                })}
+                <TableHead className="w-16" />
+              </TableRow>
+            </TableHeader>
+            <TableBody
+              className={cn("transition-opacity duration-200", refreshing && "opacity-60")}
+            >
+              {favorites.map((item) => (
+                <React.Fragment key={item.id}>
+                  <WatchlistRow
+                    ctx={makeCtx(item)}
+                    columns={columns}
+                    onRemoveAction={handleRemove}
+                    isExpanded={expandedId === item.id}
+                    onToggleExpandAction={() =>
+                      setExpandedId((id) => (id === item.id ? null : item.id))
+                    }
+                  />
+                  {expandedId === item.id && (
+                    <TableRow className="bg-primary/[0.05] hover:bg-primary/[0.05] border-l-2 border-primary border-t-0 border-b border-primary/20">
+                      <TableCell
+                        colSpan={columns.length + 1}
+                        className="p-0 animate-in slide-in-from-top-1 duration-200 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.2)]"
+                      >
+                        <AssetPanel
+                          item={item}
+                          mode="inline"
+                          onCloseAction={() => setExpandedId(null)}
+                          period={period}
+                          onPeriodChangeAction={setPeriod}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              ))}
 
-            {hasDivider && <FavoriteDivider colSpan={columns.length + 1} />}
+              {hasDivider && <FavoriteDivider colSpan={columns.length + 1} />}
 
-            {others.map((item) => (
-              <React.Fragment key={item.id}>
-                <WatchlistRow
-                  ctx={makeCtx(item)}
-                  columns={columns}
-                  onRemoveAction={handleRemove}
-                  isExpanded={expandedId === item.id}
-                  onToggleExpandAction={() =>
-                    setExpandedId((id) => (id === item.id ? null : item.id))
-                  }
-                />
-                {expandedId === item.id && (
-                  <TableRow className="bg-primary/[0.05] hover:bg-primary/[0.05] border-l-2 border-primary border-t-0 border-b border-primary/20">
-                    <TableCell
-                      colSpan={columns.length + 1}
-                      className="p-0 animate-in slide-in-from-top-1 duration-200 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.2)]"
-                    >
-                      <AssetPanel
-                        item={item}
-                        mode="inline"
-                        onCloseAction={() => setExpandedId(null)}
-                        period={period}
-                        onPeriodChangeAction={setPeriod}
-                      />
-                    </TableCell>
-                  </TableRow>
-                )}
-              </React.Fragment>
-            ))}
-          </TableBody>
-        </Table>
+              {others.map((item) => (
+                <React.Fragment key={item.id}>
+                  <WatchlistRow
+                    ctx={makeCtx(item)}
+                    columns={columns}
+                    onRemoveAction={handleRemove}
+                    isExpanded={expandedId === item.id}
+                    onToggleExpandAction={() =>
+                      setExpandedId((id) => (id === item.id ? null : item.id))
+                    }
+                  />
+                  {expandedId === item.id && (
+                    <TableRow className="bg-primary/[0.05] hover:bg-primary/[0.05] border-l-2 border-primary border-t-0 border-b border-primary/20">
+                      <TableCell
+                        colSpan={columns.length + 1}
+                        className="p-0 animate-in slide-in-from-top-1 duration-200 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.2)]"
+                      >
+                        <AssetPanel
+                          item={item}
+                          mode="inline"
+                          onCloseAction={() => setExpandedId(null)}
+                          period={period}
+                          onPeriodChangeAction={setPeriod}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

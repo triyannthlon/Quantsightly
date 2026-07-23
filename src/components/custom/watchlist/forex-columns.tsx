@@ -16,6 +16,7 @@
 
 import type { ReactNode } from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { AssetLogo } from "@/components/custom/screener/asset-logo";
@@ -123,12 +124,14 @@ function PairCell({ item, row, onToggleFavorite }: ForexCellCtx) {
         />
       </div>
       <div className="min-w-0">
-        <div
-          className="text-sm font-semibold truncate"
-          title={row?.name ?? item.name ?? item.symbol}
-        >
-          {row?.name ?? item.name ?? item.symbol}
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-sm font-semibold truncate">
+              {row?.name ?? item.name ?? item.symbol}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top">{row?.name ?? item.name ?? item.symbol}</TooltipContent>
+        </Tooltip>
         <div className="font-mono text-xs text-muted-foreground truncate">{item.symbol}</div>
       </div>
     </div>

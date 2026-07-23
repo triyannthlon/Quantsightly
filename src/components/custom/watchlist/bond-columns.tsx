@@ -17,6 +17,7 @@
 
 import type { ReactNode } from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -107,9 +108,12 @@ function TickerCell({ item, onToggleFavorite }: BondCellCtx) {
         <AssetTypeIcon kind="bond" />
       </div>
       <div className="min-w-0">
-        <div className="text-sm font-semibold truncate" title={item.name ?? item.symbol}>
-          {item.name ?? item.symbol}
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-sm font-semibold truncate">{item.name ?? item.symbol}</div>
+          </TooltipTrigger>
+          <TooltipContent side="top">{item.name ?? item.symbol}</TooltipContent>
+        </Tooltip>
         <div className="font-mono text-xs text-muted-foreground truncate">{item.symbol}</div>
       </div>
     </div>
