@@ -293,10 +293,9 @@ export function ModelStickyControls({
                   className="inline-flex max-w-[13rem] cursor-pointer items-center gap-2 rounded-md border border-foreground/20 bg-background/60 px-2.5 py-1 text-xs hover:border-foreground/40 sm:max-w-[22rem]"
                 >
                   <SlidersHorizontal className="size-3.5 shrink-0 opacity-70" />
-                  <span
-                    className="truncate text-muted-foreground"
-                    title={summary.map((s) => `${s.label} : ${s.value}`).join(" · ")}
-                  >
+                  {/* Pas de `title=` natif (règle du module) : le détail complet (libellé + valeur)
+                      est accessible en dépliant « Modifier ». */}
+                  <span className="truncate text-muted-foreground">
                     {summary.map((s) => s.value).join("  ·  ")}
                   </span>
                   <span className="shrink-0 font-medium text-foreground">

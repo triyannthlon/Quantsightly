@@ -43,6 +43,10 @@ const MONTHS_FULL = [
   "juillet", "août", "septembre", "octobre", "novembre", "décembre",
 ]; // prettier-ignore
 
+// Gabarit de colonnes PARTAGÉ entre `CrisisRow` et `Axis` : DOIT rester identique, sinon
+// l'axe des graduations se désaligne des barres.
+const CRISIS_GRID_COLS = "grid-cols-[minmax(0,9rem)_1fr] sm:grid-cols-[minmax(0,12rem)_1fr]";
+
 const monthYear = (d: string) => {
   const [y, m] = d.split("-");
   return `${MONTHS_ABBR[Number(m) - 1]} ${y}`;
@@ -305,7 +309,7 @@ function CrisisRow({
   const { allUnavailable, reason: firstReason } = crisisUnavailability(r, visibleIds);
 
   return (
-    <div className="grid grid-cols-[minmax(0,9rem)_1fr] items-center gap-3 py-2 sm:grid-cols-[minmax(0,12rem)_1fr]">
+    <div className={cn("grid items-center gap-3 py-2", CRISIS_GRID_COLS)}>
       {/* Libellé de crise + panneau de définition */}
       <div className="min-w-0">
         <div className="flex items-start gap-1">
@@ -433,7 +437,7 @@ function CrisisRow({
 
 function Axis({ ticks, xOf }: { ticks: number[]; xOf: (v: number) => number }) {
   return (
-    <div className="mt-2 grid grid-cols-[minmax(0,9rem)_1fr] gap-3 sm:grid-cols-[minmax(0,12rem)_1fr]">
+    <div className={cn("mt-2 grid gap-3", CRISIS_GRID_COLS)}>
       <div />
       <div className="relative h-6 border-t border-border/50 pt-1.5">
         {ticks.map((t) => {
@@ -465,14 +469,14 @@ export function HistoricalCrisesSection({
   visibleIds,
   labels,
   colors,
-  window,
+  commonWindow,
 }: {
   results: HistoricalCrisisResult[];
   visibleIds: ComparisonStrategyId[];
   labels: Record<ComparisonStrategyId, string>;
   colors: Record<ComparisonStrategyId, string>;
   /** Fenêtre commune (mois « YYYY-MM ») — explique quelles crises sont affichées. */
-  window: { start: string; end: string } | null;
+  commonWindow: { start: string; end: string } | null;
 }) {
   const [measure, setMeasure] = useState<Measure>("performance");
   const [scope, setScope] = useState<Scope>("primary");
@@ -495,11 +499,11 @@ export function HistoricalCrisesSection({
 
   return (
     <div className="space-y-4">
-      {window && (
+      {commonWindow && (
         <p className="text-xs text-muted-foreground">
           Crises entièrement couvertes par la période commune :{" "}
           <span className="font-medium text-foreground">
-            {monthYear(window.start)} – {monthYear(window.end)}
+            {monthYear(commonWindow.start)} – {monthYear(commonWindow.end)}
           </span>
           .
         </p>
@@ -584,6 +588,7 @@ export function HistoricalCrisesSection({
                 <TooltipTrigger asChild>
                   <button
                     type="button"
+                    aria-label="À propos de cette mesure"
                     className="cursor-help text-muted-foreground/60 hover:text-foreground"
                   >
                     <Info className="size-3" />

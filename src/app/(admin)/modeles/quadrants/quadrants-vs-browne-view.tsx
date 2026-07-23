@@ -437,7 +437,7 @@ function MetricTable({
       <table className="w-full min-w-[520px] text-sm">
         <thead className="border-b bg-muted/40">
           <tr>
-            <Th className="sticky left-0 bg-muted/40">Indicateur</Th>
+            <Th className="sticky left-0 bg-background">Indicateur</Th>
             {strategies.map((s) => (
               <Th key={s.id} className="text-right">
                 <span className="flex justify-end">
@@ -726,6 +726,9 @@ function DrawdownKpis({ strategies }: { strategies: ComparisonStrategyResult[] }
 /** Bloc 5 — performances annualisées glissantes (5/10/15 ans). */
 function RollingSection({ strategies }: { strategies: ComparisonStrategyResult[] }) {
   const withM = strategies.filter((s) => s.metrics);
+  // La colonne « % devant Browne » n'a de sens que si Browne est AFFICHÉ (dans le filtre
+  // « Continue vs Régime », Browne est exclu → la référence serait invisible).
+  const hasBrowne = withM.some((s) => s.id === "browne");
   return (
     <div className="space-y-4">
       {ROLLING_WINDOWS_YEARS.map((years) => {
@@ -742,7 +745,7 @@ function RollingSection({ strategies }: { strategies: ComparisonStrategyResult[]
                   <Th className="text-right">Médiane</Th>
                   <Th className="text-right">Pire</Th>
                   <Th className="text-right">Meilleure</Th>
-                  <Th className="text-right">% devant Browne</Th>
+                  {hasBrowne && <Th className="text-right">% devant Browne</Th>}
                   <Th className="text-right"># fenêtres</Th>
                 </tr>
               </thead>
@@ -758,7 +761,7 @@ function RollingSection({ strategies }: { strategies: ComparisonStrategyResult[]
                         <Td className="text-right text-muted-foreground">—</Td>
                         <Td className="text-right text-muted-foreground">—</Td>
                         <Td className="text-right text-muted-foreground">—</Td>
-                        <Td className="text-right text-muted-foreground">—</Td>
+                        {hasBrowne && <Td className="text-right text-muted-foreground">—</Td>}
                         <Td className="text-right text-muted-foreground">0</Td>
                       </tr>
                     );
@@ -770,11 +773,13 @@ function RollingSection({ strategies }: { strategies: ComparisonStrategyResult[]
                       <Td className="text-right">{pct(r.median)}</Td>
                       <Td className="text-right">{pct(r.worst)}</Td>
                       <Td className="text-right">{pct(r.best)}</Td>
-                      <Td className="text-right">
-                        {s.id === "browne" || r.shareBeatingBrowne === null
-                          ? "—"
-                          : pct(r.shareBeatingBrowne * 100, 0)}
-                      </Td>
+                      {hasBrowne && (
+                        <Td className="text-right">
+                          {s.id === "browne" || r.shareBeatingBrowne === null
+                            ? "—"
+                            : pct(r.shareBeatingBrowne * 100, 0)}
+                        </Td>
+                      )}
                       <Td className="text-right text-muted-foreground">{r.count}</Td>
                     </tr>
                   );
@@ -1134,7 +1139,7 @@ export function QuadrantsVsBrowneView({
             visibleIds={crisisVisibleIds}
             labels={strategyLabels}
             colors={STRATEGY_COLOR}
-            window={result.window}
+            commonWindow={result.window}
           />
         </Section>
 
