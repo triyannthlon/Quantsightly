@@ -63,6 +63,7 @@ const SECTIONS: Record<Tab, StickyNavSection[]> = {
     { id: "indicateurs", label: "Indicateurs" },
     { id: "performance", label: "Performance" },
     { id: "drawdown", label: "Drawdown" },
+    { id: "extremes", label: "Mois extrêmes" },
     { id: "composition", label: "Composition" },
     { id: "sources-qualite", label: "Sources & qualité" },
   ],
@@ -181,14 +182,28 @@ export function BrowneView({
         </Control>
       ) : (
         <Control label="Pays">
-          <SelectDropdown items={countryItems} value={country} onChange={(i) => onCountry(i.value)} width="w-full" />
+          <SelectDropdown
+            items={countryItems}
+            value={country}
+            onChange={(i) => onCountry(i.value)}
+            width="w-full"
+          />
         </Control>
       )}
       <Control label="Période">
-        <SelectDropdown items={PERIOD_ITEMS} value={period} onChange={(i) => setPeriod(i.value as BrownePeriod)} width="w-full" />
+        <SelectDropdown
+          items={PERIOD_ITEMS}
+          value={period}
+          onChange={(i) => setPeriod(i.value as BrownePeriod)}
+          width="w-full"
+        />
       </Control>
       <Control label="Devise d’analyse">
-        <SelectDropdown items={[{ value: "local", label: "Locale" }]} value="local" width="w-full" />
+        <SelectDropdown
+          items={[{ value: "local", label: "Locale" }]}
+          value="local"
+          width="w-full"
+        />
       </Control>
       <Control label="Mode d’analyse">
         <SelectDropdown
@@ -212,11 +227,17 @@ export function BrowneView({
   // Résumé compact des valeurs actives (barre condensée).
   const summary: StickySummaryItem[] = [
     isRegionTab
-      ? { label: "Région", value: BROWNE_REGION_ITEMS.find((i) => i.value === region)?.label ?? region }
+      ? {
+          label: "Région",
+          value: BROWNE_REGION_ITEMS.find((i) => i.value === region)?.label ?? region,
+        }
       : { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
     { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
     { label: "Devise", value: "Locale" },
-    { label: "Mode", value: DISPLAY_ITEMS.find((i) => i.value === displayMode)?.label ?? displayMode },
+    {
+      label: "Mode",
+      value: DISPLAY_ITEMS.find((i) => i.value === displayMode)?.label ?? displayMode,
+    },
     { label: "Rééquilibrage", value: REBALANCE_LABELS[rebalance] },
   ];
 

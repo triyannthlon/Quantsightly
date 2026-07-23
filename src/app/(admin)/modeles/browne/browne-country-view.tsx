@@ -17,6 +17,8 @@ import {
 } from "@/lib/coredata/browne";
 import type { CountryBrowneConfig, BrowneDataQuality } from "@/lib/coredata/browne-service";
 import { SeriesChartCard, type ChartSeries } from "../series-chart-card";
+import { ExtremeMonthsCard } from "../extreme-months-card";
+import { buildEquityModelSeries } from "../extreme-months";
 import {
   fmtPct,
   fmtRatio,
@@ -460,6 +462,13 @@ export function BrowneCountryView({
   }
 
   const { metrics, series } = result;
+
+  // « Mois extrêmes des actions » : Actions locales + Browne, dérivées des séries déjà mesurées
+  // (aucun recalcul). Mode / période / devise = paramètres actifs de la Vue pays.
+  const extremeSeries = buildEquityModelSeries(series, displayMode === "real", {
+    id: "browne",
+    label: "Browne",
+  });
   const m = metrics.nominal;
   const r = metrics.real;
   const inflAnnualized = computeKpis(series.inflationIndex ?? []).annualized;
@@ -734,6 +743,12 @@ export function BrowneCountryView({
         <section id="drawdown" className="scroll-mt-[var(--model-header-offset,96px)]">
           <DrawdownCard result={result} displayMode={displayMode} />
         </section>
+
+        {/* Mois extrêmes des actions */}
+        <ExtremeMonthsCard
+          series={extremeSeries ?? []}
+          colors={{ equity: COLOR.equity, browne: COLOR.browne }}
+        />
 
         {/* Composition */}
         <section id="composition" className="scroll-mt-[var(--model-header-offset,96px)]">

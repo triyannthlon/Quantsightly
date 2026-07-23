@@ -71,6 +71,7 @@ const SECTIONS: Record<Tab, StickyNavSection[]> = {
     { id: "indicateurs", label: "Indicateurs" },
     { id: "performance", label: "Performance" },
     { id: "drawdown", label: "Drawdown" },
+    { id: "extremes", label: "Mois extrêmes" },
     { id: "composition", label: "Composition" },
     { id: "sources-qualite", label: "Sources & qualité" },
   ],

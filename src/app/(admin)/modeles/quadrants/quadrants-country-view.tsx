@@ -35,6 +35,8 @@ import {
   type PerfMode,
 } from "./helpers";
 import { SeriesChartCard, DrawdownKpiRow, type ChartSeries } from "../series-chart-card";
+import { ExtremeMonthsCard } from "../extreme-months-card";
+import { buildEquityModelSeries } from "../extreme-months";
 import { availabilityMessage } from "./availability-message";
 import { IS_MODEL_V2 } from "./model-version-active";
 
@@ -861,6 +863,17 @@ export function QuadrantsCountryView({
   const latest = model.latest;
   const regime = displayRegime(latest);
   const bt = backtest && backtest.status === "OK" ? backtest : null;
+
+  // « Mois extrêmes des actions » : Actions locales + stratégie 4Q active, dérivées du backtest
+  // CLIENT déjà calculé (aucun recalcul). Mode / période / devise / stratégie = paramètres actifs.
+  const extremeModelId = strategy === "dynamic" ? "quadrants-dynamic-v2" : "quadrants-binary-v2";
+  const extremeSeries = bt
+    ? buildEquityModelSeries(bt.series, displayMode === "real", {
+        id: extremeModelId,
+        label: strategy === "dynamic" ? "4Q Continue" : "4Q Régime",
+      })
+    : null;
+
   // Cause précise d'indisponibilité du backtest (message homogène), sinon repli.
   const unavailableMessage =
     backtest && backtest.status !== "OK" && backtest.availability.reason
@@ -982,6 +995,10 @@ export function QuadrantsCountryView({
             <section id="drawdown" className="scroll-mt-[var(--model-header-offset,96px)]">
               <DrawdownCard bt={bt} displayMode={displayMode} />
             </section>
+            <ExtremeMonthsCard
+              series={extremeSeries ?? []}
+              colors={{ equity: COLOR.actions, [extremeModelId]: COLOR.portfolio }}
+            />
           </>
         )}
 
