@@ -6,13 +6,36 @@ import { Dialog, DialogTitle } from "@/components/ui/dialog";
 import { FrostedDialogContent } from "@/components/custom/ui/frosted-dialog";
 import { cn } from "@/lib/utils";
 import type { EconomicDataPoint } from "@/lib/coredata/types";
-import { ExplorationChart, type ChartLine } from "../../exploration/exploration-chart";
-import { mergeChart } from "./helpers";
+import {
+  ExplorationChart,
+  type ChartLine,
+  type ChartPoint,
+} from "../exploration/exploration-chart";
+
+/**
+ * Fusionne des séries datées en points de graphe (clé par série). Inliné ici pour que
+ * le composant reste AUTONOME (aucune dépendance vers un module de page — ni le moteur
+ * 4 Quadrants ni Browne ne fuient dans le bundle des pages qui l'importent).
+ */
+function mergeChart(series: { key: string; data: EconomicDataPoint[] }[]): ChartPoint[] {
+  const byDate = new Map<string, ChartPoint>();
+  for (const s of series) {
+    for (const p of s.data) {
+      let row = byDate.get(p.date);
+      if (!row) {
+        row = { date: p.date };
+        byDate.set(p.date, row);
+      }
+      row[s.key] = p.value;
+    }
+  }
+  return [...byDate.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+}
 
 /**
  * Série DÉCLARATIVE d'un graphe de carte. Une seule implémentation visuelle pour tout
- * le module « 4 Quadrants » (Vue pays, 4 Quadrants vs Browne, …) : les différences ne
- * viennent QUE des séries et des KPI transmis, jamais d'un second style de graphe.
+ * le dossier « Modèles » (4 Quadrants : Vue pays / vs Browne ; Browne : Vue pays) : les
+ * différences ne viennent QUE des séries et des KPI transmis, jamais d'un second style.
  */
 export interface ChartSeries {
   id: string;
@@ -26,12 +49,110 @@ export interface ChartSeries {
   fillOpacity?: number;
 }
 
-/** Tuile KPI atomique (même style que la synthèse de Vue pays). */
-export function ChartStat({ label, value }: { label: string; value: string }) {
+// ─── Synthèse KPI drawdown — PARTAGÉE (Vue pays 4Q, Vue pays Browne, 4Q vs Browne) ──
+// Un bloc compact par courbe (max drawdown + durée sous l'eau) + un bloc d'écarts
+// FACTUELS optionnel (max drawdown / durée, couleurs favorable-défavorable SÉPARÉES,
+// jamais de verdict global). Pure restitution d'affichage — aucun calcul.
+
+const ddPct = (v: number | null) =>
+  v === null
+    ? "—"
+    : `${v.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+const ddMonths = (v: number | null) => (v === null ? "—" : `${Math.round(v)} mois`);
+const ddSign = (v: number) => (v > 0 ? "+" : v < 0 ? "−" : "");
+const ddTone = (d: number, higherBetter: boolean, zero: boolean) => {
+  if (zero) return "text-muted-foreground";
+  const good = higherBetter ? d > 0 : d < 0;
+  return good ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400";
+};
+
+export interface DrawdownKpiBlock {
+  label: string;
+  color: string;
+  maxDrawdown: number | null;
+  underwaterMonths: number | null;
+}
+
+export interface DrawdownKpiDelta {
+  /** Nom court de la référence (en-tête « Écart vs … »). */
+  refLabel: string;
+  /** Comparé − référence, en points de %. */
+  maxDrawdown: number | null;
+  /** Comparé − référence, en mois. */
+  underwaterMonths: number | null;
+}
+
+export function DrawdownKpiRow({
+  blocks,
+  delta,
+}: {
+  blocks: DrawdownKpiBlock[];
+  delta?: DrawdownKpiDelta | null;
+}) {
+  const count = blocks.length + (delta ? 1 : 0);
   return (
-    <div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-semibold tabular-nums">{value}</div>
+    <div className={cn("grid gap-2.5", count <= 2 ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
+      {blocks.map((b) => (
+        <div key={b.label} className="rounded-lg border bg-muted/20 p-3">
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <span className="size-2.5 shrink-0 rounded-full" style={{ background: b.color }} />
+            {b.label}
+          </span>
+          <dl className="mt-2 space-y-1 text-sm">
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-muted-foreground">Max drawdown</dt>
+              <dd className="font-semibold tabular-nums">{ddPct(b.maxDrawdown)}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-muted-foreground">Sous l’eau</dt>
+              <dd className="font-semibold tabular-nums">{ddMonths(b.underwaterMonths)}</dd>
+            </div>
+          </dl>
+        </div>
+      ))}
+      {delta && <DrawdownDeltaBlock delta={delta} />}
+    </div>
+  );
+}
+
+function DrawdownDeltaBlock({ delta }: { delta: DrawdownKpiDelta }) {
+  const rows = [
+    {
+      label: "Max drawdown",
+      d: delta.maxDrawdown,
+      higher: true, // moins négatif = favorable
+      fmt: (d: number) =>
+        `${ddSign(d)}${Math.abs(d).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${Math.abs(d) >= 2 ? "points" : "point"}`,
+      zero: (d: number) => Math.round(d * 10) === 0,
+    },
+    {
+      label: "Durée sous l’eau",
+      d: delta.underwaterMonths,
+      higher: false, // plus courte = favorable
+      fmt: (d: number) => `${ddSign(d)}${Math.round(Math.abs(d))} mois`,
+      zero: (d: number) => Math.round(d) === 0,
+    },
+  ];
+  return (
+    <div className="rounded-lg border bg-muted/20 p-3">
+      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        Écart vs {delta.refLabel}
+      </p>
+      <dl className="mt-2 space-y-2 text-sm">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <dt className="text-xs text-muted-foreground">{r.label}</dt>
+            <dd
+              className={cn(
+                "font-semibold tabular-nums",
+                r.d === null ? "text-muted-foreground" : ddTone(r.d, r.higher, r.zero(r.d)),
+              )}
+            >
+              {r.d === null ? "—" : r.fmt(r.d)}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
@@ -66,11 +187,11 @@ interface Props {
 }
 
 /**
- * Carte-graphe partagée du module « 4 Quadrants ». Rendu STRICTEMENT identique à la
- * carte de Vue pays : gradient, titre (+ sous-titre) intégré, légende interactive en
- * haut à droite (masquage par clic), commutateur Linéaire / Log optionnel, bloc KPI
- * optionnel au-dessus du graphe, zoom au clic. Accepte 2 ou 3 séries (ou plus) sans
- * changer de composant. Ne fait AUCUN calcul : elle ne restitue que les séries reçues.
+ * Carte-graphe partagée du dossier « Modèles ». Rendu STRICTEMENT identique partout :
+ * gradient, titre (+ sous-titre) intégré, légende interactive en haut à droite (masquage
+ * par clic), commutateur Linéaire / Log optionnel, bloc KPI optionnel au-dessus du graphe,
+ * zoom au clic. Accepte 2 ou 3 séries (ou plus) sans changer de composant. Ne fait AUCUN
+ * calcul : elle ne restitue que les séries reçues.
  */
 export function SeriesChartCard({
   title,

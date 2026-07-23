@@ -1,13 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo } from "react";
 import { Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Dialog, DialogTitle } from "@/components/ui/dialog";
-import { FrostedDialogContent } from "@/components/custom/ui/frosted-dialog";
 import { cn } from "@/lib/utils";
 import { computeKpis } from "@/lib/coredata/compute";
 import type { EconomicDataPoint } from "@/lib/coredata/types";
@@ -18,9 +16,8 @@ import {
   type Robustness,
 } from "@/lib/coredata/browne";
 import type { CountryBrowneConfig, BrowneDataQuality } from "@/lib/coredata/browne-service";
-import { ExplorationChart, type ChartLine } from "../../exploration/exploration-chart";
+import { SeriesChartCard, type ChartSeries } from "../series-chart-card";
 import {
-  mergeChart,
   fmtPct,
   fmtRatio,
   fmtMonths,
@@ -377,9 +374,6 @@ function perfData(mode: BrowneDisplayMode, s: OkSeries, key: string): EconomicDa
   return null;
 }
 
-const defaultsOf = (mode: BrowneDisplayMode): Record<string, boolean> =>
-  Object.fromEntries(PERF_SERIES[mode].map((d) => [d.key, d.defaultOn]));
-
 function PerformanceChart({
   result,
   displayMode,
@@ -388,35 +382,27 @@ function PerformanceChart({
   displayMode: BrowneDisplayMode;
 }) {
   const defs = PERF_SERIES[displayMode];
-  const [shown, setShown] = useState<Record<string, boolean>>(() => defaultsOf(displayMode));
-  useEffect(() => {
-    setShown(defaultsOf(displayMode));
-  }, [displayMode]);
 
-  // Log par défaut sur les périodes longues (> 10 ans) ; l'utilisateur peut forcer.
-  const [userScale, setUserScale] = useState<"linear" | "log" | null>(null);
-  const scale = userScale ?? (result.months > 120 ? "log" : "linear");
-  const [zoom, setZoom] = useState(false);
-
-  const chart = useMemo(() => {
-    const withData = defs
-      .filter((d) => shown[d.key])
-      .map((d) => ({ def: d, data: perfData(displayMode, result.series, d.key) }))
-      .filter(
-        (x): x is { def: SeriesDef; data: EconomicDataPoint[] } => !!x.data && x.data.length > 0,
-      );
-    if (!withData.length) return null;
-    const lines: ChartLine[] = withData
-      .map(({ def }) => ({
-        key: def.key,
-        label: def.label,
-        color: def.color,
-        dashed: def.dashed,
-        width: def.key === "browne" ? 2.6 : 1.4,
-      }))
-      .sort((a, b) => (a.key === "browne" ? 1 : b.key === "browne" ? -1 : 0));
-    return { data: mergeChart(withData.map(({ def, data }) => ({ key: def.key, data }))), lines };
-  }, [defs, shown, displayMode, result.series]);
+  // Séries déclaratives (ordre de légende = ordre `defs`). La carte partagée gère la
+  // visibilité, l'échelle Linéaire/Log, le zoom et l'ordre de tracé.
+  const series: ChartSeries[] = useMemo(
+    () =>
+      defs
+        .map((d) => ({ def: d, data: perfData(displayMode, result.series, d.key) }))
+        .filter(
+          (x): x is { def: SeriesDef; data: EconomicDataPoint[] } => !!x.data && x.data.length > 0,
+        )
+        .map(({ def, data }) => ({
+          id: def.key,
+          label: def.label,
+          color: def.color,
+          dashed: def.dashed,
+          data,
+          width: def.key === "browne" ? 2.6 : 1.4,
+        })),
+    [defs, displayMode, result.series],
+  );
+  const defaultHidden = defs.filter((d) => !d.defaultOn).map((d) => d.key);
 
   const extraRows =
     displayMode === "nominal_vs_inflation"
@@ -434,116 +420,21 @@ function PerformanceChart({
             : []
       : undefined;
 
-  const renderChart = (height: number | string) =>
-    chart ? (
-      <ExplorationChart
-        data={chart.data}
-        lines={chart.lines}
-        height={height}
-        logScale={scale === "log"}
-        showLegend={false}
-        markLast
-        gridOpacity={0.22}
-        cumulativeTooltip
-        extraTooltipRows={extraRows}
-        axisLine
-      />
-    ) : null;
-
   return (
-    <Card className="gap-0 bg-gradient-to-b from-foreground/[0.015] to-transparent p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5">
-          <h3 className="text-sm font-semibold">Performance cumulée</h3>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="cursor-help text-muted-foreground/60 hover:text-foreground"
-              >
-                <Info className="size-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-64">
-              Base 100 au début de la période sélectionnée.
-              {scale === "log" && (
-                <span className="mt-1.5 block text-muted-foreground">
-                  Échelle logarithmique active : les distances verticales représentent des
-                  variations relatives.
-                </span>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex flex-wrap gap-1.5">
-            {defs.map((d) => (
-              <button
-                key={d.key}
-                type="button"
-                onClick={() => setShown((s) => ({ ...s, [d.key]: !s[d.key] }))}
-                className={cn(
-                  "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors",
-                  shown[d.key]
-                    ? "border-foreground/20 text-foreground"
-                    : "border-transparent text-muted-foreground/50 hover:text-foreground",
-                )}
-              >
-                <span
-                  className="size-2 rounded-full transition-opacity"
-                  style={{ backgroundColor: d.color, opacity: shown[d.key] ? 1 : 0.35 }}
-                />
-                {d.label}
-              </button>
-            ))}
-          </div>
-          <div className="inline-flex items-center rounded-md border border-border/50 bg-background/40 p-0.5 text-xs">
-            {(["linear", "log"] as const).map((sc) => (
-              <button
-                key={sc}
-                type="button"
-                onClick={() => setUserScale(sc)}
-                className={cn(
-                  "cursor-pointer rounded px-2.5 py-1 font-medium transition-all",
-                  scale === sc
-                    ? "bg-slate-700/70 text-white shadow-sm ring-1 ring-slate-500/50"
-                    : "text-slate-400 hover:text-slate-200",
-                )}
-              >
-                {sc === "linear" ? "Linéaire" : "Log"}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      {chart ? (
-        <>
-          <button
-            type="button"
-            onClick={() => setZoom(true)}
-            className="cursor-zoom-img block w-full text-left"
-            aria-label="Agrandir le graphique"
-          >
-            {renderChart(360)}
-          </button>
-          <Dialog open={zoom} onOpenChange={setZoom}>
-            <FrostedDialogContent
-              className="max-h-[92vh] w-[92vw] max-w-[92vw] sm:max-w-[92vw]"
-              showCloseButton
-            >
-              <DialogTitle className="text-center text-base font-medium">
-                Performance cumulée
-              </DialogTitle>
-              {renderChart("78vh")}
-            </FrostedDialogContent>
-          </Dialog>
-        </>
-      ) : (
-        <div className="flex h-[360px] items-center justify-center text-sm text-muted-foreground">
-          Donnée indisponible pour ce mode.
-        </div>
-      )}
-    </Card>
+    <SeriesChartCard
+      // Remonte (reset visibilité/échelle) au changement de mode, comme l'ancien reset.
+      key={displayMode}
+      title="Performance cumulée"
+      subtitle="Base 100 au début de la période sélectionnée."
+      series={series}
+      defaultHidden={defaultHidden}
+      scaleToggle
+      defaultScale={result.months > 120 ? "log" : "linear"}
+      cumulativeTooltip
+      extraTooltipRows={extraRows}
+      height={360}
+      emptyLabel="Donnée indisponible pour ce mode."
+    />
   );
 }
 

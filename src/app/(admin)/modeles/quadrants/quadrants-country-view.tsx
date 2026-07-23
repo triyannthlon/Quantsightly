@@ -34,7 +34,7 @@ import {
   fmtMultiple,
   type PerfMode,
 } from "./helpers";
-import { SeriesChartCard, ChartStat, type ChartSeries } from "./series-chart-card";
+import { SeriesChartCard, DrawdownKpiRow, type ChartSeries } from "../series-chart-card";
 import { availabilityMessage } from "./availability-message";
 import { IS_MODEL_V2 } from "./model-version-active";
 
@@ -509,6 +509,7 @@ function PerfChart({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMode 
       // Remonte (reset visibilité/échelle) au changement de mode, comme l'ancien reset.
       key={displayMode}
       title="Performance cumulée"
+      subtitle="Base 100 au début de la période sélectionnée."
       series={series}
       defaultHidden={defaultHidden}
       scaleToggle
@@ -536,35 +537,66 @@ function DrawdownCard({ bt, displayMode }: { bt: OkBacktest; displayMode: PerfMo
     for (const p of [...bDD, ...aDD]) if (p.value < worst) worst = p.value;
     // Ordre de légende : 4 Quadrants d'abord (la carte trace la courbe épaisse au-dessus).
     const s: ChartSeries[] = [
-      { id: "q4", label: "4 Quadrants", color: COLOR.portfolio, data: bDD, width: 2.6, fillOpacity: 0.22 },
-      { id: "actions", label: "Actions", color: COLOR.actions, data: aDD, width: 1.4, fillOpacity: 0.16 },
+      {
+        id: "q4",
+        label: "4 Quadrants",
+        color: COLOR.portfolio,
+        data: bDD,
+        width: 2.6,
+        fillOpacity: 0.22,
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        color: COLOR.actions,
+        data: aDD,
+        width: 1.4,
+        fillOpacity: 0.16,
+      },
     ];
     return { series: s, floor: Math.min(-5, Math.floor(worst / 10) * 10) };
   }, [bSeries, aSeries]);
 
-  const reduction =
-    bMetrics.maxDrawdown !== null && aMetrics.maxDrawdown !== null
-      ? bMetrics.maxDrawdown - aMetrics.maxDrawdown
-      : null;
-
   const kpis = (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <ChartStat label="Max DD 4Q" value={fmtPctN(bMetrics.maxDrawdown)} />
-      <ChartStat label="Max DD actions" value={fmtPctN(aMetrics.maxDrawdown)} />
-      <ChartStat label="Réduction" value={reduction === null ? "—" : `+${reduction.toFixed(1)} pts`} />
-      <ChartStat label="Durée max sous l’eau" value={fmtMonths(bMetrics.maxUnderwaterMonths)} />
-    </div>
+    <DrawdownKpiRow
+      blocks={[
+        {
+          label: "4 Quadrants",
+          color: COLOR.portfolio,
+          maxDrawdown: bMetrics.maxDrawdown,
+          underwaterMonths: bMetrics.maxUnderwaterMonths,
+        },
+        {
+          label: "Actions",
+          color: COLOR.actions,
+          maxDrawdown: aMetrics.maxDrawdown,
+          underwaterMonths: aMetrics.maxUnderwaterMonths,
+        },
+      ]}
+      delta={{
+        refLabel: "Actions",
+        maxDrawdown:
+          bMetrics.maxDrawdown !== null && aMetrics.maxDrawdown !== null
+            ? bMetrics.maxDrawdown - aMetrics.maxDrawdown
+            : null,
+        underwaterMonths:
+          bMetrics.maxUnderwaterMonths !== null && aMetrics.maxUnderwaterMonths !== null
+            ? bMetrics.maxUnderwaterMonths - aMetrics.maxUnderwaterMonths
+            : null,
+      }}
+    />
   );
 
   return (
     <SeriesChartCard
-      title="Drawdown"
+      title="Drawdowns successifs"
+      subtitle="Pertes depuis le dernier sommet, sur la même chronologie."
       series={series}
       kpis={kpis}
       areaFill
       percentTooltip
       yDomain={[floor, 0]}
-      height={240}
+      height={280}
     />
   );
 }
@@ -638,11 +670,16 @@ function CompositionCard({
               {sleeves.map((k) => (
                 <div key={k} className="contents">
                   <span className="flex items-center gap-1.5 whitespace-nowrap">
-                    <span className="size-2 rounded-full" style={{ background: SLEEVE_META[k].hex }} />
+                    <span
+                      className="size-2 rounded-full"
+                      style={{ background: SLEEVE_META[k].hex }}
+                    />
                     {SLEEVE_META[k].label}
                   </span>
                   <span className="text-right font-semibold tabular-nums">{fmtPct0(held[k])}</span>
-                  <span className="text-right tabular-nums text-muted-foreground">{fmtPct0(target[k])}</span>
+                  <span className="text-right tabular-nums text-muted-foreground">
+                    {fmtPct0(target[k])}
+                  </span>
                 </div>
               ))}
             </div>
@@ -841,7 +878,13 @@ export function QuadrantsCountryView({
   const am = bt && !cpiMissing ? (real ? bt.metrics.equityReal! : bt.metrics.equity) : null;
 
   const kpis =
-    !bt || cpiMissing ? [] : isNvI ? buildInflationKpis(bt) : pm && am ? buildKpis(pm, am, real) : [];
+    !bt || cpiMissing
+      ? []
+      : isNvI
+        ? buildInflationKpis(bt)
+        : pm && am
+          ? buildKpis(pm, am, real)
+          : [];
 
   // Période RÉELLEMENT couverte par les indicateurs affichés : en mode réel, la
   // série réelle peut démarrer après la fenêtre nominale si le CPI est plus court.

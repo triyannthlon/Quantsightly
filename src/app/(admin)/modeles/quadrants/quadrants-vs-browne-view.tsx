@@ -3,9 +3,16 @@
 // via son parent. Une directive redondante créerait une frontière imbriquée.
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipBody,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   SLEEVE_META,
@@ -15,7 +22,13 @@ import {
   strategiesWithAllocation,
   type AllocKey,
 } from "./helpers";
-import { SeriesChartCard, type ChartSeries } from "./series-chart-card";
+import {
+  SeriesChartCard,
+  DrawdownKpiRow,
+  type ChartSeries,
+  type DrawdownKpiBlock,
+  type DrawdownKpiDelta,
+} from "../series-chart-card";
 // ⚠️ Sous-modules PURS uniquement (types + constantes) : ce composant CLIENT ne doit
 // PAS tirer le moteur `model-comparison` ni `browne.ts` dans le bundle client.
 import type {
@@ -26,6 +39,8 @@ import type {
 } from "@/lib/coredata/model-comparison/types";
 import { UNAVAILABLE_REASON_FR } from "@/lib/coredata/model-comparison/types";
 import { ROLLING_WINDOWS_YEARS } from "@/lib/coredata/model-comparison/constants";
+// Sous-module PUR (type-only + fonctions, aucun moteur) : dérivation d'affichage du Calmar.
+import { calmar, calmarUnavailableReason } from "@/lib/coredata/model-comparison/calmar";
 
 // Filtre d'AFFICHAGE (n'altère jamais les calculs — cf. §6).
 export type ComparisonFilter = "all" | "dyn_browne" | "bin_browne" | "dyn_bin";
@@ -43,7 +58,8 @@ const PAIR_QUESTION: Record<Exclude<ComparisonFilter, "all">, string> = {
     "L’adaptation continue au régime macroéconomique apporte-t-elle un avantage par rapport à une allocation permanente ?",
   bin_browne:
     "Une allocation plus concentrée par régime améliore-t-elle suffisamment la performance pour compenser ses changements plus marqués ?",
-  dyn_bin: "La continuité de l’allocation est-elle préférable à une sélection plus tranchée des actifs ?",
+  dyn_bin:
+    "La continuité de l’allocation est-elle préférable à une sélection plus tranchée des actifs ?",
 };
 
 const STRATEGY_COLOR: Record<ComparisonStrategyId, string> = {
@@ -68,34 +84,188 @@ const signed = (v: number, unit: string, d = 1) =>
 type MetricKey = keyof ComparisonMetrics;
 
 interface MetricRow {
-  key: MetricKey;
+  key: MetricKey | "calmar";
   label: string;
   fmt: (v: number | null) => string;
   higherBetter: boolean;
   /** Formatte l'écart (déjà en unité de la métrique). */
   diff: (d: number) => string;
   tip: string;
+  /**
+   * Valeur DÉRIVÉE optionnelle, calculée à partir des métriques déjà présentes (aucun
+   * nouveau calcul moteur). Si absente, la valeur est lue directement via `key`.
+   */
+  get?: (m: ComparisonMetrics) => number | null;
+  /**
+   * Raison d'indisponibilité (infobulle + `aria-label`) quand la valeur est `null` : la
+   * cellule reste « — » mais explique POURQUOI. `null` = pas d'explication particulière.
+   */
+  unavailableReason?: (m: ComparisonMetrics) => string | null;
 }
 
 const ROW: Record<string, MetricRow> = {
-  annualized: { key: "annualized", label: "Performance annualisée", fmt: (v) => pct(v), higherBetter: true, diff: (d) => signed(d, "pt"), tip: "Rendement annualisé géométrique (CAGR) net de coûts sur la période." },
-  volatility: { key: "volatility", label: "Volatilité annualisée", fmt: (v) => pct(v), higherBetter: false, diff: (d) => signed(d, "pt"), tip: "Amplitude générale des variations mensuelles, annualisée." },
-  sharpe: { key: "sharpe", label: "Sharpe", fmt: (v) => ratio(v), higherBetter: true, diff: (d) => signed(d, "", 2), tip: "Excédent de rendement sur le cash local, rapporté à la volatilité. Un critère parmi d’autres." },
-  sortino: { key: "sortino", label: "Sortino", fmt: (v) => ratio(v), higherBetter: true, diff: (d) => signed(d, "", 2), tip: "Rendement rapporté à la seule volatilité baissière (pertes)." },
-  maxDrawdown: { key: "maxDrawdown", label: "Max drawdown", fmt: (v) => pct(v), higherBetter: true, diff: (d) => signed(d, "pt"), tip: "Pire perte du pic au creux sur la période." },
-  maxUnderwaterMonths: { key: "maxUnderwaterMonths", label: "Durée maximale sous l’eau", fmt: (v) => months(v), higherBetter: false, diff: (d) => signed(d, "mois", 0), tip: "Plus longue période passée sous un sommet avant d’y revenir." },
-  worstRolling12m: { key: "worstRolling12m", label: "Pire 12 mois glissants", fmt: (v) => pct(v), higherBetter: true, diff: (d) => signed(d, "pt"), tip: "Pire performance observée sur une fenêtre de 12 mois consécutifs." },
-  annualizedTurnover: { key: "annualizedTurnover", label: "Rotation annualisée", fmt: (v) => pct(v === null ? null : v * 100), higherBetter: false, diff: (d) => signed(d * 100, "pt"), tip: "Part du portefeuille échangée en moyenne par an (transactions exécutées)." },
-  reallocationsPerYear: { key: "reallocationsPerYear", label: "Fréquence de réallocation", fmt: (v) => perYear(v), higherBetter: false, diff: (d) => signed(d, "/an"), tip: "Nombre moyen de mois par an où le portefeuille est effectivement réajusté." },
-  cumulativeCost: { key: "cumulativeCost", label: "Coûts cumulés", fmt: (v) => pct(v, 2), higherBetter: false, diff: (d) => signed(d, "pt", 2), tip: "Coûts de transaction cumulés sur la période, sous l’hypothèse de coûts retenue." },
-  worstMonth: { key: "worstMonth", label: "Pire mois", fmt: (v) => pct(v), higherBetter: true, diff: (d) => signed(d, "pt"), tip: "Pire rendement mensuel observé." },
-  worstQuarter: { key: "worstQuarter", label: "Pire trimestre", fmt: (v) => pct(v), higherBetter: true, diff: (d) => signed(d, "pt"), tip: "Pire rendement sur 3 mois consécutifs." },
-  expectedShortfall95: { key: "expectedShortfall95", label: "Expected Shortfall 95 %", fmt: (v) => pct(v), higherBetter: true, diff: (d) => signed(d, "pt"), tip: "Perte moyenne des 5 % de pires mois (sans hypothèse de loi normale)." },
-  expectedShortfall99: { key: "expectedShortfall99", label: "Expected Shortfall 99 %", fmt: (v) => pct(v), higherBetter: true, diff: (d) => signed(d, "pt"), tip: "Perte moyenne des 1 % de pires mois." },
-  downsideDeviation: { key: "downsideDeviation", label: "Downside deviation", fmt: (v) => pct(v), higherBetter: false, diff: (d) => signed(d, "pt"), tip: "Volatilité des seuls rendements négatifs, annualisée." },
-  skewness: { key: "skewness", label: "Asymétrie (skewness)", fmt: (v) => ratio(v), higherBetter: true, diff: (d) => signed(d, "", 2), tip: "Asymétrie des rendements : négative = pertes plus marquées." },
-  excessKurtosis: { key: "excessKurtosis", label: "Kurtosis excédentaire", fmt: (v) => ratio(v), higherBetter: false, diff: (d) => signed(d, "", 2), tip: "Épaisseur des queues : plus élevé = événements extrêmes plus fréquents." },
-  annualCostEstimate: { key: "annualCostEstimate", label: "Coûts annualisés estimés", fmt: (v) => pct(v, 2), higherBetter: false, diff: (d) => signed(d, "pt", 2), tip: "Coût de transaction moyen par an sous l’hypothèse retenue." },
+  annualized: {
+    key: "annualized",
+    label: "Performance annualisée",
+    fmt: (v) => pct(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "pt"),
+    tip: "Rendement annualisé géométrique (CAGR) net de coûts sur la période.",
+  },
+  volatility: {
+    key: "volatility",
+    label: "Volatilité annualisée",
+    fmt: (v) => pct(v),
+    higherBetter: false,
+    diff: (d) => signed(d, "pt"),
+    tip: "Amplitude générale des variations mensuelles, annualisée.",
+  },
+  sharpe: {
+    key: "sharpe",
+    label: "Sharpe",
+    fmt: (v) => ratio(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "", 2),
+    tip: "Excédent de rendement sur le cash local, rapporté à la volatilité. Un critère parmi d’autres.",
+  },
+  sortino: {
+    key: "sortino",
+    label: "Sortino",
+    fmt: (v) => ratio(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "", 2),
+    tip: "Rendement rapporté à la seule volatilité baissière (pertes).",
+  },
+  calmar: {
+    key: "calmar",
+    label: "Ratio de Calmar",
+    // Dérivé (CAGR net ÷ |max drawdown|, même série) : cf. `calmar()`. La cellule affiche
+    // « — » quand il n'est pas calculable ; la RAISON est portée par l'infobulle + aria.
+    get: (m) => {
+      const c = calmar(m);
+      return c.kind === "ok" ? c.value : null;
+    },
+    unavailableReason: (m) => {
+      const c = calmar(m);
+      return c.kind === "ok" ? null : calmarUnavailableReason(c);
+    },
+    fmt: (v) => ratio(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "", 2),
+    tip: "Le ratio de Calmar compare la performance annualisée à la pire baisse observée. Plus il est élevé, plus la performance obtenue est importante au regard du max drawdown.",
+  },
+  maxDrawdown: {
+    key: "maxDrawdown",
+    label: "Max drawdown",
+    fmt: (v) => pct(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "pt"),
+    tip: "Pire perte du pic au creux sur la période.",
+  },
+  maxUnderwaterMonths: {
+    key: "maxUnderwaterMonths",
+    label: "Durée maximale sous l’eau",
+    fmt: (v) => months(v),
+    higherBetter: false,
+    diff: (d) => signed(d, "mois", 0),
+    tip: "Plus longue période passée sous un sommet avant d’y revenir.",
+  },
+  worstRolling12m: {
+    key: "worstRolling12m",
+    label: "Pire 12 mois glissants",
+    fmt: (v) => pct(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "pt"),
+    tip: "Pire performance observée sur une fenêtre de 12 mois consécutifs.",
+  },
+  annualizedTurnover: {
+    key: "annualizedTurnover",
+    label: "Rotation annualisée",
+    fmt: (v) => pct(v === null ? null : v * 100),
+    higherBetter: false,
+    diff: (d) => signed(d * 100, "pt"),
+    tip: "Part du portefeuille échangée en moyenne par an (transactions exécutées).",
+  },
+  reallocationsPerYear: {
+    key: "reallocationsPerYear",
+    label: "Fréquence de réallocation",
+    fmt: (v) => perYear(v),
+    higherBetter: false,
+    diff: (d) => signed(d, "/an"),
+    tip: "Nombre moyen de mois par an où le portefeuille est effectivement réajusté.",
+  },
+  cumulativeCost: {
+    key: "cumulativeCost",
+    label: "Coûts cumulés",
+    fmt: (v) => pct(v, 2),
+    higherBetter: false,
+    diff: (d) => signed(d, "pt", 2),
+    tip: "Coûts de transaction cumulés sur la période, sous l’hypothèse de coûts retenue.",
+  },
+  worstMonth: {
+    key: "worstMonth",
+    label: "Pire mois",
+    fmt: (v) => pct(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "pt"),
+    tip: "Pire rendement mensuel observé.",
+  },
+  worstQuarter: {
+    key: "worstQuarter",
+    label: "Pire trimestre",
+    fmt: (v) => pct(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "pt"),
+    tip: "Pire rendement sur 3 mois consécutifs.",
+  },
+  expectedShortfall95: {
+    key: "expectedShortfall95",
+    label: "Expected Shortfall 95 %",
+    fmt: (v) => pct(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "pt"),
+    tip: "Perte moyenne des 5 % de pires mois (sans hypothèse de loi normale).",
+  },
+  expectedShortfall99: {
+    key: "expectedShortfall99",
+    label: "Expected Shortfall 99 %",
+    fmt: (v) => pct(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "pt"),
+    tip: "Perte moyenne des 1 % de pires mois.",
+  },
+  downsideDeviation: {
+    key: "downsideDeviation",
+    label: "Downside deviation",
+    fmt: (v) => pct(v),
+    higherBetter: false,
+    diff: (d) => signed(d, "pt"),
+    tip: "Volatilité des seuls rendements négatifs, annualisée.",
+  },
+  skewness: {
+    key: "skewness",
+    label: "Asymétrie (skewness)",
+    fmt: (v) => ratio(v),
+    higherBetter: true,
+    diff: (d) => signed(d, "", 2),
+    tip: "Asymétrie des rendements : négative = pertes plus marquées.",
+  },
+  excessKurtosis: {
+    key: "excessKurtosis",
+    label: "Kurtosis excédentaire",
+    fmt: (v) => ratio(v),
+    higherBetter: false,
+    diff: (d) => signed(d, "", 2),
+    tip: "Épaisseur des queues : plus élevé = événements extrêmes plus fréquents.",
+  },
+  annualCostEstimate: {
+    key: "annualCostEstimate",
+    label: "Coûts annualisés estimés",
+    fmt: (v) => pct(v, 2),
+    higherBetter: false,
+    diff: (d) => signed(d, "pt", 2),
+    tip: "Coût de transaction moyen par an sous l’hypothèse retenue.",
+  },
 };
 
 // ─── Primitives d'affichage ───────────────────────────────────────────────────
@@ -125,7 +295,11 @@ function Section({
 }
 
 function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <th className={cn("px-3 py-2 text-left font-medium text-muted-foreground", className)}>{children}</th>;
+  return (
+    <th className={cn("px-3 py-2 text-left font-medium text-muted-foreground", className)}>
+      {children}
+    </th>
+  );
 }
 function Td({ children, className }: { children: React.ReactNode; className?: string }) {
   return <td className={cn("px-3 py-2 tabular-nums", className)}>{children}</td>;
@@ -135,7 +309,10 @@ function Td({ children, className }: { children: React.ReactNode; className?: st
 function StrategyChip({ s }: { s: ComparisonStrategyResult }) {
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-      <span className="size-2.5 shrink-0 rounded-full" style={{ background: STRATEGY_COLOR[s.id] }} />
+      <span
+        className="size-2.5 shrink-0 rounded-full"
+        style={{ background: STRATEGY_COLOR[s.id] }}
+      />
       {s.label}
     </span>
   );
@@ -176,6 +353,59 @@ function diffIsNegligible(row: MetricRow, d: number): boolean {
 
 type MetricGroup = { label?: string; rows: MetricRow[] };
 
+/**
+ * Libellé de métrique + infobulle SOMBRE partagée (icône « i » → `TooltipBody`). Même
+ * environnement que « 4 Quadrants vs Actions » : définitions identiques, tooltip unique.
+ */
+function MetricLabel({ label, tip }: { label: string; tip: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {label}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Définition : ${label}`}
+            className="cursor-help text-muted-foreground/60 hover:text-foreground"
+          >
+            <Info className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-64">
+          <TooltipBody title={label}>{tip}</TooltipBody>
+        </TooltipContent>
+      </Tooltip>
+    </span>
+  );
+}
+
+/**
+ * Rendu d'une cellule de valeur : la valeur formatée, ou « — » ENRICHI d'une infobulle
+ * SOMBRE (+ `aria-label`) quand la métrique porte une raison d'indisponibilité (ex. Calmar).
+ */
+function cellValue(r: MetricRow, s: ComparisonStrategyResult, v: number | null) {
+  if (v === null && r.unavailableReason && s.metrics) {
+    const reason = r.unavailableReason(s.metrics);
+    if (reason)
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              aria-label={reason}
+              className="cursor-help decoration-dotted underline-offset-2 hover:underline"
+            >
+              {r.fmt(v)}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-64">
+            {reason}
+          </TooltipContent>
+        </Tooltip>
+      );
+  }
+  return r.fmt(v);
+}
+
 // ─── Tableau de métriques — s'ADAPTE au nombre de stratégies affichées ─────────
 // • 2 stratégies (paire) → colonne « Écart vs <référence> », référence = 1ʳᵉ colonne :
 //     – paire avec Browne     : écart = stratégie − Browne
@@ -195,104 +425,103 @@ function MetricTable({
   const isPair = strategies.length === 2;
   const isTrio = strategies.length >= 3;
   const colCount = 1 + strategies.length + (isPair ? 1 : 0);
-  const raw = (s: ComparisonStrategyResult | null | undefined, r: MetricRow) =>
-    s?.metrics ? (s.metrics[r.key] as number | null) : null;
+  const raw = (s: ComparisonStrategyResult | null | undefined, r: MetricRow) => {
+    if (!s?.metrics) return null;
+    return r.get ? r.get(s.metrics) : (s.metrics[r.key as MetricKey] as number | null);
+  };
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full min-w-[520px] text-sm">
-        <thead className="border-b bg-muted/40">
-          <tr>
-            <Th className="sticky left-0 bg-muted/40">Indicateur</Th>
-            {strategies.map((s) => (
-              <Th key={s.id} className="text-right">
-                <span className="flex justify-end">
-                  <StrategyChip s={s} />
-                </span>
-              </Th>
-            ))}
-            {isPair && <Th className="whitespace-nowrap text-right">Écart vs {refShort}</Th>}
-          </tr>
-        </thead>
-        <tbody>
-          {groups.map((g, gi) => (
-            <Fragment key={g.label ?? `g${gi}`}>
-              {g.label && (
-                <tr>
-                  <td
-                    colSpan={colCount}
-                    className="bg-muted/20 px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-                  >
-                    {g.label}
-                  </td>
-                </tr>
-              )}
-              {g.rows.map((r) => {
-                const refV = raw(reference, r);
-                return (
-                  <tr
-                    key={r.key}
-                    className="group border-b transition-colors last:border-0 hover:bg-muted/30"
-                  >
-                    <Td className="sticky left-0 bg-background font-medium group-hover:bg-muted/30">
-                      <span
-                        title={r.tip}
-                        className="cursor-help decoration-dotted underline-offset-2 hover:underline"
-                      >
-                        {r.label}
-                      </span>
-                    </Td>
-                    {strategies.map((s) => {
-                      const v = raw(s, r);
-                      const showSecondary =
-                        isTrio && s.id !== reference?.id && v !== null && refV !== null;
-                      const d = showSecondary ? v! - refV! : 0;
-                      const neg = showSecondary && diffIsNegligible(r, d);
-                      return (
-                        <Td key={s.id} className="text-right">
-                          <div>{r.fmt(v)}</div>
-                          {showSecondary && (
-                            <div
-                              className={cn(
-                                "whitespace-nowrap text-xs",
-                                neg
-                                  ? "text-muted-foreground"
-                                  : diffTone(d, r.higherBetter, { soft: true }),
-                              )}
-                            >
-                              {neg ? "≈ identique" : `${r.diff(d)} vs ${refShort}`}
-                            </div>
-                          )}
-                        </Td>
-                      );
-                    })}
-                    {isPair &&
-                      (() => {
-                        const ov = raw(strategies[1], r);
-                        const canDiff = refV !== null && ov !== null;
-                        const d = canDiff ? ov! - refV! : 0;
-                        const neg = canDiff && diffIsNegligible(r, d);
+    <TooltipProvider delayDuration={150}>
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full min-w-[520px] text-sm">
+          <thead className="border-b bg-muted/40">
+            <tr>
+              <Th className="sticky left-0 bg-muted/40">Indicateur</Th>
+              {strategies.map((s) => (
+                <Th key={s.id} className="text-right">
+                  <span className="flex justify-end">
+                    <StrategyChip s={s} />
+                  </span>
+                </Th>
+              ))}
+              {isPair && <Th className="whitespace-nowrap text-right">Écart vs {refShort}</Th>}
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map((g, gi) => (
+              <Fragment key={g.label ?? `g${gi}`}>
+                {g.label && (
+                  <tr>
+                    <td
+                      colSpan={colCount}
+                      className="bg-muted/20 px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                    >
+                      {g.label}
+                    </td>
+                  </tr>
+                )}
+                {g.rows.map((r) => {
+                  const refV = raw(reference, r);
+                  return (
+                    <tr
+                      key={r.key}
+                      className="group border-b transition-colors last:border-0 hover:bg-muted/30"
+                    >
+                      <Td className="sticky left-0 bg-background font-medium group-hover:bg-muted/30">
+                        <MetricLabel label={r.label} tip={r.tip} />
+                      </Td>
+                      {strategies.map((s) => {
+                        const v = raw(s, r);
+                        const showSecondary =
+                          isTrio && s.id !== reference?.id && v !== null && refV !== null;
+                        const d = showSecondary ? v! - refV! : 0;
+                        const neg = showSecondary && diffIsNegligible(r, d);
                         return (
-                          <Td
-                            className={cn(
-                              "whitespace-nowrap text-right",
-                              !canDiff || neg
-                                ? "text-muted-foreground"
-                                : diffTone(d, r.higherBetter),
+                          <Td key={s.id} className="text-right">
+                            <div>{cellValue(r, s, v)}</div>
+                            {showSecondary && (
+                              <div
+                                className={cn(
+                                  "whitespace-nowrap text-xs",
+                                  neg
+                                    ? "text-muted-foreground"
+                                    : diffTone(d, r.higherBetter, { soft: true }),
+                                )}
+                              >
+                                {neg ? "≈ identique" : `${r.diff(d)} vs ${refShort}`}
+                              </div>
                             )}
-                          >
-                            {!canDiff ? "—" : neg ? "≈ identique" : r.diff(d)}
                           </Td>
                         );
-                      })()}
-                  </tr>
-                );
-              })}
-            </Fragment>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                      })}
+                      {isPair &&
+                        (() => {
+                          const ov = raw(strategies[1], r);
+                          const canDiff = refV !== null && ov !== null;
+                          const d = canDiff ? ov! - refV! : 0;
+                          const neg = canDiff && diffIsNegligible(r, d);
+                          return (
+                            <Td
+                              className={cn(
+                                "whitespace-nowrap text-right",
+                                !canDiff || neg
+                                  ? "text-muted-foreground"
+                                  : diffTone(d, r.higherBetter),
+                              )}
+                            >
+                              {!canDiff ? "—" : neg ? "≈ identique" : r.diff(d)}
+                            </Td>
+                          );
+                        })()}
+                    </tr>
+                  );
+                })}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -403,8 +632,8 @@ function SynthesisCards({ strategies }: { strategies: ComparisonStrategyResult[]
         ))}
       </div>
       <p className="text-xs text-muted-foreground">
-        Ces repères décrivent la période sélectionnée et ne constituent pas un classement général des
-        modèles.
+        Ces repères décrivent la période sélectionnée et ne constituent pas un classement général
+        des modèles.
       </p>
     </div>
   );
@@ -454,7 +683,7 @@ function DrawdownChart({ strategies }: { strategies: ComparisonStrategyResult[] 
   const floor = Math.min(-5, Math.floor(worst / 10) * 10);
   return (
     <SeriesChartCard
-      title="Drawdowns"
+      title="Drawdowns successifs"
       subtitle="Pertes depuis le dernier sommet, sur la même chronologie."
       series={series}
       kpis={<DrawdownKpis strategies={withM} />}
@@ -466,96 +695,33 @@ function DrawdownChart({ strategies }: { strategies: ComparisonStrategyResult[] 
   );
 }
 
-/** Synthèse KPI du drawdown : un bloc compact par stratégie (+ écarts factuels en paire). */
+/** Synthèse KPI du drawdown (composant partagé) : un bloc par stratégie + écart en paire. */
 function DrawdownKpis({ strategies }: { strategies: ComparisonStrategyResult[] }) {
-  // Carte d'écarts uniquement en comparaison par PAIRE (jamais en « Toutes les stratégies »).
-  const showDelta = strategies.length === 2;
-  const blocks = strategies.length + (showDelta ? 1 : 0);
-  return (
-    <div className={cn("grid gap-2.5", blocks <= 2 ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
-      {strategies.map((s) => (
-        <div key={s.id} className="rounded-lg border bg-muted/20 p-3">
-          <StrategyChip s={s} />
-          <dl className="mt-2 space-y-1 text-sm">
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-muted-foreground">Max drawdown</dt>
-              <dd className="font-semibold tabular-nums">{pct(s.metrics?.maxDrawdown ?? null)}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-muted-foreground">Sous l’eau</dt>
-              <dd className="font-semibold tabular-nums">
-                {months(s.metrics?.maxUnderwaterMonths ?? null)}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      ))}
-      {showDelta && <DrawdownDeltaCard reference={strategies[0]} compared={strategies[1]} />}
-    </div>
-  );
+  const blocks: DrawdownKpiBlock[] = strategies.map((s) => ({
+    label: s.label,
+    color: STRATEGY_COLOR[s.id],
+    maxDrawdown: s.metrics?.maxDrawdown ?? null,
+    underwaterMonths: s.metrics?.maxUnderwaterMonths ?? null,
+  }));
+  // Écart uniquement en comparaison par PAIRE (réf = 1ʳᵉ colonne). Jamais en « Toutes ».
+  let delta: DrawdownKpiDelta | null = null;
+  if (strategies.length === 2) {
+    const ref = strategies[0].metrics;
+    const cmp = strategies[1].metrics;
+    delta = {
+      refLabel: shortLabel(strategies[0]),
+      maxDrawdown:
+        ref?.maxDrawdown != null && cmp?.maxDrawdown != null
+          ? cmp.maxDrawdown - ref.maxDrawdown
+          : null,
+      underwaterMonths:
+        ref?.maxUnderwaterMonths != null && cmp?.maxUnderwaterMonths != null
+          ? cmp.maxUnderwaterMonths - ref.maxUnderwaterMonths
+          : null,
+    };
+  }
+  return <DrawdownKpiRow blocks={blocks} delta={delta} />;
 }
-
-/**
- * Écarts DRAWDOWN de la stratégie comparée vs la référence (1ʳᵉ colonne), présentés
- * SÉPARÉMENT — pas de verdict global « protection » : un max drawdown moins profond
- * peut coexister avec une durée sous l'eau plus longue. Lecture favorable/défavorable
- * propre à chaque métrique. Restitution d'affichage, aucun calcul modifié.
- */
-function DrawdownDeltaCard({
-  reference,
-  compared,
-}: {
-  reference: ComparisonStrategyResult;
-  compared: ComparisonStrategyResult;
-}) {
-  const rows = [
-    {
-      label: "Max drawdown",
-      a: reference.metrics?.maxDrawdown ?? null,
-      b: compared.metrics?.maxDrawdown ?? null,
-      higher: true, // moins négatif = favorable
-      fmt: (d: number) => `${signStr(d)}${nf(Math.abs(d), 1)} ${Math.abs(d) >= 2 ? "points" : "point"}`,
-      isZero: (d: number) => Math.round(d * 10) === 0,
-    },
-    {
-      label: "Durée sous l’eau",
-      a: reference.metrics?.maxUnderwaterMonths ?? null,
-      b: compared.metrics?.maxUnderwaterMonths ?? null,
-      higher: false, // plus courte = favorable
-      fmt: (d: number) => `${signStr(d)}${Math.round(Math.abs(d))} mois`,
-      isZero: (d: number) => Math.round(d) === 0,
-    },
-  ];
-  return (
-    <div className="rounded-lg border bg-muted/20 p-3">
-      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        Écart vs {shortLabel(reference)}
-      </p>
-      <dl className="mt-2 space-y-2 text-sm">
-        {rows.map((r) => {
-          const has = r.a !== null && r.b !== null;
-          const d = has ? r.b! - r.a! : 0;
-          return (
-            <div key={r.label}>
-              <dt className="text-xs text-muted-foreground">{r.label}</dt>
-              <dd
-                className={cn(
-                  "font-semibold tabular-nums",
-                  has ? diffTone(d, r.higher, { negligible: r.isZero(d) }) : "text-muted-foreground",
-                )}
-              >
-                {has ? r.fmt(d) : "—"}
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
-    </div>
-  );
-}
-
-/** Signe d'affichage d'un écart (« + », « − » ou rien si nul). */
-const signStr = (v: number) => (v > 0 ? "+" : v < 0 ? "−" : "");
 
 /** Bloc 5 — performances annualisées glissantes (5/10/15 ans). */
 function RollingSection({ strategies }: { strategies: ComparisonStrategyResult[] }) {
@@ -563,7 +729,9 @@ function RollingSection({ strategies }: { strategies: ComparisonStrategyResult[]
   return (
     <div className="space-y-4">
       {ROLLING_WINDOWS_YEARS.map((years) => {
-        const anyData = withM.some((s) => (s.metrics!.rolling.find((r) => r.windowYears === years)?.count ?? 0) > 0);
+        const anyData = withM.some(
+          (s) => (s.metrics!.rolling.find((r) => r.windowYears === years)?.count ?? 0) > 0,
+        );
         if (!anyData) return null;
         return (
           <div key={years} className="overflow-x-auto rounded-lg border">
@@ -584,8 +752,10 @@ function RollingSection({ strategies }: { strategies: ComparisonStrategyResult[]
                   if (!r || r.count === 0)
                     return (
                       <tr key={s.id} className="border-b last:border-0">
-                        <Td><StrategyChip s={s} /></Td>
-                        <Td className="text-right text-muted-foreground" >—</Td>
+                        <Td>
+                          <StrategyChip s={s} />
+                        </Td>
+                        <Td className="text-right text-muted-foreground">—</Td>
                         <Td className="text-right text-muted-foreground">—</Td>
                         <Td className="text-right text-muted-foreground">—</Td>
                         <Td className="text-right text-muted-foreground">—</Td>
@@ -594,12 +764,16 @@ function RollingSection({ strategies }: { strategies: ComparisonStrategyResult[]
                     );
                   return (
                     <tr key={s.id} className="border-b last:border-0">
-                      <Td><StrategyChip s={s} /></Td>
+                      <Td>
+                        <StrategyChip s={s} />
+                      </Td>
                       <Td className="text-right">{pct(r.median)}</Td>
                       <Td className="text-right">{pct(r.worst)}</Td>
                       <Td className="text-right">{pct(r.best)}</Td>
                       <Td className="text-right">
-                        {s.id === "browne" || r.shareBeatingBrowne === null ? "—" : pct(r.shareBeatingBrowne * 100, 0)}
+                        {s.id === "browne" || r.shareBeatingBrowne === null
+                          ? "—"
+                          : pct(r.shareBeatingBrowne * 100, 0)}
                       </Td>
                       <Td className="text-right text-muted-foreground">{r.count}</Td>
                     </tr>
@@ -626,7 +800,14 @@ function CostSection({
     <div className="space-y-3">
       <MetricTable
         groups={[
-          { rows: [ROW.annualizedTurnover, ROW.reallocationsPerYear, ROW.annualCostEstimate, ROW.cumulativeCost] },
+          {
+            rows: [
+              ROW.annualizedTurnover,
+              ROW.reallocationsPerYear,
+              ROW.annualCostEstimate,
+              ROW.cumulativeCost,
+            ],
+          },
         ]}
         strategies={strategies}
       />
@@ -637,7 +818,9 @@ function CostSection({
               <Th>Écart brut − net (coût de gestion sur la performance)</Th>
               {strategies.map((s) => (
                 <Th key={s.id} className="text-right">
-                  <span className="flex justify-end"><StrategyChip s={s} /></span>
+                  <span className="flex justify-end">
+                    <StrategyChip s={s} />
+                  </span>
                 </Th>
               ))}
             </tr>
@@ -660,9 +843,9 @@ function CostSection({
         </table>
       </div>
       <p className="text-xs text-muted-foreground">
-        Browne : rééquilibrage annuel (rotation faible). Le 4 Quadrants adapte l’allocation aux régimes,
-        mais la bande de réallocation limite les transactions : seules les transactions réellement
-        exécutées sont comptées, jamais les changements de cible non exécutés.
+        Browne : rééquilibrage annuel (rotation faible). Le 4 Quadrants adapte l’allocation aux
+        régimes, mais la bande de réallocation limite les transactions : seules les transactions
+        réellement exécutées sont comptées, jamais les changements de cible non exécutés.
       </p>
     </div>
   );
@@ -773,14 +956,16 @@ function PedagogySection({
       </div>
       {filter !== "all" && (
         <Card className="gap-1 border-primary/30 bg-primary/5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">La question de cette comparaison</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+            La question de cette comparaison
+          </p>
           <p className="text-sm">{PAIR_QUESTION[filter]}</p>
         </Card>
       )}
       <p className="text-sm text-muted-foreground">
         Browne privilégie la stabilité de la structure. Les modèles 4 Quadrants cherchent à adapter
-        l’allocation au contexte macroéconomique. La comparaison doit porter à la fois sur la performance,
-        le risque, les pertes et le coût des ajustements.
+        l’allocation au contexte macroéconomique. La comparaison doit porter à la fois sur la
+        performance, le risque, les pertes et le coût des ajustements.
       </p>
     </div>
   );
@@ -791,11 +976,7 @@ function PedagogySection({
  * principale : regroupe les mesures techniques (queues de distribution, pertes
  * extrêmes) pour garder la lecture de premier niveau simple. Aucun calcul modifié.
  */
-function AdvancedRiskSection({
-  strategies,
-}: {
-  strategies: ComparisonStrategyResult[];
-}) {
+function AdvancedRiskSection({ strategies }: { strategies: ComparisonStrategyResult[] }) {
   const [open, setOpen] = useState(false);
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border">
@@ -803,7 +984,8 @@ function AdvancedRiskSection({
         <span className="flex flex-col gap-0.5">
           <span className="text-base font-semibold">Analyse avancée du risque</span>
           <span className="text-sm text-muted-foreground">
-            Mesures complémentaires pour analyser les pertes extrêmes et la distribution des rendements.
+            Mesures complémentaires pour analyser les pertes extrêmes et la distribution des
+            rendements.
           </span>
         </span>
         <ChevronDown
@@ -816,18 +998,18 @@ function AdvancedRiskSection({
       <CollapsibleContent className="border-t px-4 py-4">
         <MetricTable
           groups={[
+            { label: "Rendement ajusté au risque", rows: [ROW.sortino, ROW.calmar] },
             {
+              label: "Pertes et risque extrême",
               rows: [
-                ROW.sortino,
                 ROW.worstMonth,
                 ROW.worstQuarter,
                 ROW.expectedShortfall95,
                 ROW.expectedShortfall99,
                 ROW.downsideDeviation,
-                ROW.skewness,
-                ROW.excessKurtosis,
               ],
             },
+            { label: "Forme de la distribution", rows: [ROW.skewness, ROW.excessKurtosis] },
           ]}
           strategies={strategies}
         />
@@ -884,10 +1066,16 @@ export function QuadrantsVsBrowneView({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
         {w && (
           <span>
-            Fenêtre commune : <span className="font-medium text-foreground">{w.start} → {w.end}</span> ({w.months} mois)
+            Fenêtre commune :{" "}
+            <span className="font-medium text-foreground">
+              {w.start} → {w.end}
+            </span>{" "}
+            ({w.months} mois)
           </span>
         )}
-        <span>Performance {modeLabel}, nette de coûts ({costBps} bps)</span>
+        <span>
+          Performance {modeLabel}, nette de coûts ({costBps} bps)
+        </span>
         <span>Résultats exprimés dans la devise locale du pays</span>
       </div>
 
@@ -896,13 +1084,20 @@ export function QuadrantsVsBrowneView({
           {unavailable.map((s) => (
             <div key={s.id}>
               {s.label} indisponible
-              {s.availability.status === "unavailable" ? ` — ${UNAVAILABLE_REASON_FR[s.availability.reason]}` : ""}.
+              {s.availability.status === "unavailable"
+                ? ` — ${UNAVAILABLE_REASON_FR[s.availability.reason]}`
+                : ""}
+              .
             </div>
           ))}
         </div>
       )}
 
-      <Section id="synthese" title="Repères sur la sélection actuelle" subtitle="Synthèse calculée automatiquement à partir du pays, de la période et des paramètres sélectionnés.">
+      <Section
+        id="synthese"
+        title="Repères sur la sélection actuelle"
+        subtitle="Synthèse calculée automatiquement à partir du pays, de la période et des paramètres sélectionnés."
+      >
         <SynthesisCards strategies={available} />
       </Section>
 
@@ -914,19 +1109,35 @@ export function QuadrantsVsBrowneView({
         <DrawdownChart strategies={available} />
       </Section>
 
-      <Section id="indicateurs" title="Indicateurs comparatifs" subtitle="Une valeur élevée n’est pas toujours favorable : volatilité, rotation et drawdown plus élevés sont défavorables.">
+      <Section
+        id="indicateurs"
+        title="Indicateurs comparatifs"
+        subtitle="Une valeur élevée n’est pas toujours favorable : volatilité, rotation et drawdown plus élevés sont défavorables."
+      >
         <MetricTable groups={INDICATEUR_GROUPS} strategies={available} />
       </Section>
 
-      <Section id="glissante" title="Performance glissante" subtitle="Une stratégie domine-t-elle seulement sur la période totale, ou aussi sur des fenêtres intermédiaires ?">
+      <Section
+        id="glissante"
+        title="Performance glissante"
+        subtitle="Une stratégie domine-t-elle seulement sur la période totale, ou aussi sur des fenêtres intermédiaires ?"
+      >
         <RollingSection strategies={available} />
       </Section>
 
-      <Section id="couts" title="Coûts et rééquilibrages" subtitle="Le coût de gestion fait partie intégrante du résultat.">
+      <Section
+        id="couts"
+        title="Coûts et rééquilibrages"
+        subtitle="Le coût de gestion fait partie intégrante du résultat."
+      >
         <CostSection strategies={available} gross={grossById} />
       </Section>
 
-      <Section id="allocation" title="Allocation actuelle" subtitle="Poids réellement détenus à la date d’analyse. L’allocation cible n’est pas une instruction de transaction.">
+      <Section
+        id="allocation"
+        title="Allocation actuelle"
+        subtitle="Poids réellement détenus à la date d’analyse. L’allocation cible n’est pas une instruction de transaction."
+      >
         <AllocationSection strategies={available} />
       </Section>
 
