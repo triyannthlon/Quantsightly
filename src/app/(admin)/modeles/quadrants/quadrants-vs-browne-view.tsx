@@ -39,6 +39,8 @@ import type {
 } from "@/lib/coredata/model-comparison/types";
 import { UNAVAILABLE_REASON_FR } from "@/lib/coredata/model-comparison/types";
 import { ROLLING_WINDOWS_YEARS } from "@/lib/coredata/model-comparison/constants";
+import type { HistoricalCrisisResult } from "@/lib/coredata/model-comparison/historical-stress/types";
+import { HistoricalCrisesSection } from "./historical-crises-section";
 // Sous-module PUR (type-only + fonctions, aucun moteur) : dérivation d'affichage du Calmar.
 import { calmar, calmarUnavailableReason } from "@/lib/coredata/model-comparison/calmar";
 
@@ -1024,11 +1026,13 @@ function AdvancedRiskSection({ strategies }: { strategies: ComparisonStrategyRes
 export function QuadrantsVsBrowneView({
   result,
   grossResult,
+  crisisResults,
   filter,
   costBps,
 }: {
   result: ModelComparisonResult;
   grossResult: ModelComparisonResult;
+  crisisResults: HistoricalCrisisResult[];
   filter: ComparisonFilter;
   costBps: number;
 }) {
@@ -1037,6 +1041,15 @@ export function QuadrantsVsBrowneView({
     .map((id) => result.strategies.find((s) => s.id === id))
     .filter((s): s is ComparisonStrategyResult => !!s);
   const available = strategies.filter((s) => s.availability.status === "ok");
+
+  // Libellés publics par stratégie, lus depuis le résultat (pas d'import du registre moteur
+  // côté client). Sert la légende + les tooltips de la section « crises ».
+  const strategyLabels = useMemo(() => {
+    const m = {} as Record<ComparisonStrategyId, string>;
+    for (const s of result.strategies) m[s.id] = s.label;
+    return m;
+  }, [result]);
+  const crisisVisibleIds = available.map((s) => s.id);
 
   const grossById = useMemo(
     () =>
@@ -1112,6 +1125,20 @@ export function QuadrantsVsBrowneView({
         </Section>
 
         <Section
+          id="crises"
+          title="Comportement pendant les crises"
+          subtitle="Comparaison des stratégies pendant des crises financières et macroéconomiques historiques documentées."
+        >
+          <HistoricalCrisesSection
+            results={crisisResults}
+            visibleIds={crisisVisibleIds}
+            labels={strategyLabels}
+            colors={STRATEGY_COLOR}
+            window={result.window}
+          />
+        </Section>
+
+        <Section
           id="indicateurs"
           title="Indicateurs comparatifs"
           subtitle="Une valeur élevée n’est pas toujours favorable : volatilité, rotation et drawdown plus élevés sont défavorables."
@@ -1158,6 +1185,7 @@ export const VS_BROWNE_SECTIONS = [
   { id: "synthese", label: "Synthèse" },
   { id: "performance", label: "Performance" },
   { id: "drawdowns", label: "Drawdowns" },
+  { id: "crises", label: "Crises" },
   { id: "indicateurs", label: "Indicateurs" },
   { id: "glissante", label: "Glissante" },
   { id: "couts", label: "Coûts" },

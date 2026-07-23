@@ -118,7 +118,10 @@ const COMPARISON_ITEMS: SelectItem[] = [
   { value: "bin_browne", label: "Régime vs Browne" },
   { value: "dyn_bin", label: "Continue vs Régime" },
 ];
-const COST_ITEMS: SelectItem[] = COST_BPS_OPTIONS.map((b) => ({ value: String(b), label: `${b} bps` }));
+const COST_ITEMS: SelectItem[] = COST_BPS_OPTIONS.map((b) => ({
+  value: String(b),
+  label: `${b} bps`,
+}));
 const COST_STORAGE_KEY = "quantsightly:vs-browne-cost-bps";
 
 function Control({ label, children }: { label: string; children: React.ReactNode }) {
@@ -164,8 +167,9 @@ export function QuadrantsView({
   const [comparisonLoading, setComparisonLoading] = useState(false);
 
   // Onglet « 4Q vs Browne » (étape 3) : calcul SERVEUR via action `loadModelComparison`.
-  const [vsBrowne, setVsBrowne] =
-    useState<Awaited<ReturnType<typeof loadModelComparison>> | undefined>(undefined);
+  const [vsBrowne, setVsBrowne] = useState<
+    Awaited<ReturnType<typeof loadModelComparison>> | undefined
+  >(undefined);
   const [vsBrowneLoading, setVsBrowneLoading] = useState(false);
   // Étape 5 : filtre d'affichage + hypothèse de coûts (persistée).
   const [comparisonFilter, setComparisonFilter] = useState<ComparisonFilter>("all");
@@ -395,16 +399,33 @@ export function QuadrantsView({
     tab === "vs_browne"
       ? [
           { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
-          { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
-          { label: "Mode", value: MODE_ITEMS_VS_BROWNE.find((i) => i.value === vsBrowneMode)?.label ?? vsBrowneMode },
-          { label: "Comparaison", value: COMPARISON_ITEMS.find((i) => i.value === comparisonFilter)?.label ?? comparisonFilter },
+          {
+            label: "Période",
+            value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period,
+          },
+          {
+            label: "Mode",
+            value:
+              MODE_ITEMS_VS_BROWNE.find((i) => i.value === vsBrowneMode)?.label ?? vsBrowneMode,
+          },
+          {
+            label: "Comparaison",
+            value:
+              COMPARISON_ITEMS.find((i) => i.value === comparisonFilter)?.label ?? comparisonFilter,
+          },
           { label: "Coûts", value: `${costBps} bps` },
         ]
       : [
           isRegionTab
-            ? { label: "Région", value: REGION_ITEMS.find((i) => i.value === region)?.label ?? region }
+            ? {
+                label: "Région",
+                value: REGION_ITEMS.find((i) => i.value === region)?.label ?? region,
+              }
             : { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
-          { label: "Période", value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period },
+          {
+            label: "Période",
+            value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period,
+          },
           { label: "Devise", value: "Locale" },
           { label: "Mode", value: MODE_ITEMS.find((i) => i.value === perfMode)?.label ?? perfMode },
           {
@@ -495,6 +516,7 @@ export function QuadrantsView({
             <QuadrantsVsBrowneView
               result={vsBrowne.net}
               grossResult={vsBrowne.gross}
+              crisisResults={vsBrowne.crisisResults}
               filter={comparisonFilter}
               costBps={costBps}
             />

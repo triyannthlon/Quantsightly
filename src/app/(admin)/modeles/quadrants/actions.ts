@@ -7,6 +7,8 @@ import {
   computeModelComparisonForCountry,
   type BrowneComparisonOptions,
 } from "@/lib/coredata/four-quadrants-service";
+import { listHistoricalCrises } from "@/lib/coredata/model-comparison/historical-stress/repository";
+import { historicalStressFromComparison } from "@/lib/coredata/model-comparison/historical-stress/calculator";
 import type { FourQuadrantsModelSettings } from "@/lib/coredata/four-quadrants";
 import { ACTIVE_MODEL_VERSION } from "./model-version-active";
 
@@ -44,8 +46,18 @@ export async function loadQuadrantsRealSeries(
 
 /**
  * Comparaison « 4Q vs Browne » d'un pays (calcul SERVEUR : le moteur reste hors du
- * bundle client). Renvoie la version nette de coûts + la version brute (0 bps).
+ * bundle client). Renvoie la version nette de coûts + la version brute (0 bps) + les
+ * résultats de la section « crises » (dérivés de la version NETTE, sans double calcul :
+ * mêmes fenêtre / mode / coûts). `null` si le pays n'a pas de comparaison exploitable.
  */
 export async function loadModelComparison(countryCode: string, opts: BrowneComparisonOptions) {
-  return computeModelComparisonForCountry(countryCode, opts, ACTIVE_MODEL_VERSION);
+  const comparison = await computeModelComparisonForCountry(
+    countryCode,
+    opts,
+    ACTIVE_MODEL_VERSION,
+  );
+  if (!comparison) return null;
+  const crises = await listHistoricalCrises();
+  const crisisResults = historicalStressFromComparison(comparison.net, crises);
+  return { net: comparison.net, gross: comparison.gross, crisisResults };
 }
