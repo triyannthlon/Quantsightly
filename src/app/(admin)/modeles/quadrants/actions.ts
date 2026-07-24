@@ -5,11 +5,14 @@ import {
   computeAllCountryQuadrantModels,
   computeQuadrantsRealSeries,
   computeModelComparisonForCountry,
+  computeEnergyLabComparison,
   type BrowneComparisonOptions,
 } from "@/lib/coredata/four-quadrants-service";
 import { listHistoricalCrises } from "@/lib/coredata/model-comparison/historical-stress/repository";
 import { historicalStressFromComparison } from "@/lib/coredata/model-comparison/historical-stress/calculator";
 import type { FourQuadrantsModelSettings } from "@/lib/coredata/four-quadrants";
+import type { EnergyLabStrategy } from "@/lib/coredata/four-quadrants/energy-trend-v1/lab";
+import { buildEnergyLabCrises } from "@/lib/coredata/four-quadrants/energy-trend-v1/lab-crises";
 import { ACTIVE_MODEL_VERSION } from "./model-version-active";
 
 /** Charge les séries brutes (signal + perf) + config d'un pays (recalcul client-side du 4Q). */
@@ -65,4 +68,29 @@ export async function loadModelComparison(countryCode: string, opts: BrowneCompa
   const crises = await listHistoricalCrises();
   const crisisResults = historicalStressFromComparison(comparison.net, crises);
   return { net: comparison.net, gross: comparison.gross, crisisResults };
+}
+
+/**
+ * Laboratoire Énergie (onglet INTERNE gated) — comparaison socle vs socle + Énergie pour UNE
+ * stratégie (Continue / Régime), sur l'historique complet du pays. Calcul SERVEUR : le moteur
+ * (et la 5ᵉ poche Énergie) restent hors du bundle client. Les crises sont dérivées ici pour
+ * les DEUX modes (nominal / réel) à partir des courbes déjà calculées — la bascule de mode côté
+ * client reste alors instantanée, sans nouvel aller-retour.
+ *
+ * ⚠️ SÉPARATION visibilité ≠ activation : cette action ne modifie AUCUN calcul public. Les pages
+ * publiques restent `4q-standard-v2` (`overlay:"off"` explicite). Le service calcule ici
+ * EXPLICITEMENT les deux variantes (`"off"` + `"trend-v1"`). `null` si le pays n'a pas de
+ * comparaison exploitable dans les deux variantes.
+ */
+export async function loadEnergyLabComparison(countryCode: string, strategy: EnergyLabStrategy) {
+  const comparison = await computeEnergyLabComparison(countryCode, strategy, ACTIVE_MODEL_VERSION);
+  if (!comparison) return null;
+  const crises = await listHistoricalCrises();
+  return {
+    comparison,
+    crises: {
+      nominal: buildEnergyLabCrises(comparison, "nominal", crises),
+      real: buildEnergyLabCrises(comparison, "real", crises),
+    },
+  };
 }

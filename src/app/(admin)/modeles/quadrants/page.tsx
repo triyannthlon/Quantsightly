@@ -2,6 +2,7 @@ import {
   getCountryQuadrantModel,
   listQuadrantCountries,
 } from "@/lib/coredata/four-quadrants-service";
+import { readEnergyLabEnabled } from "@/lib/coredata/energy-overlay-config";
 import { Lexique } from "@/components/custom/lexique/lexique";
 import { QuadrantsView } from "./quadrants-view";
 
@@ -64,6 +65,10 @@ const LEXIQUE_TERMS = [
 ];
 
 export default async function QuadrantsPage() {
+  // Gate UI du laboratoire Énergie (staging). `readEnergyLabEnabled()` NE pilote AUCUN calcul :
+  // c'est un booléen de VISIBILITÉ de l'onglet interne. Les pages publiques restent
+  // `4q-standard-v2` (overlay "off" explicite ci-dessous), flag ON ou OFF.
+  const energyLabEnabled = readEnergyLabEnabled();
   const [countries, initial] = await Promise.all([
     listQuadrantCountries(),
     // Rendu initial PUBLIC → overlay "off" explicite (jamais d'énergie ambiante).
@@ -86,6 +91,7 @@ export default async function QuadrantsPage() {
       <QuadrantsView
         countries={countries}
         defaultCountry={DEFAULT_COUNTRY}
+        energyLabEnabled={energyLabEnabled}
         initial={{
           config: initial.config,
           dataQuality: initial.dataQuality,

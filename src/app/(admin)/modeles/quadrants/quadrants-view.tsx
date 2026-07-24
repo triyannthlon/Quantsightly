@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { LineChart, Table2, Swords, Scale, BookOpen, SlidersHorizontal } from "lucide-react";
+import { LineChart, Table2, Swords, Scale, BookOpen, SlidersHorizontal, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Card } from "@/components/ui/card";
@@ -34,7 +34,13 @@ import {
   type StickyNavSection,
   type StickySummaryItem,
 } from "@/components/custom/model-shell/model-sticky-controls";
-import { loadCountryQuadrantModel, loadQuadrantComparison, loadModelComparison } from "./actions";
+import {
+  loadCountryQuadrantModel,
+  loadQuadrantComparison,
+  loadModelComparison,
+  loadEnergyLabComparison,
+} from "./actions";
+import { EnergyLabView, ENERGY_LAB_SECTIONS } from "./energy-lab-view";
 import { ACTIVE_REALLOCATION_BAND, IS_STAGING_V2 } from "./model-version-active";
 import { REGION_ITEMS, type PerfMode, type QuadrantRegion } from "./helpers";
 import { availabilityMessage, type AvailabilityReason } from "./availability-message";
@@ -53,9 +59,11 @@ const MODEL_REASON: Record<Exclude<QuadrantModelStatus, "OK">, AvailabilityReaso
   INSUFFICIENT_HISTORY: "insufficient_history",
 };
 
-type Tab = "country" | "comparison" | "vs_actions" | "vs_browne" | "methodology";
+type Tab = "country" | "comparison" | "vs_actions" | "vs_browne" | "methodology" | "energie";
 type Period = "MAX" | "20A" | "10A" | "5A";
 
+// Onglets PUBLICS (toujours affichés). L'onglet interne « Énergie » est ajouté à l'exécution
+// uniquement quand le labo est activé (gate `QS_ENERGY_LAB_ENABLED`, cf. `energyLabEnabled`).
 const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[] = [
   { key: "country", label: "Vue pays", icon: LineChart, ready: true },
   { key: "comparison", label: "Comparaison pays", icon: Table2, ready: true },
@@ -63,6 +71,9 @@ const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[
   { key: "vs_browne", label: "4 Quadrants vs Browne", icon: Scale, ready: true },
   { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: true },
 ];
+
+// Onglet INTERNE gated (staging) — jamais dans `TABS` par défaut : visibilité ≠ calcul.
+const ENERGY_TAB = { key: "energie" as Tab, label: "Énergie", icon: Zap, ready: true };
 
 // Navigation interne par onglet.
 const SECTIONS: Record<Tab, StickyNavSection[]> = {
@@ -89,6 +100,7 @@ const SECTIONS: Record<Tab, StickyNavSection[]> = {
   ],
   vs_browne: VS_BROWNE_SECTIONS,
   methodology: METHODOLOGY_SECTIONS,
+  energie: ENERGY_LAB_SECTIONS,
 };
 
 const PERIOD_ITEMS: SelectItem[] = [
@@ -137,10 +149,13 @@ function Control({ label, children }: { label: string; children: React.ReactNode
 export function QuadrantsView({
   countries,
   defaultCountry,
+  energyLabEnabled,
   initial,
 }: {
   countries: { iso: string; nameFr: string }[];
   defaultCountry: string;
+  /** Gate UI du laboratoire Énergie (staging). Ne pilote AUCUN calcul : visibilité de l'onglet seul. */
+  energyLabEnabled: boolean;
   initial: {
     config: QuadrantModelConfig | null;
     dataQuality: QuadrantDataQuality;
@@ -192,6 +207,16 @@ export function QuadrantsView({
     }
   };
   const vsBrowneMode: "nominal" | "real" = perfMode === "real" ? "real" : "nominal";
+
+  // Onglet INTERNE « Énergie » (gated). Calcul SERVEUR (moteur + 5ᵉ poche hors bundle client).
+  // La stratégie active de la page (Continue/Régime) = la stratégie du labo (mêmes IDs moteur).
+  const [energyLab, setEnergyLab] = useState<
+    Awaited<ReturnType<typeof loadEnergyLabComparison>> | undefined
+  >(undefined);
+  const [energyLabLoading, setEnergyLabLoading] = useState(false);
+  // Mode restreint (Nominal / Réel) partagé avec « vs Browne » — la bascule est instantanée
+  // (les deux modes + leurs crises sont déjà dans les données ; aucun aller-retour serveur).
+  const energyLabMode = vsBrowneMode;
 
   const settings = useMemo<FourQuadrantsModelSettings>(
     () => ({ ...DEFAULT_FOUR_QUADRANTS_SETTINGS, strategy, transitionWidth }),
@@ -275,6 +300,24 @@ export function QuadrantsView({
     };
   }, [tab, country, period, vsBrowneMode, costBps, transitionWidth]);
 
+  // Onglet « Énergie » (gated) : recharge au changement de pays / stratégie. Le mode reste
+  // client-side (données des deux modes déjà présentes). Ne tourne JAMAIS si le labo est off.
+  useEffect(() => {
+    if (!energyLabEnabled || tab !== "energie") return;
+    let ignore = false;
+    setEnergyLabLoading(true);
+    loadEnergyLabComparison(country, strategy)
+      .then((r) => {
+        if (!ignore) setEnergyLab(r);
+      })
+      .finally(() => {
+        if (!ignore) setEnergyLabLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [energyLabEnabled, tab, country, strategy]);
+
   // Depuis la comparaison → Vue pays : conserve stratégie / T / période / mode (état).
   function onPickCountry(iso: string) {
     setTab("country");
@@ -294,7 +337,9 @@ export function QuadrantsView({
   // liste de 5 champs strictement identiques (Control + SelectDropdown), partagée par
   // tous les onglets — seuls les items/valeurs varient. Aucune implémentation parallèle.
   const renderControls = () => {
-    const fields: { key: string; label: string; node: React.ReactNode }[] = [
+    // Mode restreint (Nominal / Réel) pour « vs Browne » et le labo « Énergie ».
+    const restrictedMode = tab === "vs_browne" || tab === "energie";
+    const fields: ({ key: string; label: string; node: React.ReactNode } | null)[] = [
       isRegionTab
         ? {
             key: "region",
@@ -320,18 +365,21 @@ export function QuadrantsView({
               />
             ),
           },
-      {
-        key: "period",
-        label: "Période",
-        node: (
-          <SelectDropdown
-            items={PERIOD_ITEMS}
-            value={period}
-            onChange={(i) => setPeriod(i.value as Period)}
-            width="w-full"
-          />
-        ),
-      },
+      // Le labo Énergie tourne sur l'historique COMPLET (concordance figée) → pas de période.
+      tab === "energie"
+        ? null
+        : {
+            key: "period",
+            label: "Période",
+            node: (
+              <SelectDropdown
+                items={PERIOD_ITEMS}
+                value={period}
+                onChange={(i) => setPeriod(i.value as Period)}
+                width="w-full"
+              />
+            ),
+          },
       {
         // Devise = LOCALE uniquement (V1) : même contrôle que les autres onglets ;
         // l'explication passe en note discrète sous la barre (cf. plus bas).
@@ -344,8 +392,8 @@ export function QuadrantsView({
         label: "Mode d’analyse",
         node: (
           <SelectDropdown
-            items={tab === "vs_browne" ? MODE_ITEMS_VS_BROWNE : MODE_ITEMS}
-            value={tab === "vs_browne" ? vsBrowneMode : perfMode}
+            items={restrictedMode ? MODE_ITEMS_VS_BROWNE : MODE_ITEMS}
+            value={restrictedMode ? vsBrowneMode : perfMode}
             onChange={(i) => setPerfMode(i.value as PerfMode)}
             width="w-full"
           />
@@ -377,10 +425,13 @@ export function QuadrantsView({
             ),
           },
     ];
+    const visibleFields = fields.filter(
+      (f): f is { key: string; label: string; node: React.ReactNode } => f !== null,
+    );
     return (
       <div className="space-y-2">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {fields.map((f) => (
+          {visibleFields.map((f) => (
             <Control key={f.key} label={f.label}>
               {f.node}
             </Control>
@@ -389,6 +440,11 @@ export function QuadrantsView({
         {tab === "vs_browne" && (
           <p className="text-xs text-muted-foreground">
             Résultats exprimés dans la devise locale du pays
+          </p>
+        )}
+        {tab === "energie" && (
+          <p className="text-xs text-muted-foreground">
+            Laboratoire interne · historique complet · devise locale du pays
           </p>
         )}
       </div>
@@ -416,24 +472,44 @@ export function QuadrantsView({
           },
           { label: "Coûts", value: `${costBps} bps` },
         ]
-      : [
-          isRegionTab
-            ? {
-                label: "Région",
-                value: REGION_ITEMS.find((i) => i.value === region)?.label ?? region,
-              }
-            : { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
-          {
-            label: "Période",
-            value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period,
-          },
-          { label: "Devise", value: "Locale" },
-          { label: "Mode", value: MODE_ITEMS.find((i) => i.value === perfMode)?.label ?? perfMode },
-          {
-            label: "Stratégie",
-            value: STRATEGY_ITEMS.find((i) => i.value === strategy)?.label ?? strategy,
-          },
-        ];
+      : tab === "energie"
+        ? [
+            { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
+            { label: "Devise", value: "Locale" },
+            {
+              label: "Mode",
+              value:
+                MODE_ITEMS_VS_BROWNE.find((i) => i.value === energyLabMode)?.label ?? energyLabMode,
+            },
+            {
+              label: "Stratégie",
+              value: STRATEGY_ITEMS.find((i) => i.value === strategy)?.label ?? strategy,
+            },
+          ]
+        : [
+            isRegionTab
+              ? {
+                  label: "Région",
+                  value: REGION_ITEMS.find((i) => i.value === region)?.label ?? region,
+                }
+              : {
+                  label: "Pays",
+                  value: countries.find((c) => c.iso === country)?.nameFr ?? country,
+                },
+            {
+              label: "Période",
+              value: PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period,
+            },
+            { label: "Devise", value: "Locale" },
+            {
+              label: "Mode",
+              value: MODE_ITEMS.find((i) => i.value === perfMode)?.label ?? perfMode,
+            },
+            {
+              label: "Stratégie",
+              value: STRATEGY_ITEMS.find((i) => i.value === strategy)?.label ?? strategy,
+            },
+          ];
 
   const reglagesButton = (
     <Button
@@ -446,6 +522,11 @@ export function QuadrantsView({
       Réglages
     </Button>
   );
+
+  // L'onglet interne « Énergie » n'apparaît QUE si le labo est activé (gate serveur). Off ⇒
+  // onglet absent et branche de rendu inaccessible : l'ouvrir ne changerait de toute façon
+  // AUCUN calcul public (visibilité ≠ activation moteur).
+  const tabs = energyLabEnabled ? [...TABS, ENERGY_TAB] : TABS;
 
   return (
     <>
@@ -460,7 +541,7 @@ export function QuadrantsView({
         </div>
       )}
       <ModelStickyControls
-        tabs={TABS}
+        tabs={tabs}
         activeTab={tab}
         onTabChange={(k) => setTab(k as Tab)}
         headerExtra={reglagesButton}
@@ -468,7 +549,11 @@ export function QuadrantsView({
         renderControls={renderControls}
         summary={summary}
         sections={SECTIONS[tab]}
-        loading={pending || (tab === "vs_browne" && vsBrowneLoading)}
+        loading={
+          pending ||
+          (tab === "vs_browne" && vsBrowneLoading) ||
+          (tab === "energie" && energyLabLoading)
+        }
       >
         {tab === "country" ? (
           <div className={cn(pending && "pointer-events-none opacity-60 transition-opacity")}>
@@ -532,6 +617,31 @@ export function QuadrantsView({
           ) : (
             <Card className="p-8 text-center text-sm text-muted-foreground">
               Données insuffisantes pour comparer les modèles sur ce pays.
+            </Card>
+          )
+        ) : tab === "energie" && energyLabEnabled ? (
+          energyLab === undefined ? (
+            // Premier chargement uniquement : aucun contenu antérieur à préserver.
+            <Card className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+              Calcul du laboratoire Énergie…
+            </Card>
+          ) : energyLab ? (
+            // Recalcul (pays / stratégie) : on GARDE le contenu précédent monté (juste atténué)
+            // pour préserver la hauteur et la position de scroll, comme les autres onglets.
+            <div
+              className={cn(
+                energyLabLoading && "pointer-events-none opacity-60 transition-opacity",
+              )}
+            >
+              <EnergyLabView
+                comparison={energyLab.comparison}
+                crises={energyLab.crises}
+                mode={energyLabMode}
+              />
+            </div>
+          ) : (
+            <Card className="p-8 text-center text-sm text-muted-foreground">
+              Données insuffisantes pour le laboratoire Énergie sur ce pays.
             </Card>
           )
         ) : (
