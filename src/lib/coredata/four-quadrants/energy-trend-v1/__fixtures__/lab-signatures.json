@@ -1,0 +1,650 @@
+{
+  "US:dynamic": {
+    "strategy": "dynamic",
+    "countryCode": "US",
+    "standard": {
+      "label": "4Q Continue",
+      "overlay": "off",
+      "metricsNominal": {
+        "months": 493,
+        "annualized": 9.328469801309236,
+        "volatility": 7.5131436272167225,
+        "sharpe": 0.7564587687549071,
+        "maxDrawdown": -11.330584842141567,
+        "maxUnderwaterMonths": 27
+      },
+      "contributions": {
+        "equities": 175.55900119005315,
+        "bonds": 82.45397050892545,
+        "gold": 93.77634401739328,
+        "cash": 26.735390834171614,
+        "energy": 0
+      },
+      "turnoverAnnualized": 0.2418710944,
+      "held": {
+        "equities": 0.3934242694,
+        "bonds": 0.0267537211,
+        "gold": 0.4732462789,
+        "cash": 0.1065757306,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.3934242694,
+        "bonds": 0.0267537211,
+        "gold": 0.4732462789,
+        "cash": 0.1065757306,
+        "energy": 0
+      }
+    },
+    "energy": {
+      "label": "4Q Continue + Énergie",
+      "overlay": "trend-v1",
+      "metricsNominal": {
+        "months": 378,
+        "annualized": 10.41844327306707,
+        "volatility": 7.641504083462644,
+        "sharpe": 1.0005585414988531,
+        "maxDrawdown": -10.8244714939992,
+        "maxUnderwaterMonths": 28
+      },
+      "contributions": {
+        "equities": 126.83552189463352,
+        "bonds": 44.726854858976,
+        "gold": 88.617581076655,
+        "cash": 14.900570382918424,
+        "energy": 46.67085188333583
+      },
+      "turnoverAnnualized": 0.4121475295,
+      "held": {
+        "equities": 0.3934242694,
+        "bonds": 0.0267537211,
+        "gold": 0.4732462789,
+        "cash": 0.1065757306,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.3934242694,
+        "bonds": 0.0267537211,
+        "gold": 0.4732462789,
+        "cash": 0.1065757306,
+        "energy": 0
+      }
+    },
+    "signal": {
+      "lastMonth": "2026-06-30",
+      "status": "inactive",
+      "heldWeight": 0,
+      "targetWeight": 0,
+      "reallocationRequired": false,
+      "activeMonths": 228,
+      "unavailableMonths": 120
+    }
+  },
+  "FR:dynamic": {
+    "strategy": "dynamic",
+    "countryCode": "FR",
+    "standard": {
+      "label": "4Q Continue",
+      "overlay": "off",
+      "metricsNominal": {
+        "months": 265,
+        "annualized": 7.213397706447977,
+        "volatility": 7.304150130840199,
+        "sharpe": 0.8279696606643488,
+        "maxDrawdown": -12.848982714385516,
+        "maxUnderwaterMonths": 27
+      },
+      "contributions": {
+        "equities": 44.18833102306372,
+        "bonds": 15.372043966324842,
+        "gold": 91.62629831390463,
+        "cash": 8.318728447685892,
+        "energy": 0
+      },
+      "turnoverAnnualized": 0.3236144165,
+      "held": {
+        "equities": 0.3022204809,
+        "bonds": 0.0570619176,
+        "gold": 0.4429380824,
+        "cash": 0.1977795191,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.3022204809,
+        "bonds": 0.0570619176,
+        "gold": 0.4429380824,
+        "cash": 0.1977795191,
+        "energy": 0
+      }
+    },
+    "energy": {
+      "label": "4Q Continue + Énergie",
+      "overlay": "trend-v1",
+      "metricsNominal": {
+        "months": 265,
+        "annualized": 8.234185212889255,
+        "volatility": 7.137890328668531,
+        "sharpe": 0.9902648942818659,
+        "maxDrawdown": -12.657770534351975,
+        "maxUnderwaterMonths": 27
+      },
+      "contributions": {
+        "equities": 43.7895912319589,
+        "bonds": 14.803590345073111,
+        "gold": 88.04027004527696,
+        "cash": 7.852703890070099,
+        "energy": 25.717491674457477
+      },
+      "turnoverAnnualized": 0.501080213,
+      "held": {
+        "equities": 0.3022204809,
+        "bonds": 0.0570619176,
+        "gold": 0.4429380824,
+        "cash": 0.1977795191,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.3022204809,
+        "bonds": 0.0570619176,
+        "gold": 0.4429380824,
+        "cash": 0.1977795191,
+        "energy": 0
+      }
+    },
+    "signal": {
+      "lastMonth": "2026-06-30",
+      "status": "inactive",
+      "heldWeight": 0,
+      "targetWeight": 0,
+      "reallocationRequired": false,
+      "activeMonths": 155,
+      "unavailableMonths": 0
+    }
+  },
+  "JP:dynamic": {
+    "strategy": "dynamic",
+    "countryCode": "JP",
+    "standard": {
+      "label": "4Q Continue",
+      "overlay": "off",
+      "metricsNominal": {
+        "months": 493,
+        "annualized": 6.184034353600909,
+        "volatility": 7.385426440300062,
+        "sharpe": 0.6564064634225099,
+        "maxDrawdown": -18.968209020530658,
+        "maxUnderwaterMonths": 45
+      },
+      "contributions": {
+        "equities": 91.6001418500244,
+        "bonds": 50.14075824723723,
+        "gold": 105.02048073415051,
+        "cash": 11.016074962729162,
+        "energy": 0
+      },
+      "turnoverAnnualized": 0.2518103999,
+      "held": {
+        "equities": 0.3151150305,
+        "bonds": 0.0163698175,
+        "gold": 0.4836301825,
+        "cash": 0.1848849695,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.3151150305,
+        "bonds": 0.0163698175,
+        "gold": 0.4836301825,
+        "cash": 0.1848849695,
+        "energy": 0
+      }
+    },
+    "energy": {
+      "label": "4Q Continue + Énergie",
+      "overlay": "trend-v1",
+      "metricsNominal": {
+        "months": 378,
+        "annualized": 7.86253734951432,
+        "volatility": 7.283247794556146,
+        "sharpe": 1.0409373563362083,
+        "maxDrawdown": -12.070040214462363,
+        "maxUnderwaterMonths": 27
+      },
+      "contributions": {
+        "equities": 57.167157865159034,
+        "bonds": 24.485673419441998,
+        "gold": 111.34641476884697,
+        "cash": 2.599605900948109,
+        "energy": 51.23145896545945
+      },
+      "turnoverAnnualized": 0.4523917534,
+      "held": {
+        "equities": 0.3151150305,
+        "bonds": 0.0163698175,
+        "gold": 0.4836301825,
+        "cash": 0.1848849695,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.3151150305,
+        "bonds": 0.0163698175,
+        "gold": 0.4836301825,
+        "cash": 0.1848849695,
+        "energy": 0
+      }
+    },
+    "signal": {
+      "lastMonth": "2026-06-30",
+      "status": "inactive",
+      "heldWeight": 0,
+      "targetWeight": 0,
+      "reallocationRequired": false,
+      "activeMonths": 228,
+      "unavailableMonths": 120
+    }
+  },
+  "BR:dynamic": {
+    "strategy": "dynamic",
+    "countryCode": "BR",
+    "standard": {
+      "label": "4Q Continue",
+      "overlay": "off",
+      "metricsNominal": {
+        "months": 213,
+        "annualized": 11.962930174324015,
+        "volatility": 8.101550404459704,
+        "sharpe": 0.30245492893778686,
+        "maxDrawdown": -12.889327579980925,
+        "maxUnderwaterMonths": 23
+      },
+      "contributions": {
+        "equities": 48.55398398953783,
+        "bonds": 46.50359665977039,
+        "gold": 66.39150961608117,
+        "cash": 44.86054351265083,
+        "energy": 0
+      },
+      "turnoverAnnualized": 0.3967549958,
+      "held": {
+        "equities": 0.2601511851,
+        "bonds": 0.0269453859,
+        "gold": 0.4486169776,
+        "cash": 0.2642864513,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.25,
+        "bonds": 0.0493262537,
+        "gold": 0.4506737463,
+        "cash": 0.25,
+        "energy": 0
+      }
+    },
+    "energy": {
+      "label": "4Q Continue + Énergie",
+      "overlay": "trend-v1",
+      "metricsNominal": {
+        "months": 213,
+        "annualized": 12.416575185008893,
+        "volatility": 7.5770139836982535,
+        "sharpe": 0.38326428706605453,
+        "maxDrawdown": -10.56456855611485,
+        "maxUnderwaterMonths": 20
+      },
+      "contributions": {
+        "equities": 47.55481849669811,
+        "bonds": 44.018710537643926,
+        "gold": 65.18119701345564,
+        "cash": 42.49533240289495,
+        "energy": 13.54574705983776
+      },
+      "turnoverAnnualized": 0.57371593,
+      "held": {
+        "equities": 0.25,
+        "bonds": 0.0493262537,
+        "gold": 0.4506737463,
+        "cash": 0.25,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.25,
+        "bonds": 0.0493262537,
+        "gold": 0.4506737463,
+        "cash": 0.25,
+        "energy": 0
+      }
+    },
+    "signal": {
+      "lastMonth": "2026-06-30",
+      "status": "inactive",
+      "heldWeight": 0,
+      "targetWeight": 0,
+      "reallocationRequired": false,
+      "activeMonths": 113,
+      "unavailableMonths": 0
+    }
+  },
+  "US:binary": {
+    "strategy": "binary",
+    "countryCode": "US",
+    "standard": {
+      "label": "4Q Régime",
+      "overlay": "off",
+      "metricsNominal": {
+        "months": 493,
+        "annualized": 10.648517646256916,
+        "volatility": 9.042080705989344,
+        "sharpe": 0.774537570543011,
+        "maxDrawdown": -15.009819151820015,
+        "maxUnderwaterMonths": 22
+      },
+      "contributions": {
+        "equities": 214.13550837437487,
+        "bonds": 92.9692698540331,
+        "gold": 110.05519627540352,
+        "cash": 16.130591666001077,
+        "energy": 0
+      },
+      "turnoverAnnualized": 0.4562078476,
+      "held": {
+        "equities": 0.5287477629,
+        "bonds": 0,
+        "gold": 0.4712522371,
+        "cash": 0,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      }
+    },
+    "energy": {
+      "label": "4Q Régime + Énergie",
+      "overlay": "trend-v1",
+      "metricsNominal": {
+        "months": 378,
+        "annualized": 11.526734794085991,
+        "volatility": 8.685344135773947,
+        "sharpe": 1.0079121293039892,
+        "maxDrawdown": -12.431218700028513,
+        "maxUnderwaterMonths": 22
+      },
+      "contributions": {
+        "equities": 144.9457488435451,
+        "bonds": 47.05392652394337,
+        "gold": 103.41227941124893,
+        "cash": 13.408374241059079,
+        "energy": 47.23956821201657
+      },
+      "turnoverAnnualized": 0.6732115564,
+      "held": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      }
+    },
+    "signal": {
+      "lastMonth": "2026-06-30",
+      "status": "inactive",
+      "heldWeight": 0,
+      "targetWeight": 0,
+      "reallocationRequired": false,
+      "activeMonths": 228,
+      "unavailableMonths": 120
+    }
+  },
+  "FR:binary": {
+    "strategy": "binary",
+    "countryCode": "FR",
+    "standard": {
+      "label": "4Q Régime",
+      "overlay": "off",
+      "metricsNominal": {
+        "months": 265,
+        "annualized": 7.639657827007018,
+        "volatility": 8.588537611423618,
+        "sharpe": 0.7537808086467894,
+        "maxDrawdown": -19.058012904985986,
+        "maxUnderwaterMonths": 55
+      },
+      "contributions": {
+        "equities": 40.8731362334451,
+        "bonds": 21.248983465378778,
+        "gold": 98.04733097325406,
+        "cash": 10.357447058863906,
+        "energy": 0
+      },
+      "turnoverAnnualized": 0.5766077313,
+      "held": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      }
+    },
+    "energy": {
+      "label": "4Q Régime + Énergie",
+      "overlay": "trend-v1",
+      "metricsNominal": {
+        "months": 265,
+        "annualized": 8.583099485325985,
+        "volatility": 8.369422366797027,
+        "sharpe": 0.8862399529000983,
+        "maxDrawdown": -19.12209884836623,
+        "maxUnderwaterMonths": 54
+      },
+      "contributions": {
+        "equities": 40.60947778526283,
+        "bonds": 20.25353689223087,
+        "gold": 92.31951848648873,
+        "cash": 9.64901873301847,
+        "energy": 26.593400922646726
+      },
+      "turnoverAnnualized": 0.7687197617,
+      "held": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      }
+    },
+    "signal": {
+      "lastMonth": "2026-06-30",
+      "status": "inactive",
+      "heldWeight": 0,
+      "targetWeight": 0,
+      "reallocationRequired": false,
+      "activeMonths": 155,
+      "unavailableMonths": 0
+    }
+  },
+  "JP:binary": {
+    "strategy": "binary",
+    "countryCode": "JP",
+    "standard": {
+      "label": "4Q Régime",
+      "overlay": "off",
+      "metricsNominal": {
+        "months": 493,
+        "annualized": 7.314393936745089,
+        "volatility": 8.98467954147344,
+        "sharpe": 0.6653772353363475,
+        "maxDrawdown": -25.683764619289274,
+        "maxUnderwaterMonths": 67
+      },
+      "contributions": {
+        "equities": 94.22071590746862,
+        "bonds": 60.155211440323995,
+        "gold": 144.19808948170518,
+        "cash": 8.23106963446936,
+        "energy": 0
+      },
+      "turnoverAnnualized": 0.4549089489,
+      "held": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      }
+    },
+    "energy": {
+      "label": "4Q Régime + Énergie",
+      "overlay": "trend-v1",
+      "metricsNominal": {
+        "months": 378,
+        "annualized": 9.002374310093497,
+        "volatility": 8.588425307857827,
+        "sharpe": 1.015464576190309,
+        "maxDrawdown": -15.052162993530338,
+        "maxUnderwaterMonths": 27
+      },
+      "contributions": {
+        "equities": 64.6053615822357,
+        "bonds": 25.03480759080895,
+        "gold": 136.0015659131661,
+        "cash": 2.8397466113895655,
+        "energy": 54.84105209532816
+      },
+      "turnoverAnnualized": 0.6882837557,
+      "held": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.5,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0,
+        "energy": 0
+      }
+    },
+    "signal": {
+      "lastMonth": "2026-06-30",
+      "status": "inactive",
+      "heldWeight": 0,
+      "targetWeight": 0,
+      "reallocationRequired": false,
+      "activeMonths": 228,
+      "unavailableMonths": 120
+    }
+  },
+  "BR:binary": {
+    "strategy": "binary",
+    "countryCode": "BR",
+    "standard": {
+      "label": "4Q Régime",
+      "overlay": "off",
+      "metricsNominal": {
+        "months": 213,
+        "annualized": 11.429893927189006,
+        "volatility": 10.66216838750833,
+        "sharpe": 0.17982435983453948,
+        "maxDrawdown": -23.160809687264173,
+        "maxUnderwaterMonths": 35
+      },
+      "contributions": {
+        "equities": 57.23381751928511,
+        "bonds": 42.37093881997835,
+        "gold": 55.153458716713956,
+        "cash": 47.50545890447606,
+        "energy": 0
+      },
+      "turnoverAnnualized": 1.2010723622,
+      "held": {
+        "equities": 0.2608083785,
+        "bonds": 0,
+        "gold": 0.4742375302,
+        "cash": 0.2649540913,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.25,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0.25,
+        "energy": 0
+      }
+    },
+    "energy": {
+      "label": "4Q Régime + Énergie",
+      "overlay": "trend-v1",
+      "metricsNominal": {
+        "months": 213,
+        "annualized": 11.804724560323265,
+        "volatility": 10.183890413920473,
+        "sharpe": 0.22507589385809237,
+        "maxDrawdown": -23.763272723638018,
+        "maxUnderwaterMonths": 33
+      },
+      "contributions": {
+        "equities": 55.93048899256839,
+        "bonds": 39.37538006508572,
+        "gold": 53.57281414409377,
+        "cash": 44.86280879491411,
+        "energy": 13.624993501370874
+      },
+      "turnoverAnnualized": 1.348751481,
+      "held": {
+        "equities": 0.25,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0.25,
+        "energy": 0
+      },
+      "target": {
+        "equities": 0.25,
+        "bonds": 0,
+        "gold": 0.5,
+        "cash": 0.25,
+        "energy": 0
+      }
+    },
+    "signal": {
+      "lastMonth": "2026-06-30",
+      "status": "inactive",
+      "heldWeight": 0,
+      "targetWeight": 0,
+      "reallocationRequired": false,
+      "activeMonths": 113,
+      "unavailableMonths": 0
+    }
+  }
+}
