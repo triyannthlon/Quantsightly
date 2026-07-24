@@ -1,0 +1,5 @@
+# Fige les octets des instantanés de données (CSV/JSON/sha256) : pas de conversion de fins de
+# ligne, checksums SHA-256 stables à travers les checkouts et systèmes (core.autocrlf sans effet).
+# Portée limitée au répertoire de l'expérience ; n'affecte ni le produit ni les goldens/fixtures.
+output/** -text
+output-audit/** -text
