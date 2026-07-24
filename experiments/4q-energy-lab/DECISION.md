@@ -15,20 +15,28 @@
 - L'amélioration du drawdown net n'est pas universelle sur les très longues fenêtres, mais l'apport
   rendement/risque après coûts est jugé suffisant pour conserver la surcouche.
 
+## Mise en production (2026-07-24)
+
+L'**onglet Énergie devient une fonctionnalité publique autonome** : sa visibilité et sa route ne
+dépendent plus d'aucune variable d'environnement. Le flag de gate historique a été **entièrement
+supprimé** (code, tests, documentation), sans flag de remplacement.
+
 ## Portée exacte de la décision
 
-- `energy-trend-v1` reste **intégré mais dormant** : **aucune activation par défaut**, gate UI interne
-  inchangée (`QS_ENERGY_LAB_ENABLED` off par défaut), sélection de variante inchangée
-  (`QS_ENERGY_OVERLAY` off par défaut).
-- Les pages publiques restent `4q-standard-v2` (`overlay:"off"` explicite). La surcouche Énergie est
-  une exposition **optionnelle et distincte**, jamais un cinquième pilier permanent du modèle public.
-- **Rien n'a été modifié** : ni formule, ni poids, ni règle d'activation, ni financement au prorata,
-  ni golden, ni fixture, ni flag, ni interface. Cette décision est un choix de **conservation**, pas
-  une mise en production publique ni une ré-optimisation.
+- L'onglet Énergie est **toujours visible** et sa route **toujours accessible**, sans variable
+  d'environnement.
+- Les pages publiques autres que l'onglet Énergie restent `4q-standard-v2` (`overlay:"off"`
+  explicite). La surcouche Énergie est une exposition **optionnelle et distincte**, jamais un
+  cinquième pilier permanent du modèle public.
+- Le modèle standard reste strictement à **quatre poches** (Actions, Obligations, Or, Liquidités) ;
+  la 5ᵉ poche `energy` n'apparaît QUE dans la comparaison de l'onglet Énergie.
+- **Rien du modèle n'a été modifié** : ni formule, ni poids, ni règle d'activation, ni financement
+  au prorata, ni golden, ni fixture. Aucune ré-optimisation.
 
 ## Ce que cette décision n'est PAS
 
-- Ce n'est pas une activation publique par défaut.
-- Ce n'est pas une validation de robustesse hors-échantillon de niveau « production » : le bootstrap
-  OOS n'a pas été relancé dans cette étude (cf. `DECISION-CRITERIA.md`, seuil production non traité).
-  Toute évolution vers une activation publique resterait subordonnée à ce palier.
+- Ce n'est **pas** un changement du portefeuille 4 Quadrants de référence : la surcouche n'est pas
+  appliquée au modèle standard des autres pages, elle reste une comparaison propre à l'onglet Énergie.
+- Ce n'est pas une validation de robustesse hors-échantillon de niveau « production » au sens du
+  bootstrap : le bootstrap OOS n'a pas été relancé (cf. `DECISION-CRITERIA.md`). Cela n'empêche pas la
+  mise à disposition publique de l'onglet de comparaison, qui ne modifie pas le modèle de référence.

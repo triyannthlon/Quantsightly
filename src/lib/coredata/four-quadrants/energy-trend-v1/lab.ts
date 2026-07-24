@@ -1,13 +1,13 @@
-// ─── Laboratoire Énergie — contrats + assembleur PUR (aucune DB) ──────────────
+// ─── Onglet Énergie — contrats + assembleur PUR (aucune DB) ───────────────────
 //
 // Compare, pour UNE stratégie 4Q (Continue/Régime), le socle « standard » (overlay off,
 // `energyMode:"disabled"`) à sa variante « + Énergie » (overlay trend-v1, `energyMode:"trend"`).
 // RÉUTILISE les sorties moteur (`BacktestResult`, `QuadrantModel`) sans AUCUN recalcul : le
 // service serveur fournit les deux modèles via `getCountryQuadrantModel(..., "off"|"trend-v1")`.
 //
-// ⚠️ INTERNE / staging UNIQUEMENT (gate `QS_ENERGY_LAB_ENABLED`). Ne touche RIEN de public :
-// aucune formule / poids / golden / modèle standard modifié. La 5ᵉ poche `energy` n'existe QUE
-// dans cette structure de labo.
+// ⚠️ Le modèle standard 4Q n'est JAMAIS modifié : aucune formule / poids / golden touché. La 5ᵉ
+// poche `energy` n'existe QUE dans cette structure de comparaison de l'onglet Énergie — elle ne
+// fuit jamais vers les autres pages (qui restent `overlay:"off"`, quatre poches).
 
 import type { BacktestMetrics, BacktestResult, FinalAllocation, QuadrantModel } from "../index";
 

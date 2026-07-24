@@ -72,18 +72,16 @@ const MODEL_REASON: Record<Exclude<QuadrantModelStatus, "OK">, AvailabilityReaso
 type Tab = "country" | "comparison" | "vs_actions" | "vs_browne" | "methodology" | "energie";
 type Period = "MAX" | "20A" | "10A" | "5A";
 
-// Onglets PUBLICS (toujours affichés). L'onglet interne « Énergie » est ajouté à l'exécution
-// uniquement quand le labo est activé (gate `QS_ENERGY_LAB_ENABLED`, cf. `energyLabEnabled`).
+// Onglets PUBLICS (tous toujours affichés). « Énergie » est une fonctionnalité publique à part
+// entière : aucune variable d'environnement ne conditionne sa visibilité.
 const TABS: { key: Tab; label: string; icon: typeof LineChart; ready: boolean }[] = [
   { key: "country", label: "Vue pays", icon: LineChart, ready: true },
   { key: "comparison", label: "Comparaison pays", icon: Table2, ready: true },
   { key: "vs_actions", label: "4 Quadrants vs Actions", icon: Swords, ready: true },
   { key: "vs_browne", label: "4 Quadrants vs Browne", icon: Scale, ready: true },
   { key: "methodology", label: "Méthodologie", icon: BookOpen, ready: true },
+  { key: "energie", label: "Énergie", icon: Zap, ready: true },
 ];
-
-// Onglet INTERNE gated (staging) — jamais dans `TABS` par défaut : visibilité ≠ calcul.
-const ENERGY_TAB = { key: "energie" as Tab, label: "Énergie", icon: Zap, ready: true };
 
 // Navigation interne par onglet.
 const SECTIONS: Record<Tab, StickyNavSection[]> = {
@@ -199,13 +197,10 @@ function Control({
 export function QuadrantsView({
   countries,
   defaultCountry,
-  energyLabEnabled,
   initial,
 }: {
   countries: { iso: string; nameFr: string }[];
   defaultCountry: string;
-  /** Gate UI du laboratoire Énergie (staging). Ne pilote AUCUN calcul : visibilité de l'onglet seul. */
-  energyLabEnabled: boolean;
   initial: {
     config: QuadrantModelConfig | null;
     dataQuality: QuadrantDataQuality;
@@ -350,11 +345,11 @@ export function QuadrantsView({
     };
   }, [tab, country, period, vsBrowneMode, costBps, transitionWidth]);
 
-  // Onglet « Énergie » (gated) : recharge au changement de pays / stratégie / sous-période. Le mode
-  // reste client-side (les deux modes sont déjà dans les données). Ne tourne JAMAIS si le labo est off.
+  // Onglet « Énergie » : recharge au changement de pays / stratégie / sous-période. Le mode reste
+  // client-side (les deux modes sont déjà dans les données).
   // `PERIOD_YEARS[period]` (null pour « Historique commun ») = sous-période appliquée aux 2 variantes.
   useEffect(() => {
-    if (!energyLabEnabled || tab !== "energie") return;
+    if (tab !== "energie") return;
     let ignore = false;
     setEnergyLabLoading(true);
     loadEnergyLabComparison(country, strategy, PERIOD_YEARS[period])
@@ -367,7 +362,7 @@ export function QuadrantsView({
     return () => {
       ignore = true;
     };
-  }, [energyLabEnabled, tab, country, strategy, period]);
+  }, [tab, country, strategy, period]);
 
   // Depuis la comparaison → Vue pays : conserve stratégie / T / période / mode (état).
   function onPickCountry(iso: string) {
@@ -507,8 +502,8 @@ export function QuadrantsView({
         )}
         {tab === "energie" && (
           <p className="text-xs text-muted-foreground">
-            Laboratoire interne · comparaison sur une fenêtre strictement commune · historique
-            commun par défaut
+            Comparaison sur une fenêtre strictement commune · historique commun par défaut · devise
+            locale
           </p>
         )}
       </div>
@@ -591,11 +586,6 @@ export function QuadrantsView({
     </Button>
   );
 
-  // L'onglet interne « Énergie » n'apparaît QUE si le labo est activé (gate serveur). Off ⇒
-  // onglet absent et branche de rendu inaccessible : l'ouvrir ne changerait de toute façon
-  // AUCUN calcul public (visibilité ≠ activation moteur).
-  const tabs = energyLabEnabled ? [...TABS, ENERGY_TAB] : TABS;
-
   return (
     <>
       {IS_STAGING_V2 && (
@@ -609,7 +599,7 @@ export function QuadrantsView({
         </div>
       )}
       <ModelStickyControls
-        tabs={tabs}
+        tabs={TABS}
         activeTab={tab}
         onTabChange={(k) => setTab(k as Tab)}
         headerExtra={reglagesButton}
@@ -687,7 +677,7 @@ export function QuadrantsView({
               Données insuffisantes pour comparer les modèles sur ce pays.
             </Card>
           )
-        ) : tab === "energie" && energyLabEnabled ? (
+        ) : tab === "energie" ? (
           energyLab === undefined ? (
             // Premier chargement uniquement : aucun contenu antérieur à préserver.
             <Card className="flex h-64 items-center justify-center text-sm text-muted-foreground">

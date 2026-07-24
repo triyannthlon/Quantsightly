@@ -1,20 +1,21 @@
-// Configuration Énergie — DEUX flags SÉPARÉS (séparation stricte visibilité ≠ calcul) :
+// Configuration Énergie — sélection de VARIANTE de la surcouche (réservée aux scripts).
 //
-//   1. `QS_ENERGY_LAB_ENABLED=off|on` (gate UI SEUL) → visibilité de l'onglet interne
-//      « Énergie » (labo staging). **Ne participe à AUCUN calcul de portefeuille.**
+// `QS_ENERGY_OVERLAY=off|trend-v1` → **N'EST PAS lu dans un chemin de requête PRODUIT.** La variante
+// est un ARGUMENT EXPLICITE des services (`overlay: "off" | "trend-v1"`) : pages publiques = "off" ;
+// onglet Énergie = "off" (variante de référence) & "trend-v1" (variante avec surcouche).
+// `readEnergyOverlay` est conservé UNIQUEMENT pour les scripts / experiments / outils de concordance
+// — jamais pour piloter une page.
 //
-//   2. `QS_ENERGY_OVERLAY=off|trend-v1` (sélection de variante) → **N'EST PLUS lu dans un chemin
-//      de requête PRODUIT.** La variante est désormais un ARGUMENT EXPLICITE des services
-//      (`overlay: "off" | "trend-v1"`) : pages publiques = "off", labo = "off" & "trend-v1".
-//      `readEnergyOverlay` est conservé UNIQUEMENT pour les scripts / experiments / outils de
-//      concordance — jamais pour piloter une page.
+// ⚠️ L'onglet Énergie est une fonctionnalité PUBLIQUE : sa visibilité ne dépend d'AUCUNE variable
+// d'environnement. Le flag de gate historique a été supprimé lors de la mise en production ; aucun
+// flag de remplacement n'existe.
 //
-// Config SERVEUR (pas de `NEXT_PUBLIC_` ; l'UI reçoit une valeur transmise par le serveur).
+// Config SERVEUR (pas de `NEXT_PUBLIC_`).
 
 /** Version de la surcouche Énergie (interne). */
 export type EnergyOverlayVersion = "off" | "trend-v1";
 
-/** Défaut PRODUCTION : surcouche désactivée (public = v2, rollback). */
+/** Défaut : surcouche désactivée (variante de référence). */
 export const DEFAULT_ENERGY_OVERLAY: EnergyOverlayVersion = "off";
 
 /**
@@ -24,13 +25,4 @@ export const DEFAULT_ENERGY_OVERLAY: EnergyOverlayVersion = "off";
  */
 export function readEnergyOverlay(): EnergyOverlayVersion {
   return process.env.QS_ENERGY_OVERLAY?.trim() === "trend-v1" ? "trend-v1" : "off";
-}
-
-/**
- * Gate UI du laboratoire Énergie (staging). `on` ⇒ l'onglet interne « Énergie » est visible et
- * sa route accessible. **Ne participe à AUCUN calcul de portefeuille** : ouvrir le labo ne change
- * jamais les pages publiques (qui utilisent toujours `overlay: "off"` explicitement). Défaut `off`.
- */
-export function readEnergyLabEnabled(): boolean {
-  return process.env.QS_ENERGY_LAB_ENABLED?.trim() === "on";
 }

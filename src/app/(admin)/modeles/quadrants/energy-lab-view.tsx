@@ -1,5 +1,5 @@
-// Laboratoire Énergie — vue de l'onglet INTERNE gated (staging uniquement). Importé par
-// quadrants-view.tsx (la frontière cliente) : pas de directive `"use client"` redondante.
+// Onglet Énergie — vue de l'onglet public. Importé par quadrants-view.tsx (la frontière cliente) :
+// pas de directive `"use client"` redondante.
 //
 // Compare, pour UNE stratégie (Continue / Régime), le socle « 4 Quadrants » (4q-standard-v2) à sa
 // variante « 4 Quadrants + surcouche Énergie » (surcouche `energy-trend-v1`). La surcouche est une
@@ -9,7 +9,8 @@
 // Toutes les métriques comparatives, l'« Apport Énergie » et le verdict sont recalculés sur la
 // fenêtre STRICTEMENT commune (cf. `lab-window-metrics.ts`) — sinon on mélangerait l'effet de
 // l'Énergie et l'effet d'années de marché supplémentaires. RESTITUTION PURE (aucun recalcul
-// moteur). Ouvrir cet onglet ne change RIEN aux pages publiques. Aucun paramètre propriétaire.
+// moteur). La 5ᵉ poche `energy` reste cantonnée à cette comparaison : les autres pages restent
+// `overlay:"off"` (quatre poches). Aucun paramètre propriétaire exposé.
 
 import { useMemo } from "react";
 import { Info } from "lucide-react";
@@ -56,7 +57,7 @@ const VARIANT_COLOR = {
   energy: "#E8833A", // socle + surcouche Énergie (orange accent produit)
 } as const;
 
-/** Poches affichées dans le labo : les 4 cœur + la 5ᵉ poche `energy` (onglet gated seulement). */
+/** Poches affichées dans l'onglet Énergie : les 4 cœur + la 5ᵉ poche `energy` (jamais ailleurs). */
 const LAB_ALLOC_KEYS = ["equities", "bonds", "gold", "cash", "energy"] as const;
 type LabAllocKey = (typeof LAB_ALLOC_KEYS)[number];
 
@@ -1111,11 +1112,11 @@ function MethodologySection({ window }: { window: { start: string; end: string }
     <div className="space-y-3">
       <div className="grid gap-3 lg:grid-cols-2">
         {block(
-          "Ce que compare ce laboratoire",
+          "Ce que compare cet onglet",
           <>
-            Pour une même stratégie 4 Quadrants, il oppose le socle de référence à une variante
-            enrichie d’une <em>surcouche Énergie</em>. Objectif : mesurer l’apport marginal de cette
-            surcouche
+            Pour une même stratégie 4 Quadrants, il oppose le portefeuille de référence à une
+            variante enrichie d’une <em>surcouche Énergie</em>. Objectif : mesurer l’apport marginal
+            de cette surcouche
             {window
               ? ` sur la fenêtre commune ${formatMonthKey(window.start)} – ${formatMonthKey(window.end)}`
               : ""}
@@ -1132,12 +1133,12 @@ function MethodologySection({ window }: { window: { start: string; end: string }
         )}
         {block(
           "Fenêtre commune et portée",
-          "Toutes les métriques comparatives sont recalculées sur la fenêtre commune aux deux stratégies : l’historique antérieur éventuellement disponible pour le modèle de référence est exclu des écarts comparatifs. Environnement de recherche interne : la surcouche n’est jamais active sur les pages publiques, qui restent le socle 4q-standard-v2.",
+          "Toutes les métriques comparatives sont recalculées sur la fenêtre commune aux deux stratégies : l’historique antérieur éventuellement disponible pour le portefeuille de référence est exclu des écarts comparatifs. La surcouche Énergie est propre à cet onglet ; le modèle 4 Quadrants reste par ailleurs à quatre poches.",
         )}
       </div>
       <p className="text-xs text-muted-foreground">
         Les paramètres exacts de la règle d’activation (fenêtre de tendance, seuils, pondération,
-        financement) relèvent de la recherche interne et ne sont pas exposés.
+        financement) ne sont pas exposés.
       </p>
     </div>
   );
@@ -1332,12 +1333,12 @@ export function EnergyLabView({
   return (
     <TooltipProvider delayDuration={150}>
       <div className="space-y-8">
-        {/* Bandeau contexte + fenêtre comparative (UN SEUL bandeau expérimental persistant) */}
+        {/* Description produit + fenêtre comparative */}
         <div className="space-y-2">
-          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            Laboratoire interne — cette variante n’affecte jamais les pages publiques ni le modèle 4
-            Quadrants de référence.
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Mesurer l’apport d’une exposition conditionnelle aux matières premières énergétiques au
+            portefeuille 4 Quadrants.
+          </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span>
               Période comparative :{" "}

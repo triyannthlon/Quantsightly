@@ -627,8 +627,8 @@ export async function computeModelComparisonForCountry(
 }
 
 /**
- * LABORATOIRE ÉNERGIE (interne, gated `QS_ENERGY_LAB_ENABLED`) — comparaison socle 4Q vs socle
- * 4Q + Énergie pour UNE stratégie (Continue/Régime). Calcule EXPLICITEMENT les deux variantes :
+ * ONGLET ÉNERGIE (fonctionnalité publique) — comparaison socle 4Q vs socle 4Q + Énergie pour UNE
+ * stratégie (Continue/Régime). Calcule EXPLICITEMENT les deux variantes :
  * standard (`overlay:"off"` = `4q-standard-v2`) et énergie (`overlay:"trend-v1"` = candidat figé
  * `energy-trend-v1`). Overlay OBLIGATOIRE au bord produit (aucune lecture d'env). Ne touche RIEN
  * de public. `null` si le pays n'a pas de modèle exploitable dans les deux variantes.
