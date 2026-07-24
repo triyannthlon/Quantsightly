@@ -1,11 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { LineChart, Table2, Swords, Scale, BookOpen, SlidersHorizontal, Zap } from "lucide-react";
+import {
+  LineChart,
+  Table2,
+  Swords,
+  Scale,
+  BookOpen,
+  SlidersHorizontal,
+  Zap,
+  Info,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CountryFlag } from "@/components/ui/CountryFlag";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { SelectDropdown, type SelectItem } from "@/components/custom/ui/select-dropdown";
 import {
   buildModel,
@@ -110,6 +120,16 @@ const PERIOD_ITEMS: SelectItem[] = [
   { value: "5A", label: "5 ans" },
 ];
 const PERIOD_YEARS: Record<Period, number | null> = { MAX: null, "20A": 20, "10A": 10, "5A": 5 };
+// Labo Énergie : mêmes valeurs `Period` (MAX = `null` = pas de sous-fenêtrage) mais « MAX » se lit
+// « Historique commun » — sous-période d'analyse À L'INTÉRIEUR de la fenêtre commune aux 2 stratégies.
+const ENERGY_PERIOD_ITEMS: SelectItem[] = [
+  { value: "MAX", label: "Historique commun" },
+  { value: "20A", label: "20 ans" },
+  { value: "10A", label: "10 ans" },
+  { value: "5A", label: "5 ans" },
+];
+const ENERGY_PERIOD_TIP =
+  "Réduit la période d’évaluation des deux stratégies sans modifier les règles du modèle ni l’historique utilisé pour calculer le signal.";
 const DEVISE_ITEMS: SelectItem[] = [{ value: "local", label: "Locale" }];
 const MODE_ITEMS: SelectItem[] = [
   { value: "nominal", label: "Nominal" },
@@ -137,10 +157,40 @@ const COST_ITEMS: SelectItem[] = COST_BPS_OPTIONS.map((b) => ({
 }));
 const COST_STORAGE_KEY = "quantsightly:vs-browne-cost-bps";
 
-function Control({ label, children }: { label: string; children: React.ReactNode }) {
+function Control({
+  label,
+  tip,
+  children,
+}: {
+  label: string;
+  tip?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        {label}
+        {tip && (
+          // La barre de contrôles n'est pas enveloppée d'un TooltipProvider (chaque VUE a le sien) :
+          // on en fournit un local pour cette seule infobulle, cohérent avec le tooltip sombre partagé.
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`À propos : ${label}`}
+                  className="cursor-help text-muted-foreground/60 hover:text-foreground"
+                >
+                  <Info className="size-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-64">
+                {tip}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </span>
       {children}
     </div>
   );
@@ -300,13 +350,14 @@ export function QuadrantsView({
     };
   }, [tab, country, period, vsBrowneMode, costBps, transitionWidth]);
 
-  // Onglet « Énergie » (gated) : recharge au changement de pays / stratégie. Le mode reste
-  // client-side (données des deux modes déjà présentes). Ne tourne JAMAIS si le labo est off.
+  // Onglet « Énergie » (gated) : recharge au changement de pays / stratégie / sous-période. Le mode
+  // reste client-side (les deux modes sont déjà dans les données). Ne tourne JAMAIS si le labo est off.
+  // `PERIOD_YEARS[period]` (null pour « Historique commun ») = sous-période appliquée aux 2 variantes.
   useEffect(() => {
     if (!energyLabEnabled || tab !== "energie") return;
     let ignore = false;
     setEnergyLabLoading(true);
-    loadEnergyLabComparison(country, strategy)
+    loadEnergyLabComparison(country, strategy, PERIOD_YEARS[period])
       .then((r) => {
         if (!ignore) setEnergyLab(r);
       })
@@ -316,7 +367,7 @@ export function QuadrantsView({
     return () => {
       ignore = true;
     };
-  }, [energyLabEnabled, tab, country, strategy]);
+  }, [energyLabEnabled, tab, country, strategy, period]);
 
   // Depuis la comparaison → Vue pays : conserve stratégie / T / période / mode (état).
   function onPickCountry(iso: string) {
@@ -339,7 +390,8 @@ export function QuadrantsView({
   const renderControls = () => {
     // Mode restreint (Nominal / Réel) pour « vs Browne » et le labo « Énergie ».
     const restrictedMode = tab === "vs_browne" || tab === "energie";
-    const fields: ({ key: string; label: string; node: React.ReactNode } | null)[] = [
+    type Field = { key: string; label: string; node: React.ReactNode; tip?: string };
+    const fields: (Field | null)[] = [
       isRegionTab
         ? {
             key: "region",
@@ -365,9 +417,22 @@ export function QuadrantsView({
               />
             ),
           },
-      // Le labo Énergie tourne sur l'historique COMPLET (concordance figée) → pas de période.
+      // Période : le labo l'interprète comme une SOUS-PÉRIODE dans la fenêtre commune (défaut
+      // « Historique commun » = MAX = pas de sous-fenêtrage) ; les autres onglets = Max/20/10/5 ans.
       tab === "energie"
-        ? null
+        ? {
+            key: "period",
+            label: "Période",
+            tip: ENERGY_PERIOD_TIP,
+            node: (
+              <SelectDropdown
+                items={ENERGY_PERIOD_ITEMS}
+                value={period}
+                onChange={(i) => setPeriod(i.value as Period)}
+                width="w-full"
+              />
+            ),
+          }
         : {
             key: "period",
             label: "Période",
@@ -425,14 +490,12 @@ export function QuadrantsView({
             ),
           },
     ];
-    const visibleFields = fields.filter(
-      (f): f is { key: string; label: string; node: React.ReactNode } => f !== null,
-    );
+    const visibleFields = fields.filter((f): f is Field => f !== null);
     return (
       <div className="space-y-2">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {visibleFields.map((f) => (
-            <Control key={f.key} label={f.label}>
+            <Control key={f.key} label={f.label} tip={f.tip}>
               {f.node}
             </Control>
           ))}
@@ -444,7 +507,8 @@ export function QuadrantsView({
         )}
         {tab === "energie" && (
           <p className="text-xs text-muted-foreground">
-            Laboratoire interne · historique complet · devise locale du pays
+            Laboratoire interne · comparaison sur une fenêtre strictement commune · historique
+            commun par défaut
           </p>
         )}
       </div>
@@ -475,6 +539,10 @@ export function QuadrantsView({
       : tab === "energie"
         ? [
             { label: "Pays", value: countries.find((c) => c.iso === country)?.nameFr ?? country },
+            {
+              label: "Période",
+              value: ENERGY_PERIOD_ITEMS.find((i) => i.value === period)?.label ?? period,
+            },
             { label: "Devise", value: "Locale" },
             {
               label: "Mode",

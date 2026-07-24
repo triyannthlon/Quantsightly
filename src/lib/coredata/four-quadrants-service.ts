@@ -325,6 +325,7 @@ function runBacktest(
   perf: QuadrantPerfInput,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
   energyLocal: EconomicDataPoint[] | null = null,
+  windowYears: number | null = null,
 ): BacktestResult {
   if (model.status !== "OK")
     return {
@@ -336,8 +337,12 @@ function runBacktest(
     countryCode,
     weights: weightsFromModel(model),
     ...perf,
-    // `trend-v1` : perf de la 5ᵉ poche ; `off` : `undefined` (backtest v2 strict, fenêtre inchangée).
+    // `trend-v1` : perf de la 5ᵉ poche ; `off` : `undefined` (backtest v2 strict).
     energyTotalReturn: energyLocal ?? undefined,
+    // `windowYears` ne restreint QUE les sorties (perf/risque/rotation) : le modèle tourne toujours
+    // sur l'historique complet (chauffe du signal + poids détenus corrects à l'entrée). `null` (défaut)
+    // = fenêtre inchangée ⇒ comportement historique strictement identique pour tous les appelants.
+    windowYears,
     reallocationBand: REALLOCATION_BAND[version],
   });
 }
@@ -413,6 +418,7 @@ export async function getCountryQuadrantModel(
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
   overlay: EnergyOverlayVersion = "off",
+  windowYears: number | null = null,
 ): Promise<CountryQuadrantModel> {
   const ctx = await loadContext(overlay);
   const config = deriveQuadrantConfig(countryCode, ctx.series, ctx.countries);
@@ -433,7 +439,7 @@ export async function getCountryQuadrantModel(
 
   const { signal, perf, energyLocal } = await loadSeries(config, ctx);
   const model = buildModel(signal, overlaySettings(settings, ctx));
-  const backtest = runBacktest(countryCode, model, perf, version, energyLocal);
+  const backtest = runBacktest(countryCode, model, perf, version, energyLocal, windowYears);
   return { config, dataQuality: dataQualityOf(config, model), signal, perf, model, backtest };
 }
 
@@ -626,16 +632,24 @@ export async function computeModelComparisonForCountry(
  * standard (`overlay:"off"` = `4q-standard-v2`) et énergie (`overlay:"trend-v1"` = candidat figé
  * `energy-trend-v1`). Overlay OBLIGATOIRE au bord produit (aucune lecture d'env). Ne touche RIEN
  * de public. `null` si le pays n'a pas de modèle exploitable dans les deux variantes.
+ *
+ * `windowYears` (optionnel, défaut `null` = historique commun complet) = SOUS-PÉRIODE d'analyse
+ * appliquée IDENTIQUEMENT aux deux variantes : le signal, les allocations et les rééquilibrages sont
+ * toujours calculés sur tout l'historique (chauffe préservée) ; seule l'évaluation (perf/risque/
+ * rotation/contributions) est restreinte à la sous-période, rebasée à 100 à son début. `null`
+ * reproduit STRICTEMENT le comportement validé (concordance/fixtures inchangées) — outil de contrôle
+ * de robustesse du labo, jamais un changement des règles/poids/flags du modèle.
  */
 export async function computeEnergyLabComparison(
   countryCode: string,
   strategy: EnergyLabStrategy,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
+  windowYears: number | null = null,
 ): Promise<EnergyLabComparison | null> {
   const settings: FourQuadrantsModelSettings = { ...DEFAULT_FOUR_QUADRANTS_SETTINGS, strategy };
   const [standard, energy] = await Promise.all([
-    getCountryQuadrantModel(countryCode, settings, version, "off"),
-    getCountryQuadrantModel(countryCode, settings, version, "trend-v1"),
+    getCountryQuadrantModel(countryCode, settings, version, "off", windowYears),
+    getCountryQuadrantModel(countryCode, settings, version, "trend-v1", windowYears),
   ]);
   return buildEnergyLabComparison({
     strategy,

@@ -81,9 +81,22 @@ export async function loadModelComparison(countryCode: string, opts: BrowneCompa
  * publiques restent `4q-standard-v2` (`overlay:"off"` explicite). Le service calcule ici
  * EXPLICITEMENT les deux variantes (`"off"` + `"trend-v1"`). `null` si le pays n'a pas de
  * comparaison exploitable dans les deux variantes.
+ *
+ * `windowYears` (optionnel, `null` = historique commun complet) = sous-période d'analyse appliquée
+ * IDENTIQUEMENT aux deux variantes (contrôle de robustesse). Les crises sont dérivées des courbes
+ * déjà (sous-)fenêtrées ⇒ elles se limitent automatiquement aux épisodes de la sous-période.
  */
-export async function loadEnergyLabComparison(countryCode: string, strategy: EnergyLabStrategy) {
-  const comparison = await computeEnergyLabComparison(countryCode, strategy, ACTIVE_MODEL_VERSION);
+export async function loadEnergyLabComparison(
+  countryCode: string,
+  strategy: EnergyLabStrategy,
+  windowYears: number | null = null,
+) {
+  const comparison = await computeEnergyLabComparison(
+    countryCode,
+    strategy,
+    ACTIVE_MODEL_VERSION,
+    windowYears,
+  );
   if (!comparison) return null;
   const crises = await listHistoricalCrises();
   return {

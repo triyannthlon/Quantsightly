@@ -541,13 +541,23 @@ function signalStats(history: EnergySignalState["history"]): SignalStats {
 function SignalSection({
   comparison,
   stats,
+  window,
 }: {
   comparison: EnergyLabComparison;
   stats: SignalStats;
+  /** Fenêtre analysée (mois « YYYY-MM ») : mise en évidence sur la frise (le reste est atténué). */
+  window: { start: string; end: string };
 }) {
   const { signal } = comparison;
   const firstDate = signal.history[0]?.date ?? null;
   const lastDate = signal.history[stats.total - 1]?.date ?? null;
+  // La frise garde TOUT l'historique du signal (jamais tronqué) ; les mois hors de la sous-période
+  // analysée sont seulement atténués. `partial` = une vraie sous-période masque une partie de la frise.
+  const inWindow = (date: string) => {
+    const m = date.slice(0, 7);
+    return m >= window.start && m <= window.end;
+  };
+  const partial = signal.history.some((h) => !inWindow(h.date));
 
   const stat = (label: string, value: React.ReactNode) => (
     <div className="grid grid-cols-[auto_1fr] items-baseline gap-2">
@@ -622,7 +632,11 @@ function SignalSection({
               {signal.history.map((h) => (
                 <div
                   key={h.date}
-                  className={cn("h-full flex-1", signalCellClass[h.state])}
+                  className={cn(
+                    "h-full flex-1",
+                    signalCellClass[h.state],
+                    partial && !inWindow(h.date) && "opacity-30",
+                  )}
                   style={h.state === "active" ? { background: SLEEVE_META.energy.hex } : undefined}
                 />
               ))}
@@ -640,6 +654,12 @@ function SignalSection({
               {stats.unavailable > 0 ? ` · ${stats.unavailable} mois sans donnée Énergie` : ""}.
               Frise jamais interpolée : un mois sans série reste marqué indisponible.
             </p>
+            {partial && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Zone en pleine intensité = période analysée ({formatMonthKey(window.start)} –{" "}
+                {formatMonthKey(window.end)}) ; l’historique antérieur reste affiché, atténué.
+              </p>
+            )}
           </>
         ) : (
           <p className="text-sm text-muted-foreground">Aucun historique de signal disponible.</p>
@@ -1355,7 +1375,7 @@ export function EnergyLabView({
           title="Signal et allocation"
           subtitle="État courant, historique mensuel du signal et allocations détenues / cibles des deux variantes."
         >
-          <SignalSection comparison={comparison} stats={stats} />
+          <SignalSection comparison={comparison} stats={stats} window={commonWindow} />
         </Section>
 
         {/* 3. Performance */}
