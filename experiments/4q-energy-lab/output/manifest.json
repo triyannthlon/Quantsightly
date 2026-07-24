@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-07-24T12:13:27.481Z",
+  "sourceGitCommit": "50047d5",
+  "executedAtGitHash": "50047d578e2e3ccf1c21298d41c3d6457848d85f",
+  "gitBranch": "main",
+  "standardModel": "4q-standard-v2",
+  "energyOverlay": "energy-trend-v1",
+  "modelVersionParam": "default (DEFAULT_MODEL_VERSION)",
+  "subset": null,
+  "countries": [
+    "AU",
+    "BR",
+    "CA",
+    "CH",
+    "CN",
+    "DE",
+    "DK",
+    "ES",
+    "FR",
+    "GB",
+    "HK",
+    "ID",
+    "IN",
+    "IT",
+    "JP",
+    "KR",
+    "MX",
+    "NO",
+    "SE",
+    "SG",
+    "TW",
+    "US"
+  ],
+  "strategies": [
+    "dynamic",
+    "binary"
+  ],
+  "periods": [
+    "common",
+    "20y",
+    "10y",
+    "5y"
+  ],
+  "modes": [
+    "nominal",
+    "real"
+  ],
+  "rotationConvention": "Rotation UNIDIRECTIONNELLE (½·Σ|Δw|), annualisée sur la fenêtre analysée (mois de départ = constitution, exclu). Un rééquilibrage = achat + vente ⇒ volume échangé = 2 × rotation.",
+  "costAssumptionsBps": [
+    10,
+    25,
+    50
+  ],
+  "costConvention": "POST-TRAITEMENT uniquement (jamais injecté dans le backtest, résultats bruts inchangés). Coût annuel = 2 × rotation_unidirectionnelle × bps/10000 (aller-retour). Δnet = Δperf% − 2·Δturnover·(bps/10000)·100. NB : approximation annualisée ; l'audit produit en complément un net mensuel série par série.",
+  "statisticalExclusions": [
+    "Fenêtre < 60 mois → marquée statistically_insufficient et EXCLUE des agrégats (summary).",
+    "Danemark (historique commun ~21 mois) : ligne « commun » conservée mais exclue des agrégats ; horizons 5/10/20 ans = insufficient_history (jamais générés).",
+    "Horizon indisponible (historique commun < années × 12) → ligne insufficient_history, jamais supprimée."
+  ],
+  "minReliableMonths": 60,
+  "cmpCalls": 154,
+  "rowCounts": {
+    "metrics": 352,
+    "metricsOk": 308,
+    "signalAndTurnover": 176,
+    "signalOk": 154,
+    "crises": 1184,
+    "summary": 16
+  },
+  "checksumsExclude": [
+    "manifest.json (contient generatedAt/horodatage, non reproductible)"
+  ],
+  "warnings": [
+    "DK:dynamic:common — fenêtre 21 mois < 60 : exclu des agrégats.",
+    "DK:binary:common — fenêtre 21 mois < 60 : exclu des agrégats."
+  ],
+  "caveat": "Les pays et les horizons ne sont PAS statistiquement indépendants : marchés corrélés ; fenêtres emboîtées (5a ⊂ 10a ⊂ 20a ⊂ commun). Aucun score composite, aucune décision produit dans cet export."
+}
