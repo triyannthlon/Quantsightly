@@ -31,7 +31,13 @@ import {
   DEFAULT_MODEL_VERSION,
   type ModelVersion,
 } from "./four-quadrants";
-import { readEnergyOverlay, type EnergyOverlayVersion } from "./energy-overlay-config";
+// Energy overlay selection must be explicit at every product call site.
+// Environment flags may gate the laboratory UI but must never alter
+// public model calculations implicitly.
+// ⇒ Le service NE lit PLUS `QS_ENERGY_OVERLAY` : `overlay` défaute à "off" (socle public
+//   `4q-standard-v2`) ; les chemins produit passent "off" explicitement, le laboratoire Énergie
+//   passe "off"/"trend-v1" explicitement. `readEnergyOverlay` reste réservé aux scripts/concordance.
+import type { EnergyOverlayVersion } from "./energy-overlay-config";
 import {
   computeModelComparison,
   withCurrentMonthExcluded,
@@ -222,7 +228,16 @@ async function loadContext(overlay: EnergyOverlayVersion): Promise<QuadrantConte
     energyUsd = await getSeriesData(GLOBAL_ENERGY_ID);
     energyScores = energyTrendScores(computeEnergyTrendSignal(energyUsd));
   }
-  return { series, countries: ref.countries, usdPerUnit, oil, gold, overlay, energyUsd, energyScores };
+  return {
+    series,
+    countries: ref.countries,
+    usdPerUnit,
+    oil,
+    gold,
+    overlay,
+    energyUsd,
+    energyScores,
+  };
 }
 
 /** Devise source d'une série depuis le catalogue (repli USD). */
@@ -234,7 +249,11 @@ function seriesCurrency(ctx: QuadrantContext, id: string): string {
 async function loadSeries(
   config: QuadrantModelConfig,
   ctx: QuadrantContext,
-): Promise<{ signal: BuildModelInput; perf: QuadrantPerfInput; energyLocal: EconomicDataPoint[] | null }> {
+): Promise<{
+  signal: BuildModelInput;
+  perf: QuadrantPerfInput;
+  energyLocal: EconomicDataPoint[] | null;
+}> {
   const cur = (id: string) => seriesCurrency(ctx, id);
   const [equityPriceRaw, equityTRRaw, bondRaw, cashRaw, cpiRaw] = await Promise.all([
     getSeriesData(config.equityPriceId),
@@ -303,7 +322,11 @@ function runBacktest(
   energyLocal: EconomicDataPoint[] | null = null,
 ): BacktestResult {
   if (model.status !== "OK")
-    return { status: "MISSING_SERIES", countryCode, availability: availabilityOf("MISSING_SERIES") };
+    return {
+      status: "MISSING_SERIES",
+      countryCode,
+      availability: availabilityOf("MISSING_SERIES"),
+    };
   return backtestQuadrants({
     countryCode,
     weights: weightsFromModel(model),
@@ -351,7 +374,7 @@ export async function computeQuadrantsRealSeries(
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
   years: number | null = null,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
-  overlay: EnergyOverlayVersion = readEnergyOverlay(),
+  overlay: EnergyOverlayVersion = "off",
 ): Promise<QuadrantsRealSeries[]> {
   const ctx = await loadContext(overlay);
   return Promise.all(
@@ -384,7 +407,7 @@ export async function getCountryQuadrantModel(
   countryCode: string,
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
-  overlay: EnergyOverlayVersion = readEnergyOverlay(),
+  overlay: EnergyOverlayVersion = "off",
 ): Promise<CountryQuadrantModel> {
   const ctx = await loadContext(overlay);
   const config = deriveQuadrantConfig(countryCode, ctx.series, ctx.countries);
@@ -395,7 +418,11 @@ export async function getCountryQuadrantModel(
       signal: null,
       perf: null,
       model: { status: "MISSING_SERIES", countryCode, settings },
-      backtest: { status: "MISSING_SERIES", countryCode, availability: availabilityOf("MISSING_SERIES") },
+      backtest: {
+        status: "MISSING_SERIES",
+        countryCode,
+        availability: availabilityOf("MISSING_SERIES"),
+      },
     };
   }
 
@@ -442,7 +469,7 @@ export async function computeAllCountryQuadrantModels(
   settings: FourQuadrantsModelSettings = DEFAULT_FOUR_QUADRANTS_SETTINGS,
   years: number | null = null,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
-  overlay: EnergyOverlayVersion = readEnergyOverlay(),
+  overlay: EnergyOverlayVersion = "off",
 ): Promise<QuadrantModelRow[]> {
   const ctx = await loadContext(overlay);
   const codes = [
@@ -564,7 +591,7 @@ export async function computeModelComparisonForCountry(
   countryCode: string,
   opts: BrowneComparisonOptions,
   version: ModelVersion = DEFAULT_MODEL_VERSION,
-  overlay: EnergyOverlayVersion = readEnergyOverlay(),
+  overlay: EnergyOverlayVersion = "off",
 ): Promise<{ net: ModelComparisonResult; gross: ModelComparisonResult } | null> {
   const ctx = await loadContext(overlay);
   const config = deriveQuadrantConfig(countryCode, ctx.series, ctx.countries);

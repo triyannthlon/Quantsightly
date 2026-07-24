@@ -14,7 +14,8 @@ import { ACTIVE_MODEL_VERSION } from "./model-version-active";
 
 /** Charge les séries brutes (signal + perf) + config d'un pays (recalcul client-side du 4Q). */
 export async function loadCountryQuadrantModel(iso: string) {
-  const m = await getCountryQuadrantModel(iso);
+  // overlay "off" EXPLICITE : page publique → toujours socle 4q-standard-v2 (jamais l'ambiant).
+  const m = await getCountryQuadrantModel(iso, undefined, undefined, "off");
   return {
     config: m.config,
     dataQuality: m.dataQuality,
@@ -32,7 +33,8 @@ export async function loadQuadrantComparison(
   settings: FourQuadrantsModelSettings,
   years: number | null,
 ) {
-  return computeAllCountryQuadrantModels(settings, years, ACTIVE_MODEL_VERSION);
+  // Comparaison pays PUBLIQUE → overlay "off" explicite (jamais d'énergie ambiante).
+  return computeAllCountryQuadrantModels(settings, years, ACTIVE_MODEL_VERSION, "off");
 }
 
 /** Séries réelles (base 100) de 2–5 pays pour le comparateur multi-pays de vs Actions. */
@@ -41,7 +43,8 @@ export async function loadQuadrantsRealSeries(
   settings: FourQuadrantsModelSettings,
   years: number | null,
 ) {
-  return computeQuadrantsRealSeries(codes, settings, years, ACTIVE_MODEL_VERSION);
+  // vs Actions PUBLIQUE → overlay "off" explicite (jamais d'énergie ambiante).
+  return computeQuadrantsRealSeries(codes, settings, years, ACTIVE_MODEL_VERSION, "off");
 }
 
 /**
@@ -51,10 +54,12 @@ export async function loadQuadrantsRealSeries(
  * mêmes fenêtre / mode / coûts). `null` si le pays n'a pas de comparaison exploitable.
  */
 export async function loadModelComparison(countryCode: string, opts: BrowneComparisonOptions) {
+  // vs Browne PUBLIQUE → overlay "off" explicite (jamais d'énergie ambiante).
   const comparison = await computeModelComparisonForCountry(
     countryCode,
     opts,
     ACTIVE_MODEL_VERSION,
+    "off",
   );
   if (!comparison) return null;
   const crises = await listHistoricalCrises();

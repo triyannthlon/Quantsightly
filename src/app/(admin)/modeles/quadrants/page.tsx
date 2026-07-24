@@ -1,4 +1,7 @@
-import { getCountryQuadrantModel, listQuadrantCountries } from "@/lib/coredata/four-quadrants-service";
+import {
+  getCountryQuadrantModel,
+  listQuadrantCountries,
+} from "@/lib/coredata/four-quadrants-service";
 import { Lexique } from "@/components/custom/lexique/lexique";
 import { QuadrantsView } from "./quadrants-view";
 
@@ -63,7 +66,8 @@ const LEXIQUE_TERMS = [
 export default async function QuadrantsPage() {
   const [countries, initial] = await Promise.all([
     listQuadrantCountries(),
-    getCountryQuadrantModel(DEFAULT_COUNTRY),
+    // Rendu initial PUBLIC → overlay "off" explicite (jamais d'énergie ambiante).
+    getCountryQuadrantModel(DEFAULT_COUNTRY, undefined, undefined, "off"),
   ]);
 
   return (
@@ -72,8 +76,8 @@ export default async function QuadrantsPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">4 Quadrants — Portefeuille macro</h1>
           <p className="text-sm text-muted-foreground">
-            Une allocation de référence pilotée par le régime macroéconomique du pays : position dans le
-            plan activité × inflation, dynamique du régime et allocation cible.
+            Une allocation de référence pilotée par le régime macroéconomique du pays : position
+            dans le plan activité × inflation, dynamique du régime et allocation cible.
           </p>
         </div>
         <Lexique terms={LEXIQUE_TERMS} className="w-28" />
